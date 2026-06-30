@@ -1,12 +1,11 @@
 # KAIROS OS Agent Rules
 
-## Verification & Pull Requests (Keep One Door Open)
+## Verification (Local Review Workflow)
 When an evaluator agent has successfully verified a feature and is ready to mark it as PASS:
 1. Ensure all code is cleanly committed to the current branch.
-2. Push the branch to the remote repository (`git push -u origin <branch-name>`).
-3. If the GitHub CLI (`gh`) is available, use it to automatically open a Pull Request against the `main` branch.
-4. If `gh` is not available, provide the URL to the GitHub repository so the user can open the PR manually.
-5. After pushing, you MUST step out of your worktree folder (e.g., `cd C:\Dev\kairos-os`) and then run `git worktree remove <your-worktree-path> --force` to free the branch for the user.
+2. Do NOT push the branch or open a Pull Request. All agent-created branches must remain local.
+3. You MUST step out of your worktree folder (e.g., `cd C:\Dev\kairos-os`) and then run `git worktree remove <your-worktree-path> --force` to free the branch for the user.
+4. Notify the user that the branch is ready for their local review, testing, and manual PR creation.
 
 ## State File Persistence (No Amnesiac Loops)
 Whenever ANY agent modifies `state/progress.md` (e.g., to mark a task as DONE, or add a new task), you MUST perfectly preserve the "Agentic Ticketing Format". 

@@ -26,5 +26,8 @@ jobs:
           # Needed if the triage skill queries GitHub issues
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Install the Antigravity CLI
+          curl -fsSL https://antigravity.google/cli/install.sh | bash
+          
           # Run the Antigravity CLI in headless mode, instructing it to trigger the skill
-          npx antigravity-cli --headless --prompt "Run the morning-triage skill and update the state/progress.md file. Create a PR with your findings."
+          agy --headless --prompt "Run the morning-triage skill and update the state/progress.md file. Create a PR with your findings."
