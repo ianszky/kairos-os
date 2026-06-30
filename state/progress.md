@@ -47,3 +47,17 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 - [ ] `npm run test` or curl command against the endpoint succeeds.
 - [ ] The response is strictly formatted JSON (no markdown).
 
+
+---
+
+### 4. Redesign Android Home Screen to match mockup
+**Status:** DONE
+**Priority:** High
+**Context:** Redesign Android Home Screen to match mockup context/screen.png.
+**Reference Documents:** None
+**Technical Requirements:**
+- Update LauncherActivity.kt layout
+**Acceptance Criteria (For the Evaluator):**
+- [x] UI matches the described mockup elements (colors, layout, typography).
+- [x] App compiles without errors.
+- [x] Input functionality remains intact.

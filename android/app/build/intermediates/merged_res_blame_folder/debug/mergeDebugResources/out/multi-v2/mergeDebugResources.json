@@ -1644,6 +1644,23 @@
                     }
                 },
                 {
+                    "source": "C:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\1022a2bc-9a32-4031-8e63-abc59c28f4ee\\.system_generated\\worktrees\\subagent-Developer-for-Ticket-4-self-0ec73de0\\android\\app\\src\\main\\res\\values\\strings.xml",
+                    "from": {
+                        "startLines": "1",
+                        "startColumns": "4",
+                        "startOffsets": "17",
+                        "endColumns": "46",
+                        "endOffsets": "59"
+                    },
+                    "to": {
+                        "startLines": "196",
+                        "startColumns": "4",
+                        "startOffsets": "9661",
+                        "endColumns": "46",
+                        "endOffsets": "9703"
+                    }
+                },
+                {
                     "source": "C:\\Users\\Ian\\.gradle\\caches\\transforms-4\\cbd94405b90ada3a7098e86b678d1262\\transformed\\lifecycle-viewmodel-release\\res\\values\\values.xml",
                     "from": {
                         "startLines": "2",
@@ -1675,23 +1692,6 @@
                         "startOffsets": "8928",
                         "endColumns": "42",
                         "endOffsets": "8966"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\1022a2bc-9a32-4031-8e63-abc59c28f4ee\\.system_generated\\worktrees\\subagent-Developer-for-Ticket-2-self-326bba8f\\android\\app\\src\\main\\res\\values\\strings.xml",
-                    "from": {
-                        "startLines": "1",
-                        "startColumns": "4",
-                        "startOffsets": "17",
-                        "endColumns": "46",
-                        "endOffsets": "59"
-                    },
-                    "to": {
-                        "startLines": "196",
-                        "startColumns": "4",
-                        "startOffsets": "9661",
-                        "endColumns": "46",
-                        "endOffsets": "9703"
                     }
                 },
                 {
