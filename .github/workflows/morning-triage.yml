@@ -29,5 +29,5 @@ jobs:
           # Install the Antigravity CLI
           curl -fsSL https://antigravity.google/cli/install.sh | bash
           
-          # Run the Antigravity CLI in headless mode, instructing it to trigger the skill
-          agy --headless --prompt "Run the morning-triage skill and update the state/progress.md file. Create a PR with your findings."
+          # Run the Antigravity CLI non-interactively, instructing it to trigger the skill
+          agy --print "Run the morning-triage skill and update the state/progress.md file. Create a PR with your findings." --dangerously-skip-permissions
