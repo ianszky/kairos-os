@@ -1,11 +1,11 @@
-# KAIROS OS Hackathon Progress & Ticketing
+﻿# KAIROS OS Hackathon Progress & Ticketing
 
 This file serves as the permanent memory for the automated developer and evaluator agents. 
 Every open task must have **Context**, **Technical Requirements**, and **Acceptance Criteria** so agents can execute them autonomously without needing to constantly re-read the core PRD.
 
 ---
 
-## 🟢 COMPLETED TASKS
+## ðŸŸ¢ COMPLETED TASKS
 
 ### 1. Setup project repositories (Android + Next.js)
 **Status:** DONE
@@ -13,7 +13,7 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ---
 
-## 🔴 OPEN TASKS
+## ðŸ”´ OPEN TASKS
 
 ### 2. Implement Android Home Screen (Blinking Cursor UI)
 **Status:** DONE
