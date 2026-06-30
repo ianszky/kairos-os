@@ -27,4 +27,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Run the Antigravity CLI in headless mode, instructing it to trigger the skill
-          npx antigravity-cli --headless --prompt "Run the morning-triage skill and update the state/hackathon_progress.md file. Create a PR with your findings."
+          npx antigravity-cli --headless --prompt "Run the morning-triage skill and update the state/progress.md file. Create a PR with your findings."

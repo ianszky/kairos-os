@@ -6,7 +6,7 @@ description: "The Discovery move of our Loop Engineering setup. Reads project st
 # Morning Triage (Discovery Loop)
 
 ## Read (The Discovery Inputs)
-- Review the `state/hackathon_progress.md` file.
+- Review the `state/progress.md` file.
 - Check for any new open issues or pending architecture tasks.
 - Review recent commits to understand current context.
 
@@ -18,8 +18,18 @@ For each candidate finding, decide:
 - Only keep actionable findings that are ready for a worktree.
 
 ## Write (Persistence)
-Append your findings to `state/hackathon_progress.md` in the following format:
-| Finding | Source | Priority | Status |
+Append your findings to `state/progress.md`. You MUST use the Agentic Ticketing format. Do not use one-liners or tables.
+For each new ticket, write:
+### [Ticket ID]. [Ticket Title]
+**Status:** OPEN
+**Priority:** [High/Medium/Low]
+**Context:** [Why this needs to be built based on the PRD]
+**Technical Requirements:**
+- [Exact technical constraints]
+**Acceptance Criteria (For the Evaluator):**
+- [ ] [Testable condition 1]
+- [ ] [Testable condition 2]
+
 Commit the file so it survives clearing context.
 
 ## Hand Off
