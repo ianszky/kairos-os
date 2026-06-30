@@ -24,6 +24,7 @@ For each new ticket, write:
 **Status:** OPEN
 **Priority:** [High/Medium/Low]
 **Context:** [Why this needs to be built based on the PRD]
+**Reference Documents:** [List specific files in the `context/` directory the agent MUST read to understand the big picture for this ticket]
 **Technical Requirements:**
 - [Exact technical constraints]
 **Acceptance Criteria (For the Evaluator):**

@@ -11,7 +11,7 @@ When an evaluator agent has successfully verified a feature and is ready to mark
 ## State File Persistence (No Amnesiac Loops)
 Whenever ANY agent modifies `state/progress.md` (e.g., to mark a task as DONE, or add a new task), you MUST perfectly preserve the "Agentic Ticketing Format". 
 Do NOT revert the file to a simple table or one-liners. Every ticket must retain its:
-- **Status**, **Priority**, **Context**, **Technical Requirements**, and **Acceptance Criteria**.
+- **Status**, **Priority**, **Context**, **Reference Documents**, **Technical Requirements**, and **Acceptance Criteria**.
 If marking a task as DONE, change `Status: OPEN` to `Status: DONE` and do not delete its acceptance criteria.
 
 ## The Maker-Checker Loop (Generator & Evaluator)

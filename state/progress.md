@@ -19,6 +19,7 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 **Status:** OPEN
 **Priority:** High
 **Context:** KAIROS OS is a minimalist launcher that uses a "Disconnected by Design" philosophy. We are replacing the standard grid of distracting app icons with a completely blank canvas.
+**Reference Documents:** MUST READ `context/PROJECT_REQUIREMENTS_DOCUMENT.md` and `context/CONTEXT.md` to understand the philosophy of the blank canvas before writing code.
 **Technical Requirements:**
 - Build `LauncherActivity.kt` using Jetpack Compose.
 - The UI must consist of a completely blank screen with a single, highly visible text input field and a blinking cursor at the bottom or center.
@@ -35,6 +36,7 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 **Status:** OPEN
 **Priority:** High
 **Context:** The Android app is just a thin client. When the user submits an intent from the blinking cursor, it hits this backend endpoint to do the heavy AI lifting.
+**Reference Documents:** MUST READ `context/TECHNICAL_IMPLEMENTATION_DOCUMENT.md` (for the KairosResponse JSON standard) and `.agents/skills/kairos-architecture/SKILL.md`.
 **Technical Requirements:**
 - Create a Next.js App Router API route at `app/api/prompt/route.ts`.
 - It must accept a POST request containing a JSON payload with the user's `intent` string.
