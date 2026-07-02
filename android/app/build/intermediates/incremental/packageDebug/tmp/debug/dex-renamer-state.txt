@@ -1,13 +1,19 @@
-#Tue Jun 30 15:40:38 CST 2026
-base.0=C\:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\1022a2bc-9a32-4031-8e63-abc59c28f4ee\\.system_generated\\worktrees\\subagent-Developer-for-Ticket-4-self-0ec73de0\\android\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
-base.1=C\:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\1022a2bc-9a32-4031-8e63-abc59c28f4ee\\.system_generated\\worktrees\\subagent-Developer-for-Ticket-4-self-0ec73de0\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
-base.2=C\:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\1022a2bc-9a32-4031-8e63-abc59c28f4ee\\.system_generated\\worktrees\\subagent-Developer-for-Ticket-4-self-0ec73de0\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\3\\classes.dex
-base.3=C\:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\1022a2bc-9a32-4031-8e63-abc59c28f4ee\\.system_generated\\worktrees\\subagent-Developer-for-Ticket-4-self-0ec73de0\\android\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes2.dex
+#Thu Jul 02 17:13:33 CST 2026
+base.0=C\:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\e983ebce-83be-4d7b-a7ac-f4f73ef1dd74\\.system_generated\\worktrees\\subagent-kairos-developer-self-d94355e7\\android\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
+base.1=C\:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\e983ebce-83be-4d7b-a7ac-f4f73ef1dd74\\.system_generated\\worktrees\\subagent-kairos-developer-self-d94355e7\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
+base.2=C\:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\e983ebce-83be-4d7b-a7ac-f4f73ef1dd74\\.system_generated\\worktrees\\subagent-kairos-developer-self-d94355e7\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\13\\classes.dex
+base.3=C\:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\e983ebce-83be-4d7b-a7ac-f4f73ef1dd74\\.system_generated\\worktrees\\subagent-kairos-developer-self-d94355e7\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\3\\classes.dex
+base.4=C\:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\e983ebce-83be-4d7b-a7ac-f4f73ef1dd74\\.system_generated\\worktrees\\subagent-kairos-developer-self-d94355e7\\android\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\9\\classes.dex
+base.5=C\:\\Users\\Ian\\.gemini\\antigravity-cli\\brain\\e983ebce-83be-4d7b-a7ac-f4f73ef1dd74\\.system_generated\\worktrees\\subagent-kairos-developer-self-d94355e7\\android\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes2.dex
 path.0=classes.dex
 path.1=0/classes.dex
-path.2=3/classes.dex
-path.3=classes2.dex
+path.2=13/classes.dex
+path.3=3/classes.dex
+path.4=9/classes.dex
+path.5=classes2.dex
 renamed.0=classes.dex
 renamed.1=classes2.dex
 renamed.2=classes3.dex
 renamed.3=classes4.dex
+renamed.4=classes5.dex
+renamed.5=classes6.dex
