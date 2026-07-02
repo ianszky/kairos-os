@@ -1,20 +1,74 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
+import { KairosResponse } from '@/types/kairos';
 
-export async function POST(req: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await req.json();
-    const intentStr = (body.intent || body.prompt || '').toLowerCase();
+    const body = await request.json();
+    const intent = typeof body.intent === 'string' ? body.intent.toLowerCase() : '';
 
-    if (!intentStr) {
-      return NextResponse.json({ type: 'ERROR', text: 'No intent provided', meta: { timestamp: new Date().toISOString() } }, { status: 400 });
+    let responsePayload: KairosResponse;
+
+    if (intent.includes('alarm')) {
+      responsePayload = {
+        type: 'WIDGET',
+        widget: {
+          widgetType: 'ALARM_CONFIRM',
+          title: 'Open Clock',
+          items: [
+            {
+              id: 'clock_1',
+              primary: 'Opening the clock app',
+              secondary: 'Set your alarm',
+              icon: 'alarm'
+            }
+          ],
+          actions: [
+            {
+              label: 'Open Clock',
+              actionType: 'DEEP_LINK',
+              target: 'clock://open'
+            }
+          ]
+        },
+        meta: {
+          conversationId: 'mock-session-123',
+          timestamp: new Date().toISOString(),
+          model: 'mock-router'
+        }
+      };
+    } else {
+      responsePayload = {
+        type: 'WIDGET',
+        widget: {
+          widgetType: 'GENERIC_CARD',
+          title: 'Text Widget',
+          items: [
+            {
+              id: 'text_1',
+              primary: 'Generic text widget',
+              secondary: `You said: ${body.intent || 'nothing'}`,
+            }
+          ]
+        },
+        meta: {
+          conversationId: 'mock-session-123',
+          timestamp: new Date().toISOString(),
+          model: 'mock-router'
+        }
+      };
     }
 
-    if (intentStr.includes('alarm')) {
-      return NextResponse.json({ type: 'WIDGET', widget: { widgetType: 'ALARM_CONFIRM', title: 'Set Alarm', items: [{ id: '1', primary: 'Set alarm?', icon: 'alarm' }], actions: [{ label: 'Open Clock', actionType: 'DEEP_LINK', target: 'clock://alarm' }] }, meta: { timestamp: new Date().toISOString() } });
-    }
-
-    return NextResponse.json({ type: 'WIDGET', widget: { widgetType: 'GENERIC_CARD', title: 'Command', items: [{ id: '1', primary: intentStr, icon: 'info' }], actions: [{ label: 'Dismiss', actionType: 'DISMISS', target: '' }] }, meta: { timestamp: new Date().toISOString() } });
-  } catch (e) {
-    return NextResponse.json({ type: 'ERROR', text: 'Invalid JSON', meta: { timestamp: new Date().toISOString() } }, { status: 400 });
+    return NextResponse.json(responsePayload);
+  } catch (error) {
+    const errorResponse: KairosResponse = {
+      type: 'ERROR',
+      text: 'Failed to process request',
+      meta: {
+        conversationId: 'mock-session-123',
+        timestamp: new Date().toISOString(),
+        model: 'mock-router'
+      }
+    };
+    return NextResponse.json(errorResponse, { status: 400 });
   }
 }
