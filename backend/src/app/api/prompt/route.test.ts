@@ -1,9 +1,9 @@
-﻿import { POST } from './route';
+import { POST } from './route';
 import { NextRequest } from 'next/server';
 import { describe, it, expect } from 'vitest';
 
 describe('POST /api/prompt', () => {
-  const createRequest = (body: any) => {
+  const createRequest = (body: unknown) => {
     return new NextRequest('http://localhost/api/prompt', {
       method: 'POST',
       body: JSON.stringify(body),

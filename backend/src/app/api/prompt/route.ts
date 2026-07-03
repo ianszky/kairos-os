@@ -1,74 +1,40 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { KairosResponse } from '@/types/kairos';
+import { processIntent } from '@/lib/router/intent-router';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const intent = typeof body.intent === 'string' ? body.intent.toLowerCase() : '';
+    const prompt = typeof body.intent === 'string' ? body.intent : '';
+    const appTarget = typeof body.appTarget === 'string' ? body.appTarget : null;
 
-    let responsePayload: KairosResponse;
-
-    if (intent.includes('alarm')) {
-      responsePayload = {
-        type: 'WIDGET',
-        widget: {
-          widgetType: 'ALARM_CONFIRM',
-          title: 'Open Clock',
-          items: [
-            {
-              id: 'clock_1',
-              primary: 'Opening the clock app',
-              secondary: 'Set your alarm',
-              icon: 'alarm'
-            }
-          ],
-          actions: [
-            {
-              label: 'Open Clock',
-              actionType: 'DEEP_LINK',
-              target: 'clock://open'
-            }
-          ]
-        },
+    if (!prompt) {
+      return NextResponse.json({
+        type: 'ERROR',
+        text: 'Prompt is required',
         meta: {
           conversationId: 'mock-session-123',
           timestamp: new Date().toISOString(),
-          model: 'mock-router'
+          model: 'system'
         }
-      };
-    } else {
-      responsePayload = {
-        type: 'WIDGET',
-        widget: {
-          widgetType: 'GENERIC_CARD',
-          title: 'Text Widget',
-          items: [
-            {
-              id: 'text_1',
-              primary: 'Generic text widget',
-              secondary: `You said: ${body.intent || 'nothing'}`,
-            }
-          ]
-        },
-        meta: {
-          conversationId: 'mock-session-123',
-          timestamp: new Date().toISOString(),
-          model: 'mock-router'
-        }
-      };
+      } as KairosResponse, { status: 400 });
     }
 
+    const responsePayload = await processIntent(prompt, appTarget);
     return NextResponse.json(responsePayload);
-  } catch (error) {
+
+  } catch (error: unknown) {
+    console.error("API Route Error:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorResponse: KairosResponse = {
       type: 'ERROR',
-      text: 'Failed to process request',
+      text: `Failed to process request: ${errorMessage}`,
       meta: {
         conversationId: 'mock-session-123',
         timestamp: new Date().toISOString(),
-        model: 'mock-router'
+        model: 'system'
       }
     };
-    return NextResponse.json(errorResponse, { status: 400 });
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
