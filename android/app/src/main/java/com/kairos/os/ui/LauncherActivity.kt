@@ -45,10 +45,29 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.ui.text.font.Font
+import com.kairos.os.R
+import androidx.core.view.WindowCompat
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.SpanStyle
 
-val dotoFont = FontFamily.Monospace
+val dotoFont = FontFamily(
+    Font(R.font.doto_regular, FontWeight.Normal),
+    Font(R.font.doto_bold, FontWeight.Bold)
+)
 
-val KairosColors = lightColorScheme(
+val LightKairosColors = lightColorScheme(
+    primary = Color(0xFFFF6B00),
+    background = Color(0xFFFFFFFF),
+    surface = Color(0xFFF9F9F9),
+    onBackground = Color(0xFF0A0A0A),
+    onSurface = Color(0xFF0A0A0A),
+    surfaceVariant = Color(0xFFCCCCCC),
+    onSurfaceVariant = Color(0xFF444444)
+)
+
+val DarkKairosColors = darkColorScheme(
     primary = Color(0xFFFF6B00),
     background = Color(0xFF050505),
     surface = Color(0xFF111111),
@@ -69,13 +88,19 @@ val KairosTypography = Typography(
 class LauncherActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
-            MaterialTheme(colorScheme = KairosColors, typography = KairosTypography) {
+            var isDarkTheme by remember { mutableStateOf(true) }
+            val colorScheme = if (isDarkTheme) DarkKairosColors else LightKairosColors
+            MaterialTheme(colorScheme = colorScheme, typography = KairosTypography) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MindfulLauncherScreen()
+                    MindfulLauncherScreen(
+                        isDarkTheme = isDarkTheme,
+                        onThemeToggle = { isDarkTheme = !isDarkTheme }
+                    )
                 }
             }
         }
@@ -83,7 +108,7 @@ class LauncherActivity : ComponentActivity() {
 }
 
 @Composable
-fun MindfulLauncherScreen() {
+fun MindfulLauncherScreen(isDarkTheme: Boolean = true, onThemeToggle: () -> Unit = {}) {
     var isSidebarOpen by remember { mutableStateOf(false) }
     var isSettingsOpen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
@@ -141,6 +166,9 @@ fun MindfulLauncherScreen() {
             modifier = Modifier
                 .fillMaxSize()
                 .offset(x = animatedOffset.dp)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
         ) {
             Row(
                 modifier = Modifier
@@ -159,8 +187,8 @@ fun MindfulLauncherScreen() {
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Brightness4, contentDescription = "Toggle Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    IconButton(onClick = onThemeToggle) {
+                        Icon(if (isDarkTheme) Icons.Default.Brightness4 else Icons.Default.Brightness7, contentDescription = "Toggle Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     IconButton(onClick = { isSettingsOpen = true }) {
                         Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -226,15 +254,16 @@ fun MindfulLauncherScreen() {
                         BasicTextField(
                             value = termInput,
                             onValueChange = { termInput = it },
-                            textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 16.sp),
+                            textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 14.sp),
                             cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .heightIn(max = 100.dp)
                                 .focusRequester(focusRequester)
                                 .onFocusChanged { isTerminalFocused = it.isFocused },
                             decorationBox = { innerTextField ->
                                 if (termInput.isEmpty()) {
-                                    Text("Type to search or command...", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = dotoFont, fontSize = 16.sp))
+                                    Text("Type to search or command...", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = dotoFont, fontSize = 14.sp))
                                 }
                                 innerTextField()
                             },
@@ -258,10 +287,16 @@ fun MindfulLauncherScreen() {
                             Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant))
                             Spacer(modifier = Modifier.height(20.dp))
                             
-                            Row {
-                                Text("Intentional friction engaged for ", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                Text("${activeApp}.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
-                            }
+                            Text(
+                                buildAnnotatedString {
+                                    append("Intentional friction engaged for ")
+                                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                        append("$activeApp.")
+                                    }
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Spacer(modifier = Modifier.height(16.dp))
                             
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -352,6 +387,8 @@ fun MindfulLauncherScreen() {
                         .fillMaxHeight()
                         .background(MaterialTheme.colorScheme.background)
                         .border(1.dp, MaterialTheme.colorScheme.surfaceVariant)
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
                         .padding(24.dp)
                 ) {
                     Text("SYSTEM.LOGS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.1.sp)
@@ -390,6 +427,8 @@ fun MindfulLauncherScreen() {
                         .fillMaxHeight()
                         .background(MaterialTheme.colorScheme.background)
                         .border(1.dp, MaterialTheme.colorScheme.surfaceVariant)
+                        .statusBarsPadding()
+                        .navigationBarsPadding()
                         .padding(24.dp)
                 ) {
                     Text("SYS.CONFIG", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.1.sp)
@@ -451,24 +490,24 @@ fun ClockView() {
                     .background(Color.Transparent),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = "M", 
-                    style = TextStyle(
-                        fontFamily = dotoFont,
-                        fontSize = 48.sp,
-                        color = Color.Transparent,
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color(0xFFFF6B00).copy(alpha = 0.3f),
-                            blurRadius = 15f
-                        )
-                    )
-                )
-                Icon(
-                    Icons.Default.Widgets, 
-                    contentDescription = null, 
-                    modifier = Modifier.size(60.dp), 
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
+                val foregroundColor = MaterialTheme.colorScheme.onBackground
+                Canvas(modifier = Modifier.size(60.dp)) {
+                    // SVG ViewBox is 130.12 x 134.04
+                    // We scale to the canvas size
+                    val scaleX = size.width / 130.12f
+                    val scaleY = size.height / 134.04f
+                    val r = 15.42f * scaleX // Assuming uniform scaling
+
+                    val orange = Color(0xFFFF6B00)
+
+                    // Draw the 6 circles
+                    drawCircle(color = foregroundColor, radius = r, center = Offset(67.02f * scaleX, 67.02f * scaleY))
+                    drawCircle(color = foregroundColor, radius = r, center = Offset(114.7f * scaleX, 118.62f * scaleY))
+                    drawCircle(color = orange, radius = r, center = Offset(114.7f * scaleX, 15.42f * scaleY))
+                    drawCircle(color = foregroundColor, radius = r, center = Offset(15.42f * scaleX, 15.42f * scaleY))
+                    drawCircle(color = foregroundColor, radius = r, center = Offset(15.42f * scaleX, 67.02f * scaleY))
+                    drawCircle(color = foregroundColor, radius = r, center = Offset(15.42f * scaleX, 118.62f * scaleY))
+                }
             }
         }
         Text(
