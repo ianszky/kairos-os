@@ -2,3 +2,6 @@
 .venv/
 android/.gradle/
 node_modules/
+
+# Android build outputs
+**/build/

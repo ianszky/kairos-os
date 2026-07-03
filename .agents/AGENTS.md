@@ -1,21 +1,13 @@
 # KAIROS OS Agent Rules
 
-## Verification (Local Review Workflow)
-When an evaluator agent has successfully verified a feature and is ready to mark it as PASS:
-1. Ensure all code is cleanly committed to the current branch.
-2. Do NOT push the branch or open a Pull Request. All agent-created branches must remain local.
-3. You MUST step out of your worktree folder (e.g., `cd C:\Dev\kairos-os`) and then run `git worktree remove <your-worktree-path> --force` to free the branch for the user.
-4. Notify the user that the branch is ready for their local review, testing, and manual PR creation.
+## Branch Management
+- If the branch currently working on is the `main` branch, you MUST switch to a new branch before implementing anything. 
+- Make sure the new branch name clearly defines the features we are building.
 
-## State File Persistence (No Amnesiac Loops)
-Whenever ANY agent modifies `state/progress.md` (e.g., to mark a task as DONE, or add a new task), you MUST perfectly preserve the "Agentic Ticketing Format". 
-Do NOT revert the file to a simple table or one-liners. Every ticket must retain its:
-- **Status**, **Priority**, **Context**, **Reference Documents**, **Technical Requirements**, and **Acceptance Criteria**.
-If marking a task as DONE, change `Status: OPEN` to `Status: DONE` and do not delete its acceptance criteria.
+## Documentation & Tech Stack
+- Always refer to the `find-docs` skill to find the latest documentation when implementing code for various tech stacks.
+- Use the `mobile-android-design` skill for when building Jetpack Compose components.
+- Use the `context` folder: refer to the PRD document for the global overview, and the Tech implementation document for technical details.
 
-## The Maker-Checker Loop (Generator & Evaluator)
-Whenever a development task is initiated (e.g., via the `/goal` command or triggered by `morning-triage`), you MUST automatically follow the Maker-Checker workflow without the user explicitly asking:
-1. **The Generator:** Assign the work to the `kairos_developer` subagent in an isolated `Workspace: branch` environment. 
-2. **The Handoff:** The `kairos_developer` must NOT declare the task finished when it completes its draft. It must automatically spawn the `kairos_evaluator` subagent and hand off the work.
-3. **The Evaluator:** The `kairos_evaluator` acts as an adversarial QA. It runs tests and linters. If it finds issues, it kicks it back to the developer. 
-4. **Completion:** The loop only ends, and the state file is only updated, when the evaluator explicitly grants a `PASS`.
+## State Documentation
+- Always keep the `state.md` documentation updated to track progress.
