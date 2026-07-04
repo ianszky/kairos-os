@@ -3,7 +3,7 @@ import { executeComplexIntent } from '../mcp/tool-executor';
 import { buildResponseWidget } from '../response/response-builder';
 import { KairosResponse } from '@/types/kairos';
 
-export async function processIntent(prompt: string, explicitAppTarget: string | null): Promise<KairosResponse> {
+export async function processIntent(prompt: string, explicitAppTarget: string | null, userId: string): Promise<KairosResponse> {
   // 1. Classify the intent
   const classification = await classifyIntent(prompt, explicitAppTarget);
 
@@ -18,7 +18,7 @@ export async function processIntent(prompt: string, explicitAppTarget: string | 
   } else {
     // 3. Complex intent requiring Composio tool execution
     try {
-      rawResponseText = await executeComplexIntent(prompt, classification.appTarget);
+      rawResponseText = await executeComplexIntent(prompt, classification.appTarget, userId) || "";
     } catch (err: unknown) {
       console.error("Error executing complex intent:", err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';

@@ -1,11 +1,11 @@
-import { composio, KAIROS_MOCK_USER_ID } from './composio-client';
+import { composio } from './composio-client';
 import { ai } from '../ai/gemini-client';
 
-export async function executeComplexIntent(prompt: string, appTarget: string) {
+export async function executeComplexIntent(prompt: string, appTarget: string, userId: string) {
   const toolkits = ["googlesuper"]; // Requested by user to start with this
 
   // Fetch tools
-  const tools = await composio.tools.get(KAIROS_MOCK_USER_ID, {
+  const tools = await composio.tools.get(userId, {
     toolkits: toolkits,
     limit: 20, // Reasonable limit
   });
@@ -46,7 +46,7 @@ export async function executeComplexIntent(prompt: string, appTarget: string) {
     
     for (const fc of response.functionCalls) {
       try {
-        const result = await provider.executeToolCall(KAIROS_MOCK_USER_ID, {
+        const result = await provider.executeToolCall(userId, {
           name: fc.name,
           args: fc.args,
         });

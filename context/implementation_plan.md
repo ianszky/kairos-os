@@ -188,16 +188,16 @@ export const supabaseAdmin = createClient(
 );
 ```
 
-#### [NEW] `backend/src/proxy.ts` (Next.js 16 middleware)
+#### [NEW] `backend/src/proxy.ts` (Next.js 16 proxy convention)
 
-Auth middleware that validates the JWT on every API request and refreshes tokens.
+Proxy function that validates the JWT on every API request and refreshes tokens.
 
 ```typescript
-// proxy.ts — Next.js 16 middleware convention
+// proxy.ts — Next.js 16 proxy convention
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
   const supabase = createServerClient(/* ... cookie handlers ... */);
   const { data: { user } } = await supabase.auth.getUser();

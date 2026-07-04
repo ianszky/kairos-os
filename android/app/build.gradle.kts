@@ -1,10 +1,21 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.dagger.hilt.android")
-    id("kotlin-kapt")
+    id("com.google.devtools.ksp")
 }
+
+import java.util.Properties
+import java.io.FileInputStream
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
+}
+val supabaseUrl = localProperties.getProperty("SUPABASE_URL") ?: "https://<project-ref>.supabase.co"
+val supabaseAnonKey = localProperties.getProperty("SUPABASE_ANON_KEY") ?: "<anon-key>"
 
 android {
     namespace = "com.kairos.os"
@@ -16,6 +27,8 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "SUPABASE_URL", "\"$supabaseUrl\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"$supabaseAnonKey\"")
     }
 
     buildTypes {
@@ -30,6 +43,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -46,11 +60,25 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
+    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation("io.coil-kt:coil-svg:2.6.0")
     implementation("androidx.compose.material:material-icons-extended")
 
-    implementation("com.google.dagger:hilt-android:2.50")
-    kapt("com.google.dagger:hilt-compiler:2.50")
-    kapt("org.jetbrains.kotlin:kotlin-metadata-jvm:2.4.0")
+    implementation("com.google.dagger:hilt-android:2.60")
+    ksp("com.google.dagger:hilt-compiler:2.60")
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+    compileOnly("com.google.errorprone:error_prone_annotations:2.26.1")
+
+    // Supabase BOM
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.6.0"))
+    implementation("io.github.jan-tennert.supabase:auth-kt")
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+
+    // Ktor (required HTTP engine for supabase-kt)
+    implementation("io.ktor:ktor-client-android:3.4.3")
+
+    // Kotlin Serialization (required by supabase-kt)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
 }
 
 

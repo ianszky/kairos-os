@@ -1,9 +1,17 @@
 import { NextResponse } from 'next/server';
 import { KairosResponse } from '@/types/kairos';
 import { processIntent } from '@/lib/router/intent-router';
+import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     const prompt = typeof body.intent === 'string' ? body.intent : '';
     const appTarget = typeof body.appTarget === 'string' ? body.appTarget : null;
@@ -20,7 +28,9 @@ export async function POST(request: Request) {
       } as KairosResponse, { status: 400 });
     }
 
-    const responsePayload = await processIntent(prompt, appTarget);
+    // Bridge: pass the Supabase user ID into the intent processing logic
+    // where Composio will use it to create a session
+    const responsePayload = await processIntent(prompt, appTarget, user.id);
     return NextResponse.json(responsePayload);
 
   } catch (error: unknown) {

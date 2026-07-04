@@ -3,6 +3,14 @@ package com.kairos.os.ui
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
+import androidx.hilt.navigation.compose.hiltViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.status.SessionStatus
+import io.github.jan.supabase.auth.handleDeeplinks
+import javax.inject.Inject
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -85,9 +93,16 @@ val KairosTypography = Typography(
     labelSmall = TextStyle(fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 0.08.sp)
 )
 
+@AndroidEntryPoint
 class LauncherActivity : ComponentActivity() {
+
+    @Inject
+    lateinit var supabaseClient: SupabaseClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        supabaseClient.handleDeeplinks(intent)
+        
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
             var isDarkTheme by remember { mutableStateOf(true) }
@@ -97,18 +112,42 @@ class LauncherActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MindfulLauncherScreen(
-                        isDarkTheme = isDarkTheme,
-                        onThemeToggle = { isDarkTheme = !isDarkTheme }
-                    )
+                    val sessionStatus by supabaseClient.auth.sessionStatus.collectAsState()
+                    
+                    if (sessionStatus is SessionStatus.Authenticated) {
+                        val authViewModel: com.kairos.os.ui.viewmodels.AuthViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+                        MindfulLauncherScreen(
+                            isDarkTheme = isDarkTheme,
+                            onThemeToggle = { isDarkTheme = !isDarkTheme },
+                            onLogout = { authViewModel.signOut() }
+                        )
+                    } else {
+                        var currentAuthScreen by remember { mutableStateOf("login") }
+                        if (currentAuthScreen == "login") {
+                            com.kairos.os.ui.screens.LoginScreen(
+                                onLoginSuccess = { /* Automatically handled by session status */ },
+                                onNavigateToSignUp = { currentAuthScreen = "signup" }
+                            )
+                        } else {
+                            com.kairos.os.ui.screens.SignUpScreen(
+                                onSignUpSuccess = { /* Automatically handled by session status */ },
+                                onNavigateToLogin = { currentAuthScreen = "login" }
+                            )
+                        }
+                    }
                 }
             }
         }
     }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        supabaseClient.handleDeeplinks(intent)
+    }
 }
 
 @Composable
-fun MindfulLauncherScreen(isDarkTheme: Boolean = true, onThemeToggle: () -> Unit = {}) {
+fun MindfulLauncherScreen(isDarkTheme: Boolean = true, onThemeToggle: () -> Unit = {}, onLogout: () -> Unit = {}) {
     var isSidebarOpen by remember { mutableStateOf(false) }
     var isSettingsOpen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
@@ -461,6 +500,16 @@ fun MindfulLauncherScreen(isDarkTheme: Boolean = true, onThemeToggle: () -> Unit
                             }
                         }
                         Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant))
+                    }
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+                    
+                    OutlinedButton(
+                        onClick = onLogout,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("LOGOUT")
                     }
                 }
             }
