@@ -1,20 +1,39 @@
 package com.kairos.os.ui.components
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.kairos.os.domain.models.WidgetPayload
+import com.kairos.os.domain.models.WidgetAction
 import com.kairos.os.domain.models.WidgetItem
+import com.kairos.os.domain.models.WidgetPayload
 
 @Composable
-fun WidgetRenderer(widget: WidgetPayload) {
-    Card(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+fun WidgetRenderer(
+    widget: WidgetPayload,
+    onAction: (WidgetAction) -> Unit = {}
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        shape = RoundedCornerShape(12.dp),
+        border = borderStroke()
+    ) {
         Column(modifier = Modifier.padding(16.dp)) {
             widget.title?.let {
-                Text(text = it, style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
+                Text(text = it, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(12.dp))
             }
             when (widget.widgetType) {
                 "EMAIL_LIST" -> EmailListWidget(widget)
@@ -26,76 +45,107 @@ fun WidgetRenderer(widget: WidgetPayload) {
                 "DIGEST_SUMMARY" -> DigestSummaryWidget(widget)
                 else -> GenericCardWidget(widget)
             }
+            
+            if (!widget.actions.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                WidgetActionsRow(actions = widget.actions, onAction = onAction)
+            }
         }
     }
 }
 
 @Composable
+private fun borderStroke() = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.surfaceVariant)
+
+@Composable
 fun EmailListWidget(widget: WidgetPayload) {
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         widget.items.forEach { item ->
-            WidgetItemRow(item)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = item.primary.take(1).uppercase(),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = item.primary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
+                    item.secondary?.let {
+                        Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
 fun CalendarEventWidget(widget: WidgetPayload) {
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         widget.items.forEach { item ->
-            WidgetItemRow(item)
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.padding(end = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(item.metadata?.get("date") ?: "", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    Text(item.metadata?.get("time") ?: "", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = item.primary, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
+                    item.secondary?.let {
+                        Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
         }
     }
 }
 
 @Composable
 fun AlarmConfirmWidget(widget: WidgetPayload) {
-    Column {
-        widget.items.forEach { item ->
-            WidgetItemRow(item)
-        }
-    }
+    GenericCardWidget(widget)
 }
 
 @Composable
 fun NoteCardWidget(widget: WidgetPayload) {
-    Column {
-        widget.items.forEach { item ->
-            WidgetItemRow(item)
-        }
-    }
+    GenericCardWidget(widget)
 }
 
 @Composable
 fun MusicCardWidget(widget: WidgetPayload) {
-    Column {
-        widget.items.forEach { item ->
-            WidgetItemRow(item)
-        }
-    }
+    GenericCardWidget(widget)
 }
 
 @Composable
 fun SearchResultsWidget(widget: WidgetPayload) {
-    Column {
-        widget.items.forEach { item ->
-            WidgetItemRow(item)
-        }
-    }
+    GenericCardWidget(widget)
 }
 
 @Composable
 fun DigestSummaryWidget(widget: WidgetPayload) {
-    Column {
-        widget.items.forEach { item ->
-            WidgetItemRow(item)
-        }
-    }
+    GenericCardWidget(widget)
 }
 
 @Composable
 fun GenericCardWidget(widget: WidgetPayload) {
-    Column {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         widget.items.forEach { item ->
             WidgetItemRow(item)
         }
@@ -104,10 +154,35 @@ fun GenericCardWidget(widget: WidgetPayload) {
 
 @Composable
 fun WidgetItemRow(item: WidgetItem) {
-    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-        Text(text = item.primary, style = MaterialTheme.typography.bodyLarge)
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))
+            .padding(12.dp)
+    ) {
+        Text(text = item.primary, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
         item.secondary?.let {
-            Text(text = it, style = MaterialTheme.typography.bodySmall)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+fun WidgetActionsRow(actions: List<WidgetAction>, onAction: (WidgetAction) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        actions.forEach { action ->
+            OutlinedButton(
+                onClick = { onAction(action) },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+            ) {
+                Text(action.label, style = MaterialTheme.typography.labelSmall)
+            }
         }
     }
 }

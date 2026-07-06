@@ -31,7 +31,7 @@ export async function executeComplexIntent(prompt: string, appTarget: string, us
   // For safety, let's format it explicitly or check what wrapTools returns.
   // Actually, let's just use the ai.chats.create
   const chat = ai.chats.create({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
     config: {
       tools: [{ functionDeclarations: wrappedTools }],
       systemInstruction: "You are the KAIROS OS agent. You fulfill the user's intent by calling the necessary tools. Return a clear and concise summary of what you did or found."

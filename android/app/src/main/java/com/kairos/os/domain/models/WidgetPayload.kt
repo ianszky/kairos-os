@@ -1,5 +1,8 @@
 package com.kairos.os.domain.models
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class KairosResponse(
     val type: String,
     val widget: WidgetPayload? = null,
@@ -9,17 +12,20 @@ data class KairosResponse(
     val meta: ResponseMeta? = null
 )
 
+@Serializable
 data class AndroidIntentPayload(
     val action: String,
     val uri: String? = null
 )
 
+@Serializable
 data class ResponseMeta(
     val conversationId: String,
     val timestamp: String,
     val model: String
 )
 
+@Serializable
 data class WidgetPayload(
     val widgetType: String,
     val title: String? = null,
@@ -27,6 +33,7 @@ data class WidgetPayload(
     val actions: List<WidgetAction>? = null
 )
 
+@Serializable
 data class WidgetItem(
     val id: String,
     val primary: String,
@@ -35,6 +42,7 @@ data class WidgetItem(
     val metadata: Map<String, String>? = null
 )
 
+@Serializable
 data class WidgetAction(
     val label: String,
     val actionType: String,

@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.text.font.Font
@@ -99,6 +100,9 @@ class LauncherActivity : ComponentActivity() {
     @Inject
     lateinit var supabaseClient: SupabaseClient
 
+    @Inject
+    lateinit var apiClient: com.kairos.os.data.api.KairosApiClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         supabaseClient.handleDeeplinks(intent)
@@ -119,7 +123,8 @@ class LauncherActivity : ComponentActivity() {
                         MindfulLauncherScreen(
                             isDarkTheme = isDarkTheme,
                             onThemeToggle = { isDarkTheme = !isDarkTheme },
-                            onLogout = { authViewModel.signOut() }
+                            onLogout = { authViewModel.signOut() },
+                            apiClient = apiClient
                         )
                     } else {
                         var currentAuthScreen by remember { mutableStateOf("login") }
@@ -146,11 +151,34 @@ class LauncherActivity : ComponentActivity() {
     }
 }
 
+data class AppConnection(
+    val id: String,
+    val displayName: String,
+    val icon: String,
+    val category: String
+)
+
+val availableApps = listOf(
+    AppConnection("gmail", "Gmail", "📧", "productivity"),
+    AppConnection("google-calendar", "Calendar", "📅", "productivity"),
+    AppConnection("notes", "Notes", "📝", "productivity"),
+    AppConnection("alarm", "Alarm", "⏰", "utility"),
+    AppConnection("spotify", "Spotify", "🎵", "entertainment"),
+    AppConnection("browser", "Browser", "🌐", "utility"),
+)
+
 @Composable
-fun MindfulLauncherScreen(isDarkTheme: Boolean = true, onThemeToggle: () -> Unit = {}, onLogout: () -> Unit = {}) {
+fun MindfulLauncherScreen(
+    isDarkTheme: Boolean = true,
+    onThemeToggle: () -> Unit = {},
+    onLogout: () -> Unit = {},
+    apiClient: com.kairos.os.data.api.KairosApiClient
+) {
     var isSidebarOpen by remember { mutableStateOf(false) }
     var isSettingsOpen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
+    
+    val coroutineScope = rememberCoroutineScope()
     
     var termInput by remember { mutableStateOf("") }
     
@@ -159,27 +187,29 @@ fun MindfulLauncherScreen(isDarkTheme: Boolean = true, onThemeToggle: () -> Unit
     var selectedFrictionTime by remember { mutableStateOf<String?>(null) }
     var frictionReason by remember { mutableStateOf("") }
     
-    val prodApps = listOf("@google-docs", "@calendar", "@notes")
-    val distApps = listOf("@instagram", "@youtube", "@facebook")
+    var isAppDrawerOpen by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
 
     val focusRequester = remember { FocusRequester() }
     var isTerminalFocused by remember { mutableStateOf(false) }
 
     LaunchedEffect(termInput) {
-        val v = termInput.lowercase().trim()
-        if (prodApps.contains(v)) {
-            activeApp = v
-            isFrictionMode = false
-        } else if (distApps.contains(v)) {
-            activeApp = v
-            isFrictionMode = true
+        val atIndex = termInput.lastIndexOf('@')
+        if (atIndex != -1) {
+            val query = termInput.substring(atIndex + 1)
+            if (!query.contains(" ")) {
+                isAppDrawerOpen = true
+                searchQuery = query.lowercase()
+            } else {
+                isAppDrawerOpen = false
+            }
         } else {
-            activeApp = null
-            isFrictionMode = false
+            isAppDrawerOpen = false
         }
     }
 
-    val chatMessages = remember { mutableStateListOf<Pair<String, String>>() }
+    val interactions = remember { mutableStateListOf<com.kairos.os.domain.models.Interaction>() }
+    var isLoading by remember { mutableStateOf(false) }
     
     Box(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -245,32 +275,66 @@ fun MindfulLauncherScreen(isDarkTheme: Boolean = true, onThemeToggle: () -> Unit
                 if (!isChatOpen) {
                     ClockView()
                 } else {
-                    ChatView(messages = chatMessages)
+                    ChatView(interactions = interactions)
                 }
             }
 
             Column(modifier = Modifier.padding(24.dp)) {
-                AnimatedVisibility(visible = activeApp != null && !isFrictionMode) {
+                AnimatedVisibility(visible = isAppDrawerOpen) {
+                    val filteredApps = availableApps.filter { 
+                        it.id.contains(searchQuery, ignoreCase = true) || 
+                        it.displayName.contains(searchQuery, ignoreCase = true) 
+                    }
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp)
-                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
-                            .padding(16.dp)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), RoundedCornerShape(16.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                            .padding(8.dp)
                     ) {
-                        Text("QUICK ACCESS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Box(
-                            modifier = Modifier
-                                .background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))
-                                .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                                .clickable { termInput = ""; activeApp = null }
-                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        Text(
+                            text = "AVAILABLE CONNECTIONS", 
+                            style = MaterialTheme.typography.labelSmall, 
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                        )
+                        androidx.compose.foundation.lazy.LazyColumn(
+                            modifier = Modifier.heightIn(max = 200.dp)
                         ) {
-                            Row {
-                                Text("Launch ", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
-                                Text("${activeApp}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                            items(filteredApps.size) { index ->
+                                val app = filteredApps[index]
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            activeApp = app.id
+                                            isAppDrawerOpen = false
+                                            val atIndex = termInput.lastIndexOf('@')
+                                            if (atIndex != -1) {
+                                                termInput = termInput.substring(0, atIndex)
+                                            }
+                                        }
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(app.icon, fontSize = 20.sp)
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Column {
+                                        Text(app.displayName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
+                                        Text("@${app.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+                            }
+                            if (filteredApps.isEmpty()) {
+                                item {
+                                    Text(
+                                        "No connections found matching '@$searchQuery'", 
+                                        style = MaterialTheme.typography.bodyMedium, 
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -290,6 +354,18 @@ fun MindfulLauncherScreen(isDarkTheme: Boolean = true, onThemeToggle: () -> Unit
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(">", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         Spacer(modifier = Modifier.width(12.dp))
+                        if (activeApp != null) {
+                            Box(
+                                modifier = Modifier
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                    .clickable { activeApp = null }
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text("@$activeApp", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
                         BasicTextField(
                             value = termInput,
                             onValueChange = { termInput = it },
@@ -309,9 +385,32 @@ fun MindfulLauncherScreen(isDarkTheme: Boolean = true, onThemeToggle: () -> Unit
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                             keyboardActions = KeyboardActions(onGo = {
                                 if (termInput.isNotBlank() && !termInput.startsWith("@") && !termInput.startsWith("/")) {
+                                    val currentIntent = termInput
+                                    val currentTarget = activeApp
                                     isChatOpen = true
-                                    chatMessages.add("user" to termInput)
+                                    interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
+                                    isLoading = true
+                                    interactions.add(com.kairos.os.domain.models.Interaction.Loading())
                                     termInput = ""
+                                    activeApp = null
+
+                                    coroutineScope.launch {
+                                        try {
+                                            val response = apiClient.postPrompt(currentIntent, currentTarget)
+                                            interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                                        } catch (e: Exception) {
+                                            interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
+                                                com.kairos.os.domain.models.KairosResponse(
+                                                    type = "ERROR",
+                                                    text = "Failed to connect to AI: ${e.message}"
+                                                )
+                                            ))
+                                        } finally {
+                                            isLoading = false
+                                        }
+                                    }
                                 }
                             })
                         )
@@ -579,10 +678,11 @@ fun ClockView() {
 }
 
 @Composable
-fun ChatView(messages: List<Pair<String, String>>) {
+fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>) {
     val scrollState = rememberScrollState()
+    val context = androidx.compose.ui.platform.LocalContext.current
     
-    LaunchedEffect(messages.size) {
+    LaunchedEffect(interactions.size) {
         scrollState.animateScrollTo(scrollState.maxValue)
     }
 
@@ -599,8 +699,37 @@ fun ChatView(messages: List<Pair<String, String>>) {
         ChatBubble(isUser = false, text = "Intentional friction is the practice of adding deliberate delays or cognitive hurdles before accessing distracting environments. By requiring you to state an intention, it shifts your smartphone use from passive consumption to conscious engagement.")
         Spacer(modifier = Modifier.height(24.dp))
         
-        messages.forEach { (type, text) ->
-            ChatBubble(isUser = type == "user", text = if (type == "user") "> $text" else text)
+        interactions.forEach { interaction ->
+            when (interaction) {
+                is com.kairos.os.domain.models.Interaction.UserCommand -> {
+                    val prefix = if (interaction.appTarget != null) "@${interaction.appTarget} " else ""
+                    ChatBubble(isUser = true, text = "> $prefix${interaction.command}")
+                }
+                is com.kairos.os.domain.models.Interaction.AssistantResponse -> {
+                    if (interaction.response.widget != null) {
+                        com.kairos.os.ui.components.WidgetRenderer(
+                            widget = interaction.response.widget,
+                            onAction = { action ->
+                                if (action.actionType == "DEEP_LINK") {
+                                    try {
+                                        val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(action.target))
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                } else if (action.actionType == "DISMISS") {
+                                    interactions.remove(interaction)
+                                }
+                            }
+                        )
+                    } else if (interaction.response.text != null) {
+                        ChatBubble(isUser = false, text = interaction.response.text)
+                    }
+                }
+                is com.kairos.os.domain.models.Interaction.Loading -> {
+                    com.kairos.os.ui.components.TypingIndicator()
+                }
+            }
             Spacer(modifier = Modifier.height(24.dp))
         }
     }

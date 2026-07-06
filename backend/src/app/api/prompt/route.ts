@@ -28,6 +28,22 @@ export async function POST(request: Request) {
       } as KairosResponse, { status: 400 });
     }
 
+    // Pre-flight connection check for Composio
+    const { getConnectionStatus } = await import('@/lib/mcp/connection-manager');
+    const connectionStatus = await getConnectionStatus(user.id);
+    
+    if (!connectionStatus.connected) {
+      return NextResponse.json({
+        type: 'ERROR',
+        text: 'Please connect your Google account first.',
+        meta: {
+          conversationId: 'mock-session-123',
+          timestamp: new Date().toISOString(),
+          model: 'system'
+        }
+      } as KairosResponse, { status: 403 });
+    }
+
     // Bridge: pass the Supabase user ID into the intent processing logic
     // where Composio will use it to create a session
     const responsePayload = await processIntent(prompt, appTarget, user.id);

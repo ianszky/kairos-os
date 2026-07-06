@@ -55,7 +55,7 @@ export async function buildResponseWidget(text: string, appTarget: string): Prom
   };
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
     contents: `Convert the following text into a structured KAIROS OS widget payload for the appTarget "${appTarget}". Text:\n\n${text}`,
     config: {
       responseMimeType: "application/json",
@@ -73,7 +73,7 @@ export async function buildResponseWidget(text: string, appTarget: string): Prom
       meta: {
         conversationId: 'mock-session-123',
         timestamp: new Date().toISOString(),
-        model: 'gemini-2.5-flash'
+        model: 'gemini-3.5-flash'
       }
     };
   } catch (err) {
@@ -83,7 +83,7 @@ export async function buildResponseWidget(text: string, appTarget: string): Prom
       meta: {
         conversationId: 'mock-session-123',
         timestamp: new Date().toISOString(),
-        model: 'gemini-2.5-flash'
+        model: 'gemini-3.5-flash'
       }
     };
   }

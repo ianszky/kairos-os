@@ -7,6 +7,7 @@ import io.ktor.client.engine.android.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
+import io.ktor.client.call.body
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
@@ -31,8 +32,7 @@ class KairosApiClient @Inject constructor(
         }
     }
 
-    suspend fun postPrompt(intent: String, appTarget: String?): String {
-        // Fetch current valid session token from Supabase Auth
+    suspend fun postPrompt(intent: String, appTarget: String?): com.kairos.os.domain.models.KairosResponse {
         val session = supabaseClient.auth.currentSessionOrNull()
         val token = session?.accessToken
 
@@ -48,8 +48,40 @@ class KairosApiClient @Inject constructor(
             )
         }
         
-        // This MVP just returns string body, adjust as needed
-        // val responseBody = response.body<KairosResponse>() 
-        return response.status.toString()
+        return response.body()
+    }
+
+    suspend fun checkConnectionStatus(): Boolean {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken ?: return false
+
+        try {
+            val response = client.get("api/composio/connect/status") {
+                bearerAuth(token)
+            }
+            if (!response.status.isSuccess()) return false
+            val body = response.body<Map<String, Boolean>>()
+            return body["connected"] ?: false
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return false
+        }
+    }
+
+    suspend fun initiateConnection(): String? {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken ?: return null
+
+        try {
+            val response = client.get("api/composio/connect") {
+                bearerAuth(token)
+            }
+            if (!response.status.isSuccess()) return null
+            val body = response.body<Map<String, String>>()
+            return body["connectUrl"]
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
+        }
     }
 }
