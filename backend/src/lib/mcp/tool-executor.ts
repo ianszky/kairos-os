@@ -26,11 +26,14 @@ export async function executeComplexIntent(prompt: string, appTarget: string, us
     return obj;
   };
 
-  const functionDeclarations = tools.map((t: any) => ({
-    name: t.function.name,
-    description: t.function.description || 'No description',
-    parameters: cleanSchema(t.function.parameters),
-  }));
+  const functionDeclarations = tools.map((t: any) => {
+    const func = t.function || t;
+    return {
+      name: func.name,
+      description: func.description || 'No description',
+      parameters: cleanSchema(func.parameters),
+    };
+  });
 
   const provider = composio.provider as any; 
 
