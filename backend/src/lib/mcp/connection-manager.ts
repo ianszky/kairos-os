@@ -11,7 +11,7 @@ export async function getConnectionStatus(userId: string): Promise<{
     });
 
     const activeAccount = accounts.items?.find(
-      (acc: any) => acc.providerId === 'googlesuper' || acc.providerId === 'google' || acc.appId === 'googlesuper'
+      (acc: any) => acc.providerId === 'googlesuper' || acc.providerId === 'google' || acc.appId === 'googlesuper' || acc.authConfigId === 'ac_C16YuokUJota'
     );
 
     if (activeAccount) {
@@ -31,8 +31,7 @@ export async function initiateConnection(userId: string): Promise<{
   try {
     const connection = await composio.connectedAccounts.initiate(
       userId,
-      'googlesuper', // Target integration name/ID
-      {}
+      'ac_C16YuokUJota' // Auth Config ID for Google Super
     );
 
     return { connectUrl: connection.redirectUrl! };
