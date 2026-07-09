@@ -29,7 +29,7 @@ export async function initiateConnection(userId: string): Promise<{
   connectUrl: string;
 }> {
   try {
-    const connection = await composio.connectedAccounts.initiate(
+    const connection = await composio.connectedAccounts.link(
       userId,
       'ac_C16YuokUJota' // Auth Config ID for Google Super
     );
