@@ -11,7 +11,7 @@ export async function getConnectionStatus(userId: string): Promise<{
     });
 
     const activeAccount = accounts.items?.find(
-      (acc: any) => acc.providerId === 'googlesuper' || acc.providerId === 'google' || acc.appId === 'googlesuper' || acc.authConfigId === 'ac_C16YuokUJota'
+      (acc: any) => acc.toolkit?.slug === 'googlesuper' || acc.toolkit?.slug === 'google' || acc.authConfig?.id === 'ac_C16YuokUJota'
     );
 
     if (activeAccount) {
