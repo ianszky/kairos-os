@@ -6,7 +6,11 @@ import { createClient } from '@/lib/supabase/server';
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    const { data: { user } } = token 
+      ? await supabase.auth.getUser(token) 
+      : await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({
@@ -41,9 +45,22 @@ export async function POST(request: Request) {
     const connectionStatus = await getConnectionStatus(user.id);
     
     if (!connectionStatus.connected) {
+      const { initiateConnection } = await import('@/lib/mcp/connection-manager');
+      const connectData = await initiateConnection(user.id);
+
       return NextResponse.json({
-        type: 'ERROR',
-        text: 'Please connect your Google account first.',
+        type: 'WIDGET',
+        text: 'Please connect your Google account to use this feature.',
+        widget: {
+          widgetType: 'GENERIC_CARD',
+          title: 'Connection Required',
+          items: [
+            { id: 'auth_msg', primary: 'KAIROS OS needs access to your Google account (Gmail, Calendar, etc.) to perform this action.' }
+          ],
+          actions: [
+            { label: 'Connect Google', actionType: 'DEEP_LINK', target: connectData.connectUrl }
+          ]
+        },
         meta: {
           conversationId: 'mock-session-123',
           timestamp: new Date().toISOString(),
