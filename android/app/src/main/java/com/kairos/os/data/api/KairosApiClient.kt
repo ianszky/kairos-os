@@ -47,8 +47,27 @@ class KairosApiClient @Inject constructor(
                 )
             )
         }
-        
-        return response.body()
+
+        val rawText = response.body<String>()
+
+        // Try to deserialize as KairosResponse
+        return try {
+            kotlinx.serialization.json.Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            }.decodeFromString<com.kairos.os.domain.models.KairosResponse>(rawText)
+        } catch (e: Exception) {
+            // If deserialization fails (e.g. backend returned a non-KairosResponse shape),
+            // wrap it in a proper KairosResponse
+            com.kairos.os.domain.models.KairosResponse(
+                type = "ERROR",
+                text = if (!response.status.isSuccess()) {
+                    "Server error (${response.status.value}): $rawText"
+                } else {
+                    "Failed to parse server response: ${e.message}"
+                }
+            )
+        }
     }
 
     suspend fun checkConnectionStatus(): Boolean {

@@ -2,7 +2,7 @@ import { ai } from '../ai/gemini-client';
 import { KairosResponse } from '@/types/kairos';
 
 export async function buildResponseWidget(text: string, appTarget: string): Promise<KairosResponse> {
-  const schema = {
+  const jsonSchema = {
     type: "object",
     properties: {
       type: {
@@ -51,26 +51,28 @@ export async function buildResponseWidget(text: string, appTarget: string): Prom
         required: ["widgetType", "items"]
       }
     },
-    required: ["type"]
+    required: ["type"],
+    propertyOrdering: ["type", "text", "widget"]
   };
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-3.5-flash',
-    contents: `Convert the following text into a structured KAIROS OS widget payload for the appTarget "${appTarget}". Text:\n\n${text}`,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: schema,
-      temperature: 0.1,
-    }
-  });
-
   try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: `Convert the following text into a structured KAIROS OS widget payload for the appTarget "${appTarget}". Text:\n\n${text}`,
+      config: {
+        responseMimeType: "application/json",
+        responseJsonSchema: jsonSchema,
+        temperature: 0.1,
+      }
+    });
+
     const rawResult = response.text || "{}";
     const result = JSON.parse(rawResult);
 
-    return {
-      type: result.type || 'TEXT',
-      text: result.text || (result.type ? undefined : text),
+    // Ensure type is always present — spread result AFTER defaults
+    const payload: KairosResponse = {
+      type: 'TEXT',
+      text: text,
       ...result,
       meta: {
         conversationId: 'mock-session-123',
@@ -78,7 +80,15 @@ export async function buildResponseWidget(text: string, appTarget: string): Prom
         model: 'gemini-3.5-flash'
       }
     };
+
+    // Final safety net: if type is somehow still missing, force it
+    if (!payload.type) {
+      payload.type = 'TEXT';
+    }
+
+    return payload;
   } catch (err) {
+    console.error("Response builder error:", err);
     return {
       type: 'TEXT',
       text: text,

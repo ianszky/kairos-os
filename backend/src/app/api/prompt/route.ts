@@ -9,7 +9,15 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({
+        type: 'ERROR',
+        text: 'Unauthorized. Please sign in again.',
+        meta: {
+          conversationId: 'mock-session-123',
+          timestamp: new Date().toISOString(),
+          model: 'system'
+        }
+      } as KairosResponse, { status: 401 });
     }
 
     const body = await request.json();
