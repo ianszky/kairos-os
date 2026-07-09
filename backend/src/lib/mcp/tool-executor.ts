@@ -10,30 +10,34 @@ export async function executeComplexIntent(prompt: string, appTarget: string, us
     limit: 20, // Reasonable limit
   });
 
-  // The @composio/google provider has wrapTools
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // We manually map tools to Google GenAI FunctionDeclarations since @composio/google's wrapTools 
+  // sometimes strips the name, and Gemini rejects non-standard JSON schema keys like 'examples'.
+  const cleanSchema = (obj: any): any => {
+    if (Array.isArray(obj)) return obj.map(cleanSchema);
+    if (obj !== null && typeof obj === 'object') {
+      const newObj: any = {};
+      for (const key of Object.keys(obj)) {
+        if (!['examples', 'title', 'default'].includes(key)) {
+          newObj[key] = cleanSchema(obj[key]);
+        }
+      }
+      return newObj;
+    }
+    return obj;
+  };
+
+  const functionDeclarations = tools.map((t: any) => ({
+    name: t.function.name,
+    description: t.function.description || 'No description',
+    parameters: cleanSchema(t.function.parameters),
+  }));
+
   const provider = composio.provider as any; 
-  const wrappedTools = provider.wrapTools(tools);
 
-  // According to @google/genai docs, tools should be structured like: [{ functionDeclarations: [...] }]
-  // However, @composio/google might return the exact format needed for the array.
-  // We will assume wrappedTools is an array of GoogleGenAITool objects and pass it to `tools` directly,
-  // or wrapped inside { functionDeclarations: wrappedTools }.
-  // The README for @composio/google says:
-  // type GoogleGenAIToolCollection = GoogleTool[];
-  // Let's pass it as { functionDeclarations: wrappedTools } as that is the standard for the older REST API, 
-  // but for the new @google/genai SDK v2+, tools are just passed as an array of tool objects, or 
-  // if they are function declarations, `{ functionDeclarations: [...] }`.
-
-  // Let's try the newer @google/genai v2.9+ format which often accepts { functionDeclarations: wrappedTools }
-  // or simply the tools directly if they are already formatted.
-  
-  // For safety, let's format it explicitly or check what wrapTools returns.
-  // Actually, let's just use the ai.chats.create
   const chat = ai.chats.create({
     model: 'gemini-3.5-flash',
     config: {
-      tools: [{ functionDeclarations: wrappedTools }],
+      tools: [{ functionDeclarations }],
       systemInstruction: "You are the KAIROS OS agent. You fulfill the user's intent by calling the necessary tools. Return a clear and concise summary of what you did or found."
     }
   });
