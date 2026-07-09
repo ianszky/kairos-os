@@ -69,6 +69,8 @@ export async function buildResponseWidget(text: string, appTarget: string): Prom
     const result = JSON.parse(rawResult);
 
     return {
+      type: result.type || 'TEXT',
+      text: result.text || (result.type ? undefined : text),
       ...result,
       meta: {
         conversationId: 'mock-session-123',
