@@ -35,7 +35,11 @@ export async function proxy(request: NextRequest) {
   );
 
   // refreshing the auth token
-  const { data: { user } } = await supabase.auth.getUser();
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.replace('Bearer ', '');
+  const { data: { user } } = token 
+    ? await supabase.auth.getUser(token) 
+    : await supabase.auth.getUser();
 
   // Protect API routes but allow the auth callback to process code exchange
   if (request.nextUrl.pathname.startsWith('/api/') && !request.nextUrl.pathname.startsWith('/api/auth/') && !user) {

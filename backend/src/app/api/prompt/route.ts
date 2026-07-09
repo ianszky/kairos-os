@@ -8,11 +8,16 @@ export async function POST(request: Request) {
     const supabase = await createClient();
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.replace('Bearer ', '');
-    const { data: { user } } = token 
+    
+    console.log('[API/Prompt] Auth Header present:', !!authHeader);
+    console.log('[API/Prompt] Token length:', token?.length);
+
+    const { data: { user }, error: authError } = token 
       ? await supabase.auth.getUser(token) 
       : await supabase.auth.getUser();
 
     if (!user) {
+      console.log('[API/Prompt] User not found. Error:', authError);
       return NextResponse.json({
         type: 'ERROR',
         text: 'Unauthorized. Please sign in again.',

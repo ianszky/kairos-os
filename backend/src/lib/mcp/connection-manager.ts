@@ -10,7 +10,7 @@ export async function getConnectionStatus(userId: string): Promise<{
       statuses: ['ACTIVE'],
     });
 
-    const activeAccount = accounts.find(
+    const activeAccount = accounts.items?.find(
       (acc: any) => acc.providerId === 'googlesuper' || acc.providerId === 'google' || acc.appId === 'googlesuper'
     );
 
@@ -35,7 +35,7 @@ export async function initiateConnection(userId: string): Promise<{
       {}
     );
 
-    return { connectUrl: connection.redirectUrl };
+    return { connectUrl: connection.redirectUrl! };
   } catch (error) {
     console.error('Error initiating Composio connection:', error);
     throw new Error('Failed to initiate connection');
