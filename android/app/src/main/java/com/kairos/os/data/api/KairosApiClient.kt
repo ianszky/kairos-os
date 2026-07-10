@@ -32,7 +32,7 @@ class KairosApiClient @Inject constructor(
         }
     }
 
-    suspend fun postPrompt(intent: String, appTarget: String?): com.kairos.os.domain.models.KairosResponse {
+    suspend fun postPrompt(intent: String, appTarget: String?, sessionId: String? = null): com.kairos.os.domain.models.KairosResponse {
         val session = supabaseClient.auth.currentSessionOrNull()
         val token = session?.accessToken
 
@@ -43,8 +43,9 @@ class KairosApiClient @Inject constructor(
             setBody(
                 mapOf(
                     "intent" to intent,
-                    "appTarget" to appTarget
-                )
+                    "appTarget" to appTarget,
+                    "sessionId" to sessionId
+                ).filterValues { it != null }
             )
         }
 

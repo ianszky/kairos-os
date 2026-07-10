@@ -1,7 +1,10 @@
 import { ai } from '../ai/gemini-client';
 import { KairosResponse } from '@/types/kairos';
 
-export async function buildResponseWidget(text: string, appTarget: string): Promise<KairosResponse> {
+import { createClient as createServerClient } from '@/lib/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+export async function buildResponseWidget(text: string, appTarget: string, conversationId: string, token: string): Promise<KairosResponse> {
   const jsonSchema = {
     type: "object",
     properties: {
@@ -75,7 +78,7 @@ export async function buildResponseWidget(text: string, appTarget: string): Prom
       text: text,
       ...result,
       meta: {
-        conversationId: 'mock-session-123',
+        conversationId: conversationId,
         timestamp: new Date().toISOString(),
         model: 'gemini-3.5-flash'
       }
@@ -86,6 +89,28 @@ export async function buildResponseWidget(text: string, appTarget: string): Prom
       payload.type = 'TEXT';
     }
 
+    // Insert assistant message into Supabase
+    const supabase = token
+      ? createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            global: {
+              headers: { Authorization: `Bearer ${token}` }
+            }
+          }
+        )
+      : await createServerClient();
+      
+    await supabase.from('messages').insert({
+      conversation_id: conversationId,
+      role: 'assistant',
+      content: payload.text || text,
+      app_target: appTarget,
+      widget_payload: payload.widget || null,
+      model_tier: 'flash'
+    });
+
     return payload;
   } catch (err) {
     console.error("Response builder error:", err);
@@ -93,7 +118,7 @@ export async function buildResponseWidget(text: string, appTarget: string): Prom
       type: 'TEXT',
       text: text,
       meta: {
-        conversationId: 'mock-session-123',
+        conversationId: conversationId,
         timestamp: new Date().toISOString(),
         model: 'gemini-3.5-flash'
       }

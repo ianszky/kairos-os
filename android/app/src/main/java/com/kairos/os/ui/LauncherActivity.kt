@@ -174,6 +174,15 @@ fun MindfulLauncherScreen(
     onLogout: () -> Unit = {},
     apiClient: com.kairos.os.data.api.KairosApiClient
 ) {
+    val chatViewModel: com.kairos.os.ui.viewmodels.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val conversations by chatViewModel.conversations.collectAsState()
+    val currentConversationId by chatViewModel.currentConversationId.collectAsState()
+    val currentMessages by chatViewModel.currentMessages.collectAsState()
+
+    LaunchedEffect(Unit) {
+        chatViewModel.loadConversations()
+    }
+
     var isSidebarOpen by remember { mutableStateOf(false) }
     var isSettingsOpen by remember { mutableStateOf(false) }
     var isChatOpen by remember { mutableStateOf(false) }
@@ -210,6 +219,24 @@ fun MindfulLauncherScreen(
 
     val interactions = remember { mutableStateListOf<com.kairos.os.domain.models.Interaction>() }
     var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(currentMessages) {
+        if (currentMessages.isNotEmpty() || currentConversationId != null) {
+            interactions.clear()
+            currentMessages.forEach { msg ->
+                if (msg.role == "user") {
+                    interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(msg.content, msg.appTarget))
+                } else {
+                    val response = com.kairos.os.domain.models.KairosResponse(
+                        type = if (msg.widgetPayload != null) "WIDGET" else "TEXT",
+                        text = msg.content,
+                        widget = msg.widgetPayload
+                    )
+                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                }
+            }
+        }
+    }
     
     Box(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
@@ -250,7 +277,11 @@ fun MindfulLauncherScreen(
                         Icon(Icons.Default.Menu, contentDescription = "System Logs", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (isChatOpen) {
-                        IconButton(onClick = { isChatOpen = false }) {
+                        IconButton(onClick = { 
+                            isChatOpen = false 
+                            chatViewModel.selectConversation(null)
+                            interactions.clear()
+                        }) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
@@ -396,7 +427,11 @@ fun MindfulLauncherScreen(
 
                                     coroutineScope.launch {
                                         try {
-                                            val response = apiClient.postPrompt(currentIntent, currentTarget)
+                                            val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId)
+                                            if (currentConversationId == null && response.meta?.conversationId != null) {
+                                                chatViewModel.selectConversation(response.meta.conversationId)
+                                                chatViewModel.loadConversations()
+                                            }
                                             interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                             interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
                                         } catch (e: Exception) {
@@ -532,22 +567,28 @@ fun MindfulLauncherScreen(
                     Text("SYSTEM.LOGS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.1.sp)
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    val logs = listOf("> explain the concept of intentional friction" to "TODAY 09:42", "> summarize weekly screen time" to "YESTERDAY 18:30", "> /open @instagram 5m" to "MON 14:15")
-                    logs.forEach { (title, time) ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    isSidebarOpen = false
-                                    isChatOpen = true
-                                }
-                                .padding(vertical = 16.dp)
-                        ) {
-                            Text(title, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(time, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        items(conversations.size) { index ->
+                            val conv = conversations[index]
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        isSidebarOpen = false
+                                        chatViewModel.selectConversation(conv.id)
+                                        isChatOpen = true
+                                    }
+                                    .padding(vertical = 16.dp)
+                            ) {
+                                val displayTitle = conv.title ?: "New Conversation"
+                                Text(displayTitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                // Very basic date formatter fallback since we have ISO string
+                                val displayDate = conv.createdAt.take(10)
+                                Text(displayDate, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant))
                         }
-                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant))
                     }
                 }
             }
@@ -693,11 +734,6 @@ fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>)
             .verticalScroll(scrollState)
     ) {
         Spacer(modifier = Modifier.weight(1f))
-        
-        ChatBubble(isUser = true, text = "> explain the concept of intentional friction")
-        Spacer(modifier = Modifier.height(24.dp))
-        ChatBubble(isUser = false, text = "Intentional friction is the practice of adding deliberate delays or cognitive hurdles before accessing distracting environments. By requiring you to state an intention, it shifts your smartphone use from passive consumption to conscious engagement.")
-        Spacer(modifier = Modifier.height(24.dp))
         
         interactions.forEach { interaction ->
             when (interaction) {
