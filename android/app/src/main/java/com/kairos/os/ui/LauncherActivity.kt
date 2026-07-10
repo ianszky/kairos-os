@@ -60,6 +60,12 @@ import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
+import coil.compose.AsyncImage
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.KeyEventType
 
 val dotoFont = FontFamily(
     Font(R.font.doto_regular, FontWeight.Normal),
@@ -154,17 +160,59 @@ class LauncherActivity : ComponentActivity() {
 data class AppConnection(
     val id: String,
     val displayName: String,
-    val icon: String,
-    val category: String
+    val iconUrl: String? = null,
+    val iconDrawable: android.graphics.drawable.Drawable? = null,
+    val category: String,
+    val packageName: String? = null
 )
 
-val availableApps = listOf(
-    AppConnection("gmail", "Gmail", "📧", "productivity"),
-    AppConnection("google-calendar", "Calendar", "📅", "productivity"),
-    AppConnection("notes", "Notes", "📝", "productivity"),
-    AppConnection("alarm", "Alarm", "⏰", "utility"),
-    AppConnection("spotify", "Spotify", "🎵", "entertainment"),
-    AppConnection("browser", "Browser", "🌐", "utility"),
+val composioApps = listOf(
+    AppConnection("gmail", "Gmail", "https://logos.composio.dev/api/gmail", null, "productivity"),
+    AppConnection("composio", "Composio", "https://logos.composio.dev/api/composio", null, "developer"),
+    AppConnection("github", "Github", "https://logos.composio.dev/api/github", null, "developer"),
+    AppConnection("googlecalendar", "Google Calendar", "https://logos.composio.dev/api/googlecalendar", null, "productivity"),
+    AppConnection("notion", "Notion", "https://logos.composio.dev/api/notion", null, "productivity"),
+    AppConnection("googlesheets", "Google Sheets", "https://logos.composio.dev/api/googlesheets", null, "productivity"),
+    AppConnection("googledocs", "Google Docs", "https://logos.composio.dev/api/googledocs", null, "productivity"),
+    AppConnection("googlecontacts", "Google Contacts", "https://logos.composio.dev/api/googlecontacts", null, "productivity"),
+    AppConnection("googleforms", "Google Forms", "https://logos.composio.dev/api/googleforms", null, "productivity"),
+    AppConnection("googledrive", "Google Drive", "https://logos.composio.dev/api/googledrive", null, "storage"),
+    AppConnection("googletasks", "Google Tasks", "https://logos.composio.dev/api/googletasks", null, "productivity"),
+    AppConnection("googlemaps", "Google Maps", "https://logos.composio.dev/api/googlemaps", null, "utility"),
+    AppConnection("googlesuper", "Google Super", "https://logos.composio.dev/api/googlesuper", null, "productivity"),
+    AppConnection("googlechat", "Google Chat", "https://logos.composio.dev/api/googlechat", null, "communication"),
+    AppConnection("googleclassroom", "Google Classroom", "https://logos.composio.dev/api/googleclassroom", null, "productivity"),
+    AppConnection("googleslides", "Google Slides", "https://logos.composio.dev/api/googleslides", null, "productivity"),
+    AppConnection("googlephotos", "Google Photos", "https://logos.composio.dev/api/googlephotos", null, "utility"),
+    AppConnection("googlemeet", "Google Meet", "https://logos.composio.dev/api/googlemeet", null, "communication"),
+    AppConnection("slack", "Slack", "https://logos.composio.dev/api/slack", null, "communication"),
+    AppConnection("supabase", "Supabase", "https://logos.composio.dev/api/supabase", null, "developer"),
+    AppConnection("outlook", "Outlook", "https://logos.composio.dev/api/outlook", null, "productivity"),
+    AppConnection("twitter", "Twitter", "https://logos.composio.dev/api/twitter", null, "social"),
+    AppConnection("hubspot", "HubSpot", "https://logos.composio.dev/api/hubspot", null, "crm"),
+    AppConnection("linear", "Linear", "https://logos.composio.dev/api/linear", null, "productivity"),
+    AppConnection("airtable", "Airtable", "https://logos.composio.dev/api/airtable", null, "productivity"),
+    AppConnection("jira", "Jira", "https://logos.composio.dev/api/jira", null, "productivity"),
+    AppConnection("youtube", "Youtube", "https://logos.composio.dev/api/youtube", null, "media"),
+    AppConnection("slackbot", "Slackbot", "https://logos.composio.dev/api/slackbot", null, "communication"),
+    AppConnection("canvas", "Canvas", "https://logos.composio.dev/api/canvas", null, "education"),
+    AppConnection("bitbucket", "Bitbucket", "https://logos.composio.dev/api/bitbucket", null, "developer"),
+    AppConnection("discord", "Discord", "https://logos.composio.dev/api/discord", null, "communication"),
+    AppConnection("figma", "Figma", "https://logos.composio.dev/api/figma", null, "design"),
+    AppConnection("reddit", "Reddit", "https://logos.composio.dev/api/reddit", null, "social"),
+    AppConnection("browser", "Composio Search", "https://logos.composio.dev/api/browser", null, "utility"),
+    AppConnection("hackernews", "Hacker News", "https://logos.composio.dev/api/hackernews", null, "news"),
+    AppConnection("microsoftteams", "Microsoft Teams", "https://logos.composio.dev/api/microsoftteams", null, "communication"),
+    AppConnection("asana", "Asana", "https://logos.composio.dev/api/asana", null, "productivity"),
+    AppConnection("shopify", "Shopify", "https://logos.composio.dev/api/shopify", null, "commerce"),
+    AppConnection("linkedin", "LinkedIn", "https://logos.composio.dev/api/linkedin", null, "social"),
+    AppConnection("onedrive", "OneDrive", "https://logos.composio.dev/api/onedrive", null, "storage"),
+    AppConnection("docusign", "DocuSign", "https://logos.composio.dev/api/docusign", null, "productivity"),
+    AppConnection("discordbot", "Discord Bot", "https://logos.composio.dev/api/discordbot", null, "communication"),
+    AppConnection("salesforce", "Salesforce", "https://logos.composio.dev/api/salesforce", null, "crm"),
+    AppConnection("calendly", "Calendly", "https://logos.composio.dev/api/calendly", null, "productivity"),
+    AppConnection("trello", "Trello", "https://logos.composio.dev/api/trello", null, "productivity"),
+    AppConnection("dropbox", "Dropbox", "https://logos.composio.dev/api/dropbox", null, "storage")
 )
 
 @Composable
@@ -192,6 +240,30 @@ fun MindfulLauncherScreen(
 
     val focusRequester = remember { FocusRequester() }
     var isTerminalFocused by remember { mutableStateOf(false) }
+    
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val packageManager = context.packageManager
+    val installedApps = remember {
+        val intent = android.content.Intent(android.content.Intent.ACTION_MAIN, null).apply {
+            addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+        }
+        val resolveInfos = packageManager.queryIntentActivities(intent, 0)
+        resolveInfos.mapNotNull { resolveInfo ->
+            val packageName = resolveInfo.activityInfo.packageName
+            val appName = resolveInfo.loadLabel(packageManager).toString()
+            val icon = resolveInfo.loadIcon(packageManager)
+            
+            AppConnection(
+                id = appName.lowercase().replace(" ", "-"),
+                displayName = appName,
+                iconDrawable = icon,
+                category = "installed",
+                packageName = packageName
+            )
+        }.sortedBy { it.displayName }
+    }
+
+    val availableApps = remember { composioApps + installedApps }
 
     LaunchedEffect(termInput) {
         val atIndex = termInput.lastIndexOf('@')
@@ -318,7 +390,11 @@ fun MindfulLauncherScreen(
                                         .padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(app.icon, fontSize = 20.sp)
+                                    AsyncImage(
+                                        model = app.iconDrawable ?: app.iconUrl,
+                                        contentDescription = app.displayName,
+                                        modifier = Modifier.size(24.dp).clip(RoundedCornerShape(4.dp))
+                                    )
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Column {
                                         Text(app.displayName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
@@ -372,10 +448,18 @@ fun MindfulLauncherScreen(
                             textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 14.sp),
                             cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
                             modifier = Modifier
-                                .fillMaxWidth()
+                                .weight(1f)
                                 .heightIn(max = 100.dp)
                                 .focusRequester(focusRequester)
-                                .onFocusChanged { isTerminalFocused = it.isFocused },
+                                .onFocusChanged { isTerminalFocused = it.isFocused }
+                                .onKeyEvent { keyEvent ->
+                                    if (keyEvent.key == Key.Backspace && keyEvent.type == KeyEventType.KeyDown) {
+                                        if (termInput.isEmpty() && activeApp != null) {
+                                            activeApp = null
+                                            true
+                                        } else false
+                                    } else false
+                                },
                             decorationBox = { innerTextField ->
                                 if (termInput.isEmpty()) {
                                     Text("Type to search or command...", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = dotoFont, fontSize = 14.sp))
@@ -414,6 +498,51 @@ fun MindfulLauncherScreen(
                                 }
                             })
                         )
+                        
+                        val currentApp = availableApps.find { it.id == activeApp }
+                        if (currentApp?.packageName != null) {
+                            IconButton(onClick = {
+                                val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
+                                if (launchIntent != null) {
+                                    context.startActivity(launchIntent)
+                                }
+                            }) {
+                                Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+                        
+                        IconButton(onClick = {
+                            if (termInput.isNotBlank() && !termInput.startsWith("@") && !termInput.startsWith("/")) {
+                                val currentIntent = termInput
+                                val currentTarget = activeApp
+                                isChatOpen = true
+                                interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
+                                isLoading = true
+                                interactions.add(com.kairos.os.domain.models.Interaction.Loading())
+                                termInput = ""
+                                activeApp = null
+
+                                coroutineScope.launch {
+                                    try {
+                                        val response = apiClient.postPrompt(currentIntent, currentTarget)
+                                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                                    } catch (e: Exception) {
+                                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
+                                            com.kairos.os.domain.models.KairosResponse(
+                                                type = "ERROR",
+                                                text = "Failed to connect to AI: ${e.message}"
+                                            )
+                                        ))
+                                    } finally {
+                                        isLoading = false
+                                    }
+                                }
+                            }
+                        }) {
+                            Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary)
+                        }
                     }
 
                     AnimatedVisibility(visible = isFrictionMode) {
