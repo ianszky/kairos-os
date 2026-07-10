@@ -66,6 +66,11 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.TransformedText
+import androidx.compose.ui.text.input.OffsetMapping
+import coil.ImageLoader
+import coil.decode.SvgDecoder
 
 val dotoFont = FontFamily(
     Font(R.font.doto_regular, FontWeight.Normal),
@@ -239,7 +244,6 @@ fun MindfulLauncherScreen(
     
     var termInput by remember { mutableStateOf("") }
     
-    var activeApp by remember { mutableStateOf<String?>(null) }
     var isFrictionMode by remember { mutableStateOf(false) }
     var selectedFrictionTime by remember { mutableStateOf<String?>(null) }
     var frictionReason by remember { mutableStateOf("") }
@@ -273,6 +277,22 @@ fun MindfulLauncherScreen(
     }
 
     val availableApps = remember { composioApps + installedApps }
+    
+    val parsedActiveApp = remember(termInput) {
+        val firstWord = termInput.substringBefore(' ')
+        if (firstWord.startsWith("@")) {
+            val slug = firstWord.drop(1)
+            if (availableApps.any { it.id.equals(slug, ignoreCase = true) }) slug.lowercase() else null
+        } else null
+    }
+
+    val imageLoader = remember {
+        ImageLoader.Builder(context)
+            .components {
+                add(SvgDecoder.Factory())
+            }
+            .build()
+    }
 
     LaunchedEffect(termInput) {
         val atIndex = termInput.lastIndexOf('@')
@@ -411,18 +431,15 @@ fun MindfulLauncherScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            activeApp = app.id
+                                            termInput = "@${app.id} "
                                             isAppDrawerOpen = false
-                                            val atIndex = termInput.lastIndexOf('@')
-                                            if (atIndex != -1) {
-                                                termInput = termInput.substring(0, atIndex)
-                                            }
                                         }
                                         .padding(12.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     AsyncImage(
                                         model = app.iconDrawable ?: app.iconUrl,
+                                        imageLoader = imageLoader,
                                         contentDescription = app.displayName,
                                         modifier = Modifier.size(24.dp).clip(RoundedCornerShape(4.dp))
                                     )
@@ -461,18 +478,18 @@ fun MindfulLauncherScreen(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(">", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         Spacer(modifier = Modifier.width(12.dp))
-                        if (activeApp != null) {
-                            Box(
-                                modifier = Modifier
-                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                    .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                                    .clickable { activeApp = null }
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text("@$activeApp", color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodyMedium)
+                        
+                        val mentionVisualTransformation = remember {
+                            VisualTransformation { text ->
+                                val firstWord = text.text.substringBefore(' ')
+                                val builder = androidx.compose.ui.text.AnnotatedString.Builder(text.text)
+                                if (firstWord.startsWith("@")) {
+                                    builder.addStyle(SpanStyle(color = Color(0xFFFF6B00)), 0, firstWord.length)
+                                }
+                                TransformedText(builder.toAnnotatedString(), OffsetMapping.Identity)
                             }
-                            Spacer(modifier = Modifier.width(8.dp))
                         }
+
                         BasicTextField(
                             value = termInput,
                             onValueChange = { termInput = it },
@@ -482,15 +499,8 @@ fun MindfulLauncherScreen(
                                 .weight(1f)
                                 .heightIn(max = 100.dp)
                                 .focusRequester(focusRequester)
-                                .onFocusChanged { isTerminalFocused = it.isFocused }
-                                .onKeyEvent { keyEvent ->
-                                    if (keyEvent.key == Key.Backspace && keyEvent.type == KeyEventType.KeyDown) {
-                                        if (termInput.isEmpty() && activeApp != null) {
-                                            activeApp = null
-                                            true
-                                        } else false
-                                    } else false
-                                },
+                                .onFocusChanged { isTerminalFocused = it.isFocused },
+                            visualTransformation = mentionVisualTransformation,
                             decorationBox = { innerTextField ->
                                 if (termInput.isEmpty()) {
                                     Text("Type to search or command...", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = dotoFont, fontSize = 14.sp))
@@ -499,15 +509,14 @@ fun MindfulLauncherScreen(
                             },
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
                             keyboardActions = KeyboardActions(onGo = {
-                                if (termInput.isNotBlank() && !termInput.startsWith("@") && !termInput.startsWith("/")) {
-                                    val currentIntent = termInput
-                                    val currentTarget = activeApp
+                                if (termInput.isNotBlank() && !termInput.startsWith("/") && termInput != "@$parsedActiveApp") {
+                                    val currentIntent = if (parsedActiveApp != null) termInput.substringAfter(' ').trim() else termInput
+                                    val currentTarget = parsedActiveApp
                                     isChatOpen = true
                                     interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
                                     isLoading = true
                                     interactions.add(com.kairos.os.domain.models.Interaction.Loading())
                                     termInput = ""
-                                    activeApp = null
 
                                     coroutineScope.launch {
                                         try {
@@ -534,7 +543,7 @@ fun MindfulLauncherScreen(
                             })
                         )
                         
-                        val currentApp = availableApps.find { it.id == activeApp }
+                        val currentApp = availableApps.find { it.id == parsedActiveApp }
                         if (currentApp?.packageName != null) {
                             IconButton(onClick = {
                                 val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
@@ -547,15 +556,14 @@ fun MindfulLauncherScreen(
                         }
                         
                         IconButton(onClick = {
-                            if (termInput.isNotBlank() && !termInput.startsWith("@") && !termInput.startsWith("/")) {
-                                val currentIntent = termInput
-                                val currentTarget = activeApp
+                            if (termInput.isNotBlank() && !termInput.startsWith("/") && termInput != "@$parsedActiveApp") {
+                                val currentIntent = if (parsedActiveApp != null) termInput.substringAfter(' ').trim() else termInput
+                                val currentTarget = parsedActiveApp
                                 isChatOpen = true
                                 interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
                                 isLoading = true
                                 interactions.add(com.kairos.os.domain.models.Interaction.Loading())
                                 termInput = ""
-                                activeApp = null
 
                                 coroutineScope.launch {
                                     try {
@@ -593,7 +601,7 @@ fun MindfulLauncherScreen(
                                 buildAnnotatedString {
                                     append("Intentional friction engaged for ")
                                     withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                                        append("$activeApp.")
+                                        append("${parsedActiveApp ?: "unknown"}.")
                                     }
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
@@ -643,7 +651,7 @@ fun MindfulLauncherScreen(
                             
                             val isLaunchValid = selectedFrictionTime != null && frictionReason.trim().length > 2
                             Button(
-                                onClick = { termInput = ""; activeApp = null; frictionReason = ""; selectedFrictionTime = null },
+                                onClick = { termInput = ""; frictionReason = ""; selectedFrictionTime = null },
                                 enabled = isLaunchValid,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(8.dp),
