@@ -74,3 +74,7 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 - [x] UI components are implemented in android/ directory using Jetpack Compose.
 - [x] Models are implemented.
 - [x] App compiles without errors.
+
+### 6. Implement Chat History Management
+**Status:** DONE
+**Summary:** Replaced placeholder logs with Supabase-backed conversation tracking. Next.js creates conversations and generates titles, and the Android client uses ChatViewModel to render histories in the sidebar.

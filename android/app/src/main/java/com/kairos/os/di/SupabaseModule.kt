@@ -11,6 +11,11 @@ import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.auth.auth
 import javax.inject.Singleton
 
+import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.serializer.KotlinXSerializer
+import kotlinx.serialization.json.Json
+
 @Module
 @InstallIn(SingletonComponent::class)
 object SupabaseModule {
@@ -25,6 +30,9 @@ object SupabaseModule {
                 scheme = "kairos"    // deep link scheme
                 host = "login"      // deep link host
             }
+            install(Postgrest)
+            install(Realtime)
+            defaultSerializer = KotlinXSerializer(Json { ignoreUnknownKeys = true })
         }
     }
 

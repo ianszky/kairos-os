@@ -3,7 +3,7 @@ import { executeComplexIntent } from '../mcp/tool-executor';
 import { buildResponseWidget } from '../response/response-builder';
 import { KairosResponse } from '@/types/kairos';
 
-export async function processIntent(prompt: string, explicitAppTarget: string | null, userId: string): Promise<KairosResponse> {
+export async function processIntent(prompt: string, explicitAppTarget: string | null, userId: string, conversationId: string, token: string): Promise<KairosResponse> {
   // 1. Classify the intent
   const classification = await classifyIntent(prompt, explicitAppTarget);
 
@@ -27,5 +27,5 @@ export async function processIntent(prompt: string, explicitAppTarget: string | 
   }
 
   // 4. Build and return the structured UI widget
-  return await buildResponseWidget(rawResponseText, classification.appTarget);
+  return await buildResponseWidget(rawResponseText, classification.appTarget, conversationId, token);
 }
