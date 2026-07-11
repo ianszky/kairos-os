@@ -121,7 +121,7 @@ export async function POST(request: Request) {
       // Fire and forget title generation
       import('@/lib/ai/gemini-client').then(({ ai }) => {
         ai.models.generateContent({
-          model: 'gemini-3.5-flash',
+          model: 'gemini-3.1-flash-lite',
           contents: `Generate a short, 3 to 5 words title for a conversation that starts with this message: "${prompt}". Respond with ONLY the title and nothing else.`
         }).then(async (res) => {
           const generatedTitle = res.text?.trim().replace(/["']/g, '');

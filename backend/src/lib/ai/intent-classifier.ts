@@ -28,7 +28,7 @@ export async function classifyIntent(prompt: string, defaultAppTarget: string | 
   };
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3.5-flash',
+    model: 'gemini-3.1-flash-lite',
     contents: `Classify the following user command: "${prompt}"\n\nIf the user provided an @app tag implicitly or explicitly, use that as the basis for appTarget. Default app target given by system: ${defaultAppTarget || 'none'}.`,
     config: {
       responseMimeType: "application/json",
