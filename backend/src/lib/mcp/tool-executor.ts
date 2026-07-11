@@ -8,48 +8,38 @@ export async function executeComplexIntent(
   history: Array<{ role: string; content: string }>,
   userMemory: Record<string, any> | null
 ) {
-  const toolkits = ["googlesuper"]; // Requested by user to start with this
+  // Fallback mapping for generic terms
+  const appTargetMap: Record<string, string[]> = {
+    'generic': ['SEARCH'],
+    'browser': ['SEARCH', 'BROWSER'],
+    'clock': [], // Handled natively without composio
+    'none': ['SEARCH']
+  };
+
+  const normalizedTarget = appTarget.toLowerCase();
+  const toolkits = appTargetMap[normalizedTarget] || [normalizedTarget.toUpperCase()];
 
   console.log("[ToolExecutor] Starting executeComplexIntent for user:", userId);
   console.log("[ToolExecutor] Fetching tools for toolkits:", toolkits);
 
-  // Fetch tools
-  const tools = await composio.tools.get(userId, {
-    toolkits: toolkits,
-    limit: 20, // Reasonable limit
-  });
-
-  // We manually map tools to Google GenAI FunctionDeclarations since @composio/google's wrapTools 
-  // sometimes strips the name, and Gemini rejects non-standard JSON schema keys like 'examples'.
-  const cleanSchema = (obj: any): any => {
-    if (Array.isArray(obj)) return obj.map(cleanSchema);
-    if (obj !== null && typeof obj === 'object') {
-      const newObj: any = {};
-      for (const key of Object.keys(obj)) {
-        if (!['examples', 'title', 'default'].includes(key)) {
-          newObj[key] = cleanSchema(obj[key]);
-        }
-      }
-      return newObj;
+  let tools: any[] = [];
+  if (toolkits.length > 0) {
+    try {
+      tools = await composio.tools.get(userId, {
+        toolkits: toolkits,
+        limit: 20,
+      });
+    } catch (err) {
+      console.error("[ToolExecutor] Error fetching tools:", err);
     }
-    return obj;
-  };
-
-  const functionDeclarations = tools.map((t: any) => {
-    const func = t.function || t;
-    return {
-      name: func.name,
-      description: func.description || 'No description',
-      parameters: cleanSchema(func.parameters),
-    };
-  });
+  }
 
   const provider = composio.provider as any; 
 
   const chat = ai.chats.create({
     model: 'gemini-3-flash-preview',
     config: {
-      tools: [{ functionDeclarations }],
+      tools: tools.length > 0 ? [{ functionDeclarations: tools }] : [],
       systemInstruction: `You are the KAIROS OS agent. You fulfill the user's intent by calling the necessary tools. Return a clear and concise summary of what you did or found.
 Conversation History: ${JSON.stringify(history)}
 User Memory: ${JSON.stringify(userMemory)}`

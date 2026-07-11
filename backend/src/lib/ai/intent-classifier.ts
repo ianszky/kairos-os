@@ -17,7 +17,7 @@ export async function classifyIntent(prompt: string, defaultAppTarget: string | 
       },
       appTarget: {
         type: "string",
-        description: "The targeted application, e.g., 'gmail', 'calendar', 'clock'. If unsure, default to 'browser' or 'generic'."
+        description: "The targeted application slug. MUST be a valid Composio toolkit name like 'gmail', 'slack', 'github', 'googlecalendar'. Map names to simple single-word slugs (e.g., 'microsoft teams' -> 'slack' or 'teams'). If unsure, default to 'browser' or 'generic'."
       },
       reason: {
         type: "string",
