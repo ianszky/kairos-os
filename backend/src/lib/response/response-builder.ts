@@ -74,7 +74,7 @@ If the tool output contains structured data (like a list of emails, events, or a
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash',
+      model: 'gemini-3-flash-preview',
       contents: `System Context:\n${systemContext}\n\nUser Prompt:\n${prompt}\n\nTool Output:\n${rawToolOutput}`,
       config: {
         responseMimeType: "application/json",
@@ -93,7 +93,7 @@ If the tool output contains structured data (like a list of emails, events, or a
       meta: {
         conversationId: conversationId,
         timestamp: new Date().toISOString(),
-        model: 'gemini-3.1-flash'
+        model: 'gemini-3-flash-preview'
       }
     };
 
@@ -128,7 +128,7 @@ If the tool output contains structured data (like a list of emails, events, or a
       meta: {
         conversationId: conversationId,
         timestamp: new Date().toISOString(),
-        model: 'gemini-3.1-flash'
+        model: 'gemini-3-flash-preview'
       }
     };
   }

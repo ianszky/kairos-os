@@ -47,7 +47,7 @@ export async function executeComplexIntent(
   const provider = composio.provider as any; 
 
   const chat = ai.chats.create({
-    model: 'gemini-3.1-pro',
+    model: 'gemini-3-flash-preview',
     config: {
       tools: [{ functionDeclarations }],
       systemInstruction: `You are the KAIROS OS agent. You fulfill the user's intent by calling the necessary tools. Return a clear and concise summary of what you did or found.
