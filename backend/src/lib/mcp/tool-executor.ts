@@ -98,7 +98,15 @@ User Memory: ${JSON.stringify(userMemory)}`
           }
         });
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        let errorMessage = 'Unknown error';
+        if (err instanceof Error) {
+          errorMessage = err.message;
+          if ((err as any).response?.data) {
+            errorMessage += ` - Details: ${JSON.stringify((err as any).response.data)}`;
+          } else if ((err as any).error) {
+             errorMessage += ` - Details: ${JSON.stringify((err as any).error)}`;
+          }
+        }
         console.log(`[ToolExecutor] Error executing tool ${fc.name}:`, errorMessage);
         parts.push({
           functionResponse: {
