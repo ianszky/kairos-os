@@ -1,9 +1,9 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/types/database.types';
 
-export async function getProfile(supabase: SupabaseClient<any>, userId: string) {
+export async function getUser(supabase: SupabaseClient<any>, userId: string) {
   const { data, error } = await supabase
-    .from('profiles')
+    .from('users')
     .select('*')
     .eq('id', userId)
     .single();
@@ -12,9 +12,9 @@ export async function getProfile(supabase: SupabaseClient<any>, userId: string) 
   return data;
 }
 
-export async function updateProfile(supabase: SupabaseClient<any>, userId: string, updates: any) {
+export async function updateUser(supabase: SupabaseClient<any>, userId: string, updates: any) {
   const { data, error } = await supabase
-    .from('profiles')
+    .from('users')
     .update(updates)
     .eq('id', userId)
     .select()

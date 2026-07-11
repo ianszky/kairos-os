@@ -1,7 +1,7 @@
 import { ai } from './gemini-client';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { getProfile, updateProfile } from '../db/profiles';
+import { getUser, updateUser } from '../db/users';
 
 export async function getUserMemory(userId: string, token: string): Promise<Record<string, any> | null> {
   const supabase = token
@@ -13,8 +13,8 @@ export async function getUserMemory(userId: string, token: string): Promise<Reco
     : await createServerClient();
 
   try {
-    const profile = await getProfile(supabase, userId);
-    return profile?.memory_context || {};
+    const user = await getUser(supabase, userId);
+    return user?.memory_context || {};
   } catch (e) {
     console.error("Error fetching user memory:", e);
     return {};
@@ -60,7 +60,7 @@ Return ONLY valid JSON.`;
         )
       : await createServerClient();
 
-    await updateProfile(supabase, userId, { memory_context: newMemory });
+    await updateUser(supabase, userId, { memory_context: newMemory });
   } catch (e) {
     console.error("Error updating user memory:", e);
   }
