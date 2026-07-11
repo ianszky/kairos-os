@@ -371,7 +371,7 @@ fun MindfulLauncherScreen(
                     if (isChatOpen) {
                         IconButton(onClick = { 
                             isChatOpen = false 
-                            chatViewModel.selectConversation(null)
+                            chatViewModel.startNewConversation()
                             interactions.clear()
                         }) {
                             Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -521,10 +521,7 @@ fun MindfulLauncherScreen(
                                     coroutineScope.launch {
                                         try {
                                             val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId)
-                                            if (currentConversationId == null && response.meta?.conversationId != null) {
-                                                chatViewModel.selectConversation(response.meta.conversationId)
-                                                chatViewModel.loadConversations()
-                                            }
+                                            chatViewModel.onPromptResponse(response.meta?.conversationId)
                                             interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                             interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
                                         } catch (e: Exception) {
@@ -567,7 +564,8 @@ fun MindfulLauncherScreen(
 
                                 coroutineScope.launch {
                                     try {
-                                        val response = apiClient.postPrompt(currentIntent, currentTarget)
+                                        val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId)
+                                        chatViewModel.onPromptResponse(response.meta?.conversationId)
                                         interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                         interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
                                     } catch (e: Exception) {

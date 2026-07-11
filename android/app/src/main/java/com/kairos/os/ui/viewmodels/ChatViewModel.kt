@@ -92,12 +92,50 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Called after a successful postPrompt response.
+     * If this was the first message (new conversation), set the conversationId
+     * and refresh the sidebar list.
+     */
+    fun onPromptResponse(responseConversationId: String?) {
+        if (responseConversationId != null && _currentConversationId.value == null) {
+            _currentConversationId.value = responseConversationId
+        }
+        // Always refresh — handles title updates and new conversations
+        refreshConversations()
+    }
+
+    /**
+     * Reset state for a brand new conversation (e.g. when user presses Back).
+     * Does NOT clear the sidebar list.
+     */
+    fun startNewConversation() {
+        _currentConversationId.value = null
+        _currentMessages.value = emptyList()
+    }
+
     fun selectConversation(conversationId: String?) {
         _currentConversationId.value = conversationId
         if (conversationId != null) {
             loadMessages(conversationId)
         } else {
             _currentMessages.value = emptyList()
+        }
+    }
+
+    private fun refreshConversations() {
+        viewModelScope.launch {
+            try {
+                val result = supabaseClient.postgrest["conversations"]
+                    .select {
+                        order("updated_at", Order.DESCENDING)
+                    }
+                    .decodeList<Conversation>()
+                Log.d(TAG, "refreshConversations: fetched ${result.size} conversations")
+                _conversations.value = result
+            } catch (e: Exception) {
+                Log.e(TAG, "refreshConversations failed", e)
+            }
         }
     }
 

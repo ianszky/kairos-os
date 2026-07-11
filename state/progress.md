@@ -1,4 +1,4 @@
-﻿# KAIROS OS Hackathon Progress & Ticketing
+# KAIROS OS Hackathon Progress & Ticketing
 
 This file serves as the permanent memory for the automated developer and evaluator agents. 
 Every open task must have **Context**, **Technical Requirements**, and **Acceptance Criteria** so agents can execute them autonomously without needing to constantly re-read the core PRD.
@@ -78,3 +78,13 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 ### 6. Implement Chat History Management
 **Status:** DONE
 **Summary:** Replaced placeholder logs with Supabase-backed conversation tracking. Next.js creates conversations and generates titles, and the Android client uses ChatViewModel to render histories in the sidebar.
+
+### 7. Fix Conversation Persistence & Session Continuity
+**Status:** DONE
+**Summary:** Fixed three bugs causing every message to create a new conversation. Send button now passes conversationId, back button uses startNewConversation(), and sidebar refreshes after every response via onPromptResponse().
+**Branch:** `feature/fix-conversation-persistence`
+**Acceptance Criteria:**
+- [x] Multiple messages in same chat window stay in same conversation
+- [x] New conversations appear in sidebar immediately (no restart)
+- [x] Sidebar tapping loads full conversation history
+- [x] Back → new message creates a fresh conversation

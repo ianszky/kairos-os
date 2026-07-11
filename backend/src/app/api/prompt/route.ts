@@ -112,6 +112,11 @@ export async function POST(request: Request) {
       app_target: appTarget
     });
 
+    // Touch updated_at so sidebar ordering stays current
+    await supabase.from('conversations')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', conversationId);
+
     if (isNewConversation) {
       // Fire and forget title generation
       import('@/lib/ai/gemini-client').then(({ ai }) => {
