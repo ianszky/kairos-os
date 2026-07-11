@@ -8,6 +8,9 @@ export async function executeComplexIntent(
   history: Array<{ role: string; content: string }>,
   userMemory: Record<string, any> | null
 ) {
+  // Composio API V3 rejects raw UUIDs. We must strip the hyphens.
+  const composioUserId = userId.replace(/-/g, '');
+
   // Fallback mapping for generic terms
   const appTargetMap: Record<string, string[]> = {
     'generic': ['SEARCH'],
@@ -19,13 +22,13 @@ export async function executeComplexIntent(
   const normalizedTarget = appTarget.toLowerCase();
   const toolkits = appTargetMap[normalizedTarget] || [normalizedTarget.toUpperCase()];
 
-  console.log("[ToolExecutor] Starting executeComplexIntent for user:", userId);
+  console.log("[ToolExecutor] Starting executeComplexIntent for user:", composioUserId);
   console.log("[ToolExecutor] Fetching tools for toolkits:", toolkits);
 
   let tools: any[] = [];
   if (toolkits.length > 0) {
     try {
-      tools = await composio.tools.get(userId, {
+      tools = await composio.tools.get(composioUserId, {
         toolkits: toolkits,
         limit: 20,
       });
@@ -85,7 +88,7 @@ User Memory: ${JSON.stringify(userMemory)}`
     for (const fc of response.functionCalls) {
       console.log(`[ToolExecutor] Model requested function call: ${fc.name}`);
       try {
-        const result = await provider.executeToolCall(userId, {
+        const result = await provider.executeToolCall(composioUserId, {
           name: fc.name,
           args: fc.args,
         });
