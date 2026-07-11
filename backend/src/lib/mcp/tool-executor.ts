@@ -1,7 +1,13 @@
 import { composio } from './composio-client';
 import { ai } from '../ai/gemini-client';
 
-export async function executeComplexIntent(prompt: string, appTarget: string, userId: string) {
+export async function executeComplexIntent(
+  prompt: string, 
+  appTarget: string, 
+  userId: string,
+  history: Array<{ role: string; content: string }>,
+  userMemory: Record<string, any> | null
+) {
   const toolkits = ["googlesuper"]; // Requested by user to start with this
 
   // Fetch tools
@@ -41,7 +47,9 @@ export async function executeComplexIntent(prompt: string, appTarget: string, us
     model: 'gemini-3.5-flash',
     config: {
       tools: [{ functionDeclarations }],
-      systemInstruction: "You are the KAIROS OS agent. You fulfill the user's intent by calling the necessary tools. Return a clear and concise summary of what you did or found."
+      systemInstruction: `You are the KAIROS OS agent. You fulfill the user's intent by calling the necessary tools. Return a clear and concise summary of what you did or found.
+Conversation History: ${JSON.stringify(history)}
+User Memory: ${JSON.stringify(userMemory)}`
     }
   });
 

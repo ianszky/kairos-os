@@ -27,7 +27,7 @@ describe('POST /api/prompt', () => {
     const json = await res.json();
     
     expect(res.status).toBe(200);
-    expect(json.type).toBe('WIDGET');
+    expect(json.type).toBe('RESPONSE');
     expect(json.widget.widgetType).toBe('ALARM_CONFIRM');
     expect(json.meta).toHaveProperty('timestamp');
   });
@@ -38,7 +38,7 @@ describe('POST /api/prompt', () => {
     const json = await res.json();
     
     expect(res.status).toBe(200);
-    expect(json.type).toBe('WIDGET');
+    expect(json.type).toBe('RESPONSE');
     expect(json.widget.widgetType).toBe('GENERIC_CARD');
     expect(json.widget.items[0].primary).toBe('turn on the lights');
     expect(json.meta).toHaveProperty('timestamp');

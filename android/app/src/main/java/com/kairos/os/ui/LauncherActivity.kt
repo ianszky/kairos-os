@@ -71,6 +71,9 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.OffsetMapping
 import coil.ImageLoader
 import coil.decode.SvgDecoder
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.drawscope.Stroke
 
 val dotoFont = FontFamily(
     Font(R.font.doto_regular, FontWeight.Normal),
@@ -253,6 +256,7 @@ fun MindfulLauncherScreen(
 
     val focusRequester = remember { FocusRequester() }
     var isTerminalFocused by remember { mutableStateOf(false) }
+    var textLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
     val packageManager = context.packageManager
@@ -276,7 +280,7 @@ fun MindfulLauncherScreen(
         }.sortedBy { it.displayName }
     }
 
-    val availableApps = remember { composioApps + installedApps }
+    val availableApps = remember { (composioApps + installedApps).sortedBy { it.displayName } }
     
     val parsedActiveApp = remember(termInput) {
         val firstWord = termInput.substringBefore(' ')
@@ -447,6 +451,7 @@ fun MindfulLauncherScreen(
                                     Column {
                                         Text(app.displayName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
                                         Text("@${app.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(if (app.packageName != null) "App" else "Integration", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                             }
@@ -499,7 +504,41 @@ fun MindfulLauncherScreen(
                                 .weight(1f)
                                 .heightIn(max = 100.dp)
                                 .focusRequester(focusRequester)
-                                .onFocusChanged { isTerminalFocused = it.isFocused },
+                                .onFocusChanged { isTerminalFocused = it.isFocused }
+                                .drawBehind {
+                                    val layoutResult = textLayoutResult ?: return@drawBehind
+                                    val firstWord = termInput.substringBefore(' ')
+                                    if (firstWord.startsWith("@") && firstWord.length > 1 && layoutResult.layoutInput.text.text.startsWith(firstWord)) {
+                                        try {
+                                            val start = layoutResult.getBoundingBox(0)
+                                            val end = layoutResult.getBoundingBox(firstWord.length - 1)
+                                            val bgRect = androidx.compose.ui.geometry.Rect(
+                                                left = start.left,
+                                                top = start.top,
+                                                right = end.right,
+                                                bottom = start.bottom
+                                            )
+                                            val paddedRect = bgRect.inflate(2.dp.toPx())
+                                            val primaryColor = Color(0xFFFF6B00)
+                                            drawRoundRect(
+                                                color = primaryColor.copy(alpha = 0.2f),
+                                                topLeft = paddedRect.topLeft,
+                                                size = paddedRect.size,
+                                                cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                                            )
+                                            drawRoundRect(
+                                                color = primaryColor.copy(alpha = 0.5f),
+                                                topLeft = paddedRect.topLeft,
+                                                size = paddedRect.size,
+                                                style = Stroke(width = 1.dp.toPx()),
+                                                cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                                            )
+                                        } catch (e: Exception) {
+                                            // Ignore out of bounds
+                                        }
+                                    }
+                                },
+                            onTextLayout = { textLayoutResult = it },
                             visualTransformation = mentionVisualTransformation,
                             decorationBox = { innerTextField ->
                                 if (termInput.isEmpty()) {
@@ -877,7 +916,13 @@ fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>)
                     ChatBubble(isUser = true, text = "> $prefix${interaction.command}")
                 }
                 is com.kairos.os.domain.models.Interaction.AssistantResponse -> {
+                    if (!interaction.response.text.isNullOrBlank()) {
+                        ChatBubble(isUser = false, text = interaction.response.text)
+                    }
                     if (interaction.response.widget != null) {
+                        if (!interaction.response.text.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
                         com.kairos.os.ui.components.WidgetRenderer(
                             widget = interaction.response.widget,
                             onAction = { action ->
@@ -893,8 +938,6 @@ fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>)
                                 }
                             }
                         )
-                    } else if (interaction.response.text != null) {
-                        ChatBubble(isUser = false, text = interaction.response.text)
                     }
                 }
                 is com.kairos.os.domain.models.Interaction.Loading -> {

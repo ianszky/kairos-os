@@ -1,5 +1,5 @@
-﻿export interface KairosResponse {
-  type: 'WIDGET' | 'TEXT' | 'ANDROID_INTENT' | 'DEEP_LINK' | 'ERROR';
+export interface KairosResponse {
+  type: 'RESPONSE' | 'WIDGET' | 'TEXT' | 'ANDROID_INTENT' | 'DEEP_LINK' | 'ERROR';
   widget?: WidgetPayload;
   text?: string;
   intent?: AndroidIntentPayload;

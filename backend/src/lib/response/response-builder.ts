@@ -4,17 +4,22 @@ import { KairosResponse } from '@/types/kairos';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-export async function buildResponseWidget(text: string, appTarget: string, conversationId: string, token: string): Promise<KairosResponse> {
+export async function buildResponse(
+  prompt: string,
+  rawToolOutput: string,
+  appTarget: string,
+  conversationId: string,
+  token: string,
+  conversationHistory: Array<{ role: string; content: string }>,
+  userMemory: Record<string, any> | null
+): Promise<KairosResponse> {
   const jsonSchema = {
     type: "object",
     properties: {
-      type: {
-        type: "string",
-        enum: ["WIDGET", "TEXT", "ANDROID_INTENT", "DEEP_LINK", "ERROR"]
-      },
-      text: { type: "string" },
+      text: { type: "string", description: "The natural language response addressing the user's prompt directly." },
       widget: {
         type: "object",
+        description: "Optional. Include only if structured data needs to be displayed.",
         properties: {
           widgetType: {
             type: "string",
@@ -54,14 +59,23 @@ export async function buildResponseWidget(text: string, appTarget: string, conve
         required: ["widgetType", "items"]
       }
     },
-    required: ["type"],
-    propertyOrdering: ["type", "text", "widget"]
+    required: ["text"]
   };
+
+  const systemContext = `
+You are KAIROS OS. Your goal is to respond to the user concisely.
+Conversation History Context: ${JSON.stringify(conversationHistory)}
+User Memory Context: ${JSON.stringify(userMemory)}
+
+Generate a response for the user's prompt based on the provided tool output (if any).
+Provide a conversational "text" response. 
+If the tool output contains structured data (like a list of emails, events, or actionable items), ALSO populate the "widget" field.
+`;
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3.5-flash',
-      contents: `Convert the following text into a structured KAIROS OS widget payload for the appTarget "${appTarget}". Text:\n\n${text}`,
+      contents: `System Context:\n${systemContext}\n\nUser Prompt:\n${prompt}\n\nTool Output:\n${rawToolOutput}`,
       config: {
         responseMimeType: "application/json",
         responseJsonSchema: jsonSchema,
@@ -72,22 +86,16 @@ export async function buildResponseWidget(text: string, appTarget: string, conve
     const rawResult = response.text || "{}";
     const result = JSON.parse(rawResult);
 
-    // Ensure type is always present — spread result AFTER defaults
     const payload: KairosResponse = {
-      type: 'TEXT',
-      text: text,
-      ...result,
+      type: 'RESPONSE',
+      text: result.text || rawToolOutput || prompt,
+      widget: result.widget,
       meta: {
         conversationId: conversationId,
         timestamp: new Date().toISOString(),
         model: 'gemini-3.5-flash'
       }
     };
-
-    // Final safety net: if type is somehow still missing, force it
-    if (!payload.type) {
-      payload.type = 'TEXT';
-    }
 
     // Insert assistant message into Supabase
     const supabase = token
@@ -105,7 +113,7 @@ export async function buildResponseWidget(text: string, appTarget: string, conve
     await supabase.from('messages').insert({
       conversation_id: conversationId,
       role: 'assistant',
-      content: payload.text || text,
+      content: payload.text || "",
       app_target: appTarget,
       widget_payload: payload.widget || null,
       model_tier: 'flash'
@@ -115,8 +123,8 @@ export async function buildResponseWidget(text: string, appTarget: string, conve
   } catch (err) {
     console.error("Response builder error:", err);
     return {
-      type: 'TEXT',
-      text: text,
+      type: 'ERROR',
+      text: "Failed to generate response.",
       meta: {
         conversationId: conversationId,
         timestamp: new Date().toISOString(),
