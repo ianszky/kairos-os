@@ -22,6 +22,7 @@ export async function processIntent(prompt: string, explicitAppTarget: string | 
     rawResponseText = `User asked for a simple task. Intent was classified as simple. Action: ${prompt}`;
   } else {
     // 5. Complex intent requiring Composio tool execution
+    console.log(`[Router] Intent classified as COMPLEX. Routing to Composio for appTarget: ${classification.appTarget}`);
     try {
       rawResponseText = await executeComplexIntent(prompt, classification.appTarget, userId, history, userMemory) || "";
     } catch (err: unknown) {

@@ -10,6 +10,9 @@ export async function executeComplexIntent(
 ) {
   const toolkits = ["googlesuper"]; // Requested by user to start with this
 
+  console.log("[ToolExecutor] Starting executeComplexIntent for user:", userId);
+  console.log("[ToolExecutor] Fetching tools for toolkits:", toolkits);
+
   // Fetch tools
   const tools = await composio.tools.get(userId, {
     toolkits: toolkits,
@@ -53,6 +56,7 @@ User Memory: ${JSON.stringify(userMemory)}`
     }
   });
 
+  console.log("[ToolExecutor] Sending initial prompt to LLM...");
   let response = await chat.sendMessage({ message: prompt });
 
   // Handle agentic loop
@@ -60,12 +64,14 @@ User Memory: ${JSON.stringify(userMemory)}`
     const parts = [];
     
     for (const fc of response.functionCalls) {
+      console.log(`[ToolExecutor] Model requested function call: ${fc.name}`);
       try {
         const result = await provider.executeToolCall(userId, {
           name: fc.name,
           args: fc.args,
         });
 
+        console.log(`[ToolExecutor] Successfully executed tool: ${fc.name}`);
         parts.push({
           functionResponse: { 
             name: fc.name, 
@@ -74,6 +80,7 @@ User Memory: ${JSON.stringify(userMemory)}`
         });
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        console.log(`[ToolExecutor] Error executing tool ${fc.name}:`, errorMessage);
         parts.push({
           functionResponse: {
             name: fc.name,
@@ -90,5 +97,6 @@ User Memory: ${JSON.stringify(userMemory)}`
     }
   }
 
+  console.log("[ToolExecutor] Completed agentic loop. Returning final text.");
   return response.text;
 }
