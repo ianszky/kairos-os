@@ -8,30 +8,74 @@ export async function executeComplexIntent(
   history: Array<{ role: string; content: string }>,
   userMemory: Record<string, any> | null
 ) {
-  // Composio API V3 rejects raw UUIDs. We must strip the hyphens.
-  const composioUserId = userId.replace(/-/g, '');
-
-  // Fallback mapping for generic terms
+  // Fallback mapping for generic terms and unified connections
   const appTargetMap: Record<string, string[]> = {
-    'generic': ['SEARCH'],
-    'browser': ['SEARCH', 'BROWSER'],
+    'generic': ['search'],
+    'browser': ['search', 'browser'],
     'clock': [], // Handled natively without composio
-    'none': ['SEARCH']
+    'none': ['search'],
+    
+    // Map Google Workspace apps to googlesuper since they share a single connection
+    'gmail': ['googlesuper'],
+    'googlecalendar': ['googlesuper'],
+    'googlesheets': ['googlesuper'],
+    'googledocs': ['googlesuper'],
+    'googledrive': ['googlesuper'],
+    'googlecontacts': ['googlesuper'],
+    'googleforms': ['googlesuper'],
+    'googletasks': ['googlesuper'],
+    'googlemaps': ['googlesuper'],
+    'googlesuper': ['googlesuper'],
+    'googlechat': ['googlesuper'],
+    'googleclassroom': ['googlesuper'],
+    'googleslides': ['googlesuper'],
+    'googlephotos': ['googlesuper'],
+    'googlemeet': ['googlesuper'],
+    
+    // Map Android target keys to exact Composio slugs
+    'microsoftteams': ['microsoft_teams'],
+    'teams': ['microsoft_teams'],
+    'onedrive': ['one_drive']
   };
 
   const normalizedTarget = appTarget.toLowerCase();
-  const toolkits = appTargetMap[normalizedTarget] || [normalizedTarget.toUpperCase()];
+  const toolkits = appTargetMap[normalizedTarget] || [normalizedTarget];
 
-  console.log("[ToolExecutor] Starting executeComplexIntent for user:", composioUserId);
+  console.log("[ToolExecutor] Starting executeComplexIntent for user:", userId);
   console.log("[ToolExecutor] Fetching tools for toolkits:", toolkits);
 
   let tools: any[] = [];
   if (toolkits.length > 0) {
     try {
-      tools = await composio.tools.get(composioUserId, {
+      const filters: any = {
         toolkits: toolkits,
-        limit: 20,
-      });
+        limit: 50,
+      };
+
+      // If we are querying the unified googlesuper toolkit, search for the specific sub-app's tools dynamically
+      if (toolkits.includes('googlesuper') && normalizedTarget !== 'googlesuper') {
+        const searchTerms: Record<string, string> = {
+          'gmail': 'gmail',
+          'googlecalendar': 'calendar',
+          'googlesheets': 'sheets',
+          'googledocs': 'docs',
+          'googledrive': 'drive',
+          'googlecontacts': 'contacts',
+          'googleforms': 'forms',
+          'googletasks': 'tasks',
+          'googlemaps': 'maps',
+          'googlechat': 'chat',
+          'googleclassroom': 'classroom',
+          'googleslides': 'slides',
+          'googlephotos': 'photos',
+          'googlemeet': 'meet'
+        };
+        const search = searchTerms[normalizedTarget] || normalizedTarget;
+        filters.search = search;
+        filters.limit = 100; // Increase limit to ensure we capture all relevant tools in this category
+      }
+
+      tools = await composio.tools.get(userId, filters);
     } catch (err) {
       console.error("[ToolExecutor] Error fetching tools:", err);
     }
@@ -40,13 +84,27 @@ export async function executeComplexIntent(
   // We manually map tools to Google GenAI FunctionDeclarations since @composio/google's wrapTools 
   // sometimes doesn't strip out non-standard JSON schema keys like 'examples' or 'file_uploadable', 
   // which causes the Gemini API to throw HTTP 400.
-  const cleanSchema = (obj: any): any => {
-    if (Array.isArray(obj)) return obj.map(cleanSchema);
+  const cleanSchema = (obj: any, isPropertiesObject: boolean = false): any => {
+    if (Array.isArray(obj)) {
+      return obj.map(item => cleanSchema(item, false));
+    }
     if (obj !== null && typeof obj === 'object') {
       const newObj: any = {};
       for (const key of Object.keys(obj)) {
-        if (!['examples', 'title', 'default', 'file_uploadable'].includes(key)) {
-          newObj[key] = cleanSchema(obj[key]);
+        if (isPropertiesObject) {
+          // If this is a properties mapping, we preserve all keys (since they are parameter names),
+          // but we clean their schema values recursively.
+          newObj[key] = cleanSchema(obj[key], false);
+        } else {
+          // If this is a schema definition, we strip unsupported schema validation keywords.
+          const forbiddenKeywords = [
+            'examples', 'title', 'default', 'file_uploadable', 
+            'exclusiveMinimum', 'exclusiveMaximum', 'format',
+            'minLength', 'maxLength', 'pattern', 'minimum', 'maximum'
+          ];
+          if (!forbiddenKeywords.includes(key)) {
+            newObj[key] = cleanSchema(obj[key], key === 'properties');
+          }
         }
       }
       return newObj;
@@ -86,17 +144,20 @@ User Memory: ${JSON.stringify(userMemory)}`
     const parts = [];
     
     for (const fc of response.functionCalls) {
-      console.log(`[ToolExecutor] Model requested function call: ${fc.name}`);
+      const toolName = fc.name;
+      if (!toolName) continue;
+
+      console.log(`[ToolExecutor] Model requested function call: ${toolName}`);
       try {
-        const result = await provider.executeToolCall(composioUserId, {
-          name: fc.name,
+        const result = await provider.executeToolCall(userId, {
+          name: toolName,
           args: fc.args,
         });
 
-        console.log(`[ToolExecutor] Successfully executed tool: ${fc.name}`);
+        console.log(`[ToolExecutor] Successfully executed tool: ${toolName}`);
         parts.push({
           functionResponse: { 
-            name: fc.name, 
+            name: toolName, 
             response: typeof result === 'string' ? JSON.parse(result) : result 
           }
         });

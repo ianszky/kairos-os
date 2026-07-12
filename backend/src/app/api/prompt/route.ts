@@ -58,34 +58,6 @@ export async function POST(request: Request) {
       } as KairosResponse, { status: 400 });
     }
 
-    // Pre-flight connection check for Composio
-    const { getConnectionStatus } = await import('@/lib/mcp/connection-manager');
-    const connectionStatus = await getConnectionStatus(user.id);
-    
-    if (!connectionStatus.connected) {
-      const { initiateConnection } = await import('@/lib/mcp/connection-manager');
-      const connectData = await initiateConnection(user.id);
-
-      return NextResponse.json({
-        type: 'WIDGET',
-        text: 'Please connect your Google account to use this feature.',
-        widget: {
-          widgetType: 'GENERIC_CARD',
-          title: 'Connection Required',
-          items: [
-            { id: 'auth_msg', primary: 'KAIROS OS needs access to your Google account (Gmail, Calendar, etc.) to perform this action.' }
-          ],
-          actions: [
-            { label: 'Connect Google', actionType: 'DEEP_LINK', target: connectData.connectUrl }
-          ]
-        },
-        meta: {
-          conversationId: typeof body.sessionId === 'string' && body.sessionId ? body.sessionId : 'mock-session-123',
-          timestamp: new Date().toISOString(),
-          model: 'system'
-        }
-      } as KairosResponse, { status: 403 });
-    }
 
     let conversationId = typeof body.sessionId === 'string' && body.sessionId ? body.sessionId : null;
     let isNewConversation = false;

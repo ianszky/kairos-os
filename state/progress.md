@@ -5,7 +5,11 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ---
 
-## ðŸŸ¢ COMPLETED TASKS
+## 🟢 COMPLETED TASKS
+
+### 8. Implement Dynamic Composio Authentication & Hyphen Bug Fix
+**Status:** DONE
+**Summary:** Fixed the authentication layer for all Composio toolkits to generate connection prompts dynamically post-intent classification, and resolved the user ID identity split bug (retained hyphens across all tool executions).
 
 ### 1. Setup project repositories (Android + Next.js)
 **Status:** DONE
@@ -13,7 +17,18 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ---
 
-## ðŸ”´ OPEN TASKS
+## 🔴 OPEN TASKS
+
+### 9. Fix Composio Auth Config Mismatch for other integrations
+**Status:** DONE
+**Priority:** High
+**Context:** When a user connects other integrations (like microsoftteams), the redirect URL points to github due to Composio SDK list ignoring the toolkit filter parameter.
+**Reference Documents:** None
+**Technical Requirements:**
+- Manually filter the retrieved configurations list in `connection-manager.ts` by the target toolkit slug.
+**Acceptance Criteria:**
+- [x] Linking a new toolkit (like microsoftteams) dynamically creates a new configuration and returns the correct redirect URL.
+- [x] Linking an already-created configuration (like github) reuses the configuration.
 
 ### 2. Implement Android Home Screen (Blinking Cursor UI)
 **Status:** DONE
