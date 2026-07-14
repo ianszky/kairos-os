@@ -7,9 +7,41 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 10. Optimize Prompt-Response Pipeline
+**Status:** DONE
+**Summary:** Merged Response Builder LLM call into Tool Executor, migrated all cloud inference to stable Gemini 2.5 series, added COMPOSIO_ACTION_MAP for 13 toolkits to avoid schema bloat, added tool validation gate & retry loop, and updated test suite.
+
+### 9. Fix Composio Auth Config Mismatch for other integrations
+**Status:** DONE
+**Summary:** Fixed the auth configuration lookup in connection-manager.ts to ensure microsoftteams/slackbot and other integrations do not mismatch or redirect to GitHub.
+
 ### 8. Implement Dynamic Composio Authentication & Hyphen Bug Fix
 **Status:** DONE
 **Summary:** Fixed the authentication layer for all Composio toolkits to generate connection prompts dynamically post-intent classification, and resolved the user ID identity split bug (retained hyphens across all tool executions).
+
+### 7. Fix Conversation Persistence & Session Continuity
+**Status:** DONE
+**Summary:** Fixed three bugs causing every message to create a new conversation. Send button now passes conversationId, back button uses startNewConversation(), and sidebar refreshes after every response via onPromptResponse().
+
+### 6. Implement Chat History Management
+**Status:** DONE
+**Summary:** Replaced placeholder logs with Supabase-backed conversation tracking. Next.js creates conversations and generates titles, and the Android client uses ChatViewModel to render histories in the sidebar.
+
+### 5. Translate Main Design Prototype to Compose Components
+**Status:** DONE
+**Summary:** Implemented Jetpack Compose components for standard widgets (EmailListWidget, etc.) and domain models.
+
+### 4. Redesign Android Home Screen to match mockup
+**Status:** DONE
+**Summary:** Redesigned LauncherActivity.kt layout to match the blinking cursor minimal mockup.
+
+### 3. Setup Next.js Intent Router Endpoint (`/api/prompt/route.ts`)
+**Status:** DONE
+**Summary:** Implemented dynamic auth checks, integrated intent classification, and routed complex intents to Composio tool execution. Fully tested and verified.
+
+### 2. Implement Android Home Screen (Blinking Cursor UI)
+**Status:** DONE
+**Summary:** Scaffolded LauncherActivity.kt with Jetpack Compose blank screen and text field capturing user intents.
 
 ### 1. Setup project repositories (Android + Next.js)
 **Status:** DONE
@@ -19,87 +51,4 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🔴 OPEN TASKS
 
-### 9. Fix Composio Auth Config Mismatch for other integrations
-**Status:** DONE
-**Priority:** High
-**Context:** When a user connects other integrations (like microsoftteams), the redirect URL points to github due to Composio SDK list ignoring the toolkit filter parameter.
-**Reference Documents:** None
-**Technical Requirements:**
-- Manually filter the retrieved configurations list in `connection-manager.ts` by the target toolkit slug.
-**Acceptance Criteria:**
-- [x] Linking a new toolkit (like microsoftteams) dynamically creates a new configuration and returns the correct redirect URL.
-- [x] Linking an already-created configuration (like github) reuses the configuration.
-
-### 2. Implement Android Home Screen (Blinking Cursor UI)
-**Status:** DONE
-**Priority:** High
-**Context:** KAIROS OS is a minimalist launcher that uses a "Disconnected by Design" philosophy. We are replacing the standard grid of distracting app icons with a completely blank canvas.
-**Reference Documents:** MUST READ `context/PROJECT_REQUIREMENTS_DOCUMENT.md` and `context/CONTEXT.md` to understand the philosophy of the blank canvas before writing code.
-**Technical Requirements:**
-- Build `LauncherActivity.kt` using Jetpack Compose.
-- The UI must consist of a completely blank screen with a single, highly visible text input field and a blinking cursor at the bottom or center.
-- Above the text input, implement a scrollable `LazyColumn` for the "chronological feed" of interactions (currently empty, but needs the container).
-- The text field must capture user input (the "intent") and trigger a submit action.
-**Acceptance Criteria (For the Evaluator):**
-- [x] App compiles without errors.
-- [x] UI shows no app grid, only the minimalist text input.
-- [x] Entering text and submitting triggers a mock local function or toast.
-
----
-
-### 3. Setup Next.js Intent Router Endpoint (`/api/prompt/route.ts`)
-**Status:** OPEN
-**Priority:** High
-**Context:** The Android app is just a thin client. When the user submits an intent from the blinking cursor, it hits this backend endpoint to do the heavy AI lifting.
-**Reference Documents:** MUST READ `context/TECHNICAL_IMPLEMENTATION_DOCUMENT.md` (for the KairosResponse JSON standard) and `.agents/skills/kairos-architecture/SKILL.md`.
-**Technical Requirements:**
-- Create a Next.js App Router API route at `app/api/prompt/route.ts`.
-- It must accept a POST request containing a JSON payload with the user's `intent` string.
-- It must parse the intent and return a highly structured JSON response (matching the `KairosResponse` standard), NEVER raw markdown.
-- For now, implement a mock router: If the intent includes the word "alarm", return a JSON Widget instructing the client to open the clock. Otherwise, return a generic text widget JSON.
-**Acceptance Criteria (For the Evaluator):**
-- [ ] Endpoint accepts POST requests with valid JSON.
-- [ ] `npm run test` or curl command against the endpoint succeeds.
-- [ ] The response is strictly formatted JSON (no markdown).
-
-
----
-
-### 4. Redesign Android Home Screen to match mockup
-**Status:** DONE
-**Priority:** High
-**Context:** Redesign Android Home Screen to match mockup context/screen.png.
-**Reference Documents:** None
-**Technical Requirements:**
-- Update LauncherActivity.kt layout
-**Acceptance Criteria (For the Evaluator):**
-- [x] UI matches the described mockup elements (colors, layout, typography).
-- [x] App compiles without errors.
-- [x] Input functionality remains intact.
-
-### 5. Translate Main Design Prototype to Compose Components
-**Status:** DONE
-**Priority:** High
-**Context:** The architecture outlines a list of widget components. We need Kotlin + Jetpack Compose implementation of these UI components with placeholder data.
-**Reference Documents:** context/TECHNICAL_IMPLEMENTATION_DOCUMENT.md
-**Technical Requirements:**
-- Implement models for WidgetPayload, Interaction etc. in com.kairos.os.domain.models.
-- Implement WidgetRenderer and individual widgets (EmailListWidget, etc.) in com.kairos.os.ui.components.
-**Acceptance Criteria (For the Evaluator):**
-- [x] UI components are implemented in android/ directory using Jetpack Compose.
-- [x] Models are implemented.
-- [x] App compiles without errors.
-
-### 6. Implement Chat History Management
-**Status:** DONE
-**Summary:** Replaced placeholder logs with Supabase-backed conversation tracking. Next.js creates conversations and generates titles, and the Android client uses ChatViewModel to render histories in the sidebar.
-
-### 7. Fix Conversation Persistence & Session Continuity
-**Status:** DONE
-**Summary:** Fixed three bugs causing every message to create a new conversation. Send button now passes conversationId, back button uses startNewConversation(), and sidebar refreshes after every response via onPromptResponse().
-**Branch:** `feature/fix-conversation-persistence`
-**Acceptance Criteria:**
-- [x] Multiple messages in same chat window stay in same conversation
-- [x] New conversations appear in sidebar immediately (no restart)
-- [x] Sidebar tapping loads full conversation history
-- [x] Back → new message creates a fresh conversation
+*(No open tasks remaining in current backlog)*
