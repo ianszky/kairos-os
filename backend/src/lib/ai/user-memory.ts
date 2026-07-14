@@ -28,6 +28,16 @@ export async function updateUserMemoryAsync(
   currentMemory: Record<string, any> | null,
   token: string
 ): Promise<void> {
+  // Batch/Filter: Skip updates on simple conversational filler or non-preference queries
+  const skipPatterns = [
+    /^(hi|hello|hey|thanks|thank you|ok|sure|yes|no)/i,
+    /^(what|how|when|where|why|who)\s/i,
+  ];
+  
+  if (skipPatterns.some(p => p.test(prompt.trim()))) {
+    return; // Skip LLM call
+  }
+
   try {
     const updatePrompt = `Given this user interaction, extract any new facts about the user 
 (preferences, habits, personal info, work context) that should be 
@@ -41,7 +51,7 @@ System responded: ${response}
 Return ONLY valid JSON.`;
 
     const result = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-2.5-flash-lite',
       contents: updatePrompt,
       config: { 
         temperature: 0.1,

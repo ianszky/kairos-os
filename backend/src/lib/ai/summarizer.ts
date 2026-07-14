@@ -18,7 +18,7 @@ ${messages.map(m => `${m.role}: ${m.content}`).join('\n')}`;
 
   try {
     const result = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-2.5-flash-lite',
       contents: summaryPrompt,
       config: { temperature: 0.1 }
     });

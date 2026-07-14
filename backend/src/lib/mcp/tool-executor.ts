@@ -1,89 +1,68 @@
 import { composio } from './composio-client';
 import { ai } from '../ai/gemini-client';
+import { COMPOSIO_ACTION_MAP } from './action-map';
 
 export async function executeComplexIntent(
   prompt: string, 
   appTarget: string, 
   userId: string,
   history: Array<{ role: string; content: string }>,
-  userMemory: Record<string, any> | null
+  userMemory: Record<string, any> | null,
+  taskType: string = 'default',
+  inferredDetails: string = ''
 ) {
-  // Fallback mapping for generic terms and unified connections
-  const appTargetMap: Record<string, string[]> = {
-    'generic': ['search'],
-    'browser': ['search', 'browser'],
-    'clock': [], // Handled natively without composio
-    'none': ['search'],
-    
-    // Map Google Workspace apps to googlesuper since they share a single connection
-    'gmail': ['googlesuper'],
-    'googlecalendar': ['googlesuper'],
-    'googlesheets': ['googlesuper'],
-    'googledocs': ['googlesuper'],
-    'googledrive': ['googlesuper'],
-    'googlecontacts': ['googlesuper'],
-    'googleforms': ['googlesuper'],
-    'googletasks': ['googlesuper'],
-    'googlemaps': ['googlesuper'],
-    'googlesuper': ['googlesuper'],
-    'googlechat': ['googlesuper'],
-    'googleclassroom': ['googlesuper'],
-    'googleslides': ['googlesuper'],
-    'googlephotos': ['googlesuper'],
-    'googlemeet': ['googlesuper'],
-    
-    // Map Android target keys to exact Composio slugs
-    'microsoftteams': ['microsoft_teams'],
-    'teams': ['microsoft_teams'],
-    'onedrive': ['one_drive']
+  const normalizedTarget = appTarget.toLowerCase();
+  
+  // Normalize app targets to correct map keys
+  const targetMap: Record<string, string> = {
+    'teams': 'microsoftteams',
+    'microsoft_teams': 'microsoftteams',
+    'onedrive': 'onedrive',
+    'one_drive': 'onedrive',
+    'googlecalendar': 'googlecalendar',
+    'googlesheets': 'googlesheets',
+    'googledrive': 'googledrive',
+    'googletasks': 'googletasks',
+    'gmail': 'gmail',
+    'slack': 'slack',
+    'slackbot': 'slackbot',
+    'notion': 'notion',
+    'todoist': 'todoist',
+    'spotify': 'spotify',
+    'github': 'github',
+    'browser': 'search',
+    'generic': 'search'
   };
 
-  const normalizedTarget = appTarget.toLowerCase();
-  const toolkits = appTargetMap[normalizedTarget] || [normalizedTarget];
+  const mapKey = targetMap[normalizedTarget] || normalizedTarget;
+  
+  // Resolve slugs from actionMap
+  const appMapping = COMPOSIO_ACTION_MAP[mapKey];
+  const slugs = appMapping?.[taskType] || appMapping?.['default'] || [];
 
-  console.log("[ToolExecutor] Starting executeComplexIntent for user:", userId);
-  console.log("[ToolExecutor] Fetching tools for toolkits:", toolkits);
+  console.log(`[ToolExecutor] Resolved slugs for target ${mapKey} (intent: ${taskType}):`, slugs);
 
   let tools: any[] = [];
-  if (toolkits.length > 0) {
+  if (slugs.length > 0) {
     try {
-      const filters: any = {
-        toolkits: toolkits,
-        limit: 50,
-      };
-
-      // If we are querying the unified googlesuper toolkit, search for the specific sub-app's tools dynamically
-      if (toolkits.includes('googlesuper') && normalizedTarget !== 'googlesuper') {
-        const searchTerms: Record<string, string> = {
-          'gmail': 'gmail',
-          'googlecalendar': 'calendar',
-          'googlesheets': 'sheets',
-          'googledocs': 'docs',
-          'googledrive': 'drive',
-          'googlecontacts': 'contacts',
-          'googleforms': 'forms',
-          'googletasks': 'tasks',
-          'googlemaps': 'maps',
-          'googlechat': 'chat',
-          'googleclassroom': 'classroom',
-          'googleslides': 'slides',
-          'googlephotos': 'photos',
-          'googlemeet': 'meet'
-        };
-        const search = searchTerms[normalizedTarget] || normalizedTarget;
-        filters.search = search;
-        filters.limit = 100; // Increase limit to ensure we capture all relevant tools in this category
-      }
-
-      tools = await composio.tools.get(userId, filters);
+      tools = await composio.tools.get(userId, { tools: slugs });
     } catch (err) {
-      console.error("[ToolExecutor] Error fetching tools:", err);
+      console.error("[ToolExecutor] Error fetching tools by slug:", err);
+    }
+  } else {
+    // Fallback: search-based filtering with a tight limit to prevent bloat
+    try {
+      tools = await composio.tools.get(userId, {
+        toolkits: [mapKey],
+        search: prompt.substring(0, 100),
+        limit: 15,
+      });
+    } catch (err) {
+      console.error("[ToolExecutor] Fallback search tools retrieval failed:", err);
     }
   }
 
-  // We manually map tools to Google GenAI FunctionDeclarations since @composio/google's wrapTools 
-  // sometimes doesn't strip out non-standard JSON schema keys like 'examples' or 'file_uploadable', 
-  // which causes the Gemini API to throw HTTP 400.
+  // Schema cleanup utility to satisfy Gemini API constraints
   const cleanSchema = (obj: any, isPropertiesObject: boolean = false): any => {
     if (Array.isArray(obj)) {
       return obj.map(item => cleanSchema(item, false));
@@ -92,11 +71,8 @@ export async function executeComplexIntent(
       const newObj: any = {};
       for (const key of Object.keys(obj)) {
         if (isPropertiesObject) {
-          // If this is a properties mapping, we preserve all keys (since they are parameter names),
-          // but we clean their schema values recursively.
           newObj[key] = cleanSchema(obj[key], false);
         } else {
-          // If this is a schema definition, we strip unsupported schema validation keywords.
           const forbiddenKeywords = [
             'examples', 'title', 'default', 'file_uploadable', 
             'exclusiveMinimum', 'exclusiveMaximum', 'format',
@@ -124,23 +100,97 @@ export async function executeComplexIntent(
     });
   }
 
+  const validToolNames = new Set(functionDeclarations.map(fd => fd.name));
   const provider = composio.provider as any; 
 
+  const systemInstruction = `# KAIROS OS Agent
+
+## Role
+You are the backend agent for KAIROS OS. You fulfill the user's intent by calling the necessary tools.
+Return a structured JSON object containing your final response.
+
+## Critical Rules
+- You are STRICTLY limited to the tools provided. Never invent or guess tool names.
+- If a tool call fails, report the error. Do not retry with hallucinated names.
+- If the user's request is vague, make reasonable assumptions and proceed.
+- For multi-step tasks (e.g. logging to sheets), check/search for the resource first, create if missing, then write.
+
+## Response Format
+You must return your final output matching this exact JSON schema:
+{
+  "text": "Human-readable summary of what you did. Be detailed and helpful. Typical 2-4 sentences.",
+  "widget": { // Optional: include ONLY if you have structured details
+    "widgetType": "EMAIL_LIST|CALENDAR_EVENT|ALARM_CONFIRM|NOTE_CARD|MUSIC_CARD|SEARCH_RESULTS|GENERIC_CARD",
+    "title": "Title of the widget card",
+    "items": [{"id": "unique_id", "primary": "Main content", "secondary": "Subtitle info"}],
+    "actions": [{"label": "Action label", "actionType": "DEEP_LINK", "target": "deep link URL"}]
+  }
+}
+
+## Context
+Inferred task details: ${inferredDetails}
+Conversation History Context: ${JSON.stringify(history)}
+User Memory Context: ${JSON.stringify(userMemory)}`;
+
+  const jsonSchema = {
+    type: "object",
+    properties: {
+      text: { type: "string" },
+      widget: {
+        type: "object",
+        properties: {
+          widgetType: { type: "string" },
+          title: { type: "string" },
+          items: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                primary: { type: "string" },
+                secondary: { type: "string" }
+              },
+              required: ["id", "primary"]
+            }
+          },
+          actions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                label: { type: "string" },
+                actionType: { type: "string" },
+                target: { type: "string" }
+              },
+              required: ["label", "actionType", "target"]
+            }
+          }
+        },
+        required: ["widgetType", "items"]
+      }
+    },
+    required: ["text"]
+  };
+
   const chat = ai.chats.create({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-2.5-flash',
     config: {
       tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : [],
-      systemInstruction: `You are the KAIROS OS agent. You fulfill the user's intent by calling the necessary tools. Return a clear and concise summary of what you did or found.
-Conversation History: ${JSON.stringify(history)}
-User Memory: ${JSON.stringify(userMemory)}`
+      systemInstruction: systemInstruction,
+      responseMimeType: "application/json",
+      responseSchema: jsonSchema,
+      temperature: 0.2, // Lower temperature to avoid creative guesses
     }
   });
 
-  console.log("[ToolExecutor] Sending initial prompt to LLM...");
+  console.log("[ToolExecutor] Sending prompt to Gemini 2.5 Flash...");
   let response = await chat.sendMessage({ message: prompt });
 
-  // Handle agentic loop
-  while (response.functionCalls && response.functionCalls.length > 0) {
+  const MAX_ITERATIONS = 5;
+  let iterations = 0;
+
+  while (response.functionCalls && response.functionCalls.length > 0 && iterations < MAX_ITERATIONS) {
+    iterations++;
     const parts = [];
     
     for (const fc of response.functionCalls) {
@@ -148,13 +198,28 @@ User Memory: ${JSON.stringify(userMemory)}`
       if (!toolName) continue;
 
       console.log(`[ToolExecutor] Model requested function call: ${toolName}`);
+
+      // VALIDATION GATE: Catch hallucinated tool names
+      if (!validToolNames.has(toolName)) {
+        console.warn(`[ToolExecutor] Blocked hallucinated tool call: ${toolName}`);
+        parts.push({
+          functionResponse: { 
+            name: toolName, 
+            response: { 
+              error: `Tool "${toolName}" is not available in your toolset. Available tools: ${Array.from(validToolNames).join(', ')}. Select only from these.`
+            } 
+          }
+        });
+        continue;
+      }
+
       try {
         const result = await provider.executeToolCall(userId, {
           name: toolName,
           args: fc.args,
         });
 
-        console.log(`[ToolExecutor] Successfully executed tool: ${toolName}`);
+        console.log(`[ToolExecutor] Executed tool: ${toolName}`);
         parts.push({
           functionResponse: { 
             name: toolName, 
@@ -165,16 +230,11 @@ User Memory: ${JSON.stringify(userMemory)}`
         let errorMessage = 'Unknown error';
         if (err instanceof Error) {
           errorMessage = err.message;
-          if ((err as any).response?.data) {
-            errorMessage += ` - Details: ${JSON.stringify((err as any).response.data)}`;
-          } else if ((err as any).error) {
-             errorMessage += ` - Details: ${JSON.stringify((err as any).error)}`;
-          }
         }
-        console.log(`[ToolExecutor] Error executing tool ${fc.name}:`, errorMessage);
+        console.log(`[ToolExecutor] Tool execution error (${toolName}):`, errorMessage);
         parts.push({
           functionResponse: {
-            name: fc.name,
+            name: toolName,
             response: { error: errorMessage }
           }
         });
@@ -188,6 +248,6 @@ User Memory: ${JSON.stringify(userMemory)}`
     }
   }
 
-  console.log("[ToolExecutor] Completed agentic loop. Returning final text.");
+  console.log("[ToolExecutor] Completed loop. Returning final text payload.");
   return response.text;
 }

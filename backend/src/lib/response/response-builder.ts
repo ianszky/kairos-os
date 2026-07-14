@@ -1,6 +1,4 @@
-import { ai } from '../ai/gemini-client';
 import { KairosResponse } from '@/types/kairos';
-
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
@@ -13,78 +11,10 @@ export async function buildResponse(
   conversationHistory: Array<{ role: string; content: string }>,
   userMemory: Record<string, any> | null
 ): Promise<KairosResponse> {
-  const jsonSchema = {
-    type: "object",
-    properties: {
-      text: { type: "string", description: "The natural language response addressing the user's prompt directly." },
-      widget: {
-        type: "object",
-        description: "Optional. Include only if structured data needs to be displayed.",
-        properties: {
-          widgetType: {
-            type: "string",
-            enum: ['EMAIL_LIST', 'CALENDAR_EVENT', 'ALARM_CONFIRM', 'NOTE_CARD', 'MUSIC_CARD', 'SEARCH_RESULTS', 'DIGEST_SUMMARY', 'GENERIC_CARD']
-          },
-          title: { type: "string" },
-          items: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                id: { type: "string" },
-                primary: { type: "string" },
-                secondary: { type: "string" },
-                icon: { type: "string" },
-                metadata: {
-                  type: "object",
-                  additionalProperties: { type: "string" }
-                }
-              },
-              required: ["id", "primary"]
-            }
-          },
-          actions: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                label: { type: "string" },
-                actionType: { type: "string", enum: ["DEEP_LINK", "CALLBACK", "DISMISS"] },
-                target: { type: "string" }
-              },
-              required: ["label", "actionType", "target"]
-            }
-          }
-        },
-        required: ["widgetType", "items"]
-      }
-    },
-    required: ["text"]
-  };
-
-  const systemContext = `
-You are KAIROS OS. Your goal is to respond to the user concisely.
-Conversation History Context: ${JSON.stringify(conversationHistory)}
-User Memory Context: ${JSON.stringify(userMemory)}
-
-Generate a response for the user's prompt based on the provided tool output (if any).
-Provide a conversational "text" response. 
-If the tool output contains structured data (like a list of emails, events, or actionable items), ALSO populate the "widget" field.
-`;
-
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: `System Context:\n${systemContext}\n\nUser Prompt:\n${prompt}\n\nTool Output:\n${rawToolOutput}`,
-      config: {
-        responseMimeType: "application/json",
-        responseJsonSchema: jsonSchema,
-        temperature: 0.1,
-      }
-    });
-
-    const rawResult = response.text || "{}";
-    const result = JSON.parse(rawResult);
+    // Parse the structured JSON response directly from the tool executor
+    // The tool executor now outputs KairosResponse-compatible JSON directly
+    const result = typeof rawToolOutput === 'string' ? JSON.parse(rawToolOutput) : rawToolOutput;
 
     const payload: KairosResponse = {
       type: 'RESPONSE',
@@ -93,7 +23,7 @@ If the tool output contains structured data (like a list of emails, events, or a
       meta: {
         conversationId: conversationId,
         timestamp: new Date().toISOString(),
-        model: 'gemini-3-flash-preview'
+        model: 'gemini-2.5-flash'
       }
     };
 
@@ -128,7 +58,7 @@ If the tool output contains structured data (like a list of emails, events, or a
       meta: {
         conversationId: conversationId,
         timestamp: new Date().toISOString(),
-        model: 'gemini-3-flash-preview'
+        model: 'gemini-2.5-flash'
       }
     };
   }

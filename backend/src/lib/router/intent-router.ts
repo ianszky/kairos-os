@@ -70,7 +70,15 @@ export async function processIntent(prompt: string, explicitAppTarget: string | 
     // 6. Complex intent requiring Composio tool execution
     console.log(`[Router] Intent classified as COMPLEX. Routing to Composio for appTarget: ${classification.appTarget}`);
     try {
-      rawResponseText = await executeComplexIntent(prompt, classification.appTarget, userId, history, userMemory) || "";
+      rawResponseText = await executeComplexIntent(
+        prompt, 
+        classification.appTarget, 
+        userId, 
+        history, 
+        userMemory,
+        classification.taskType,
+        classification.inferredDetails
+      ) || "";
     } catch (err: unknown) {
       console.error("Error executing complex intent:", err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
