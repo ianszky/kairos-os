@@ -82,6 +82,26 @@ import dev.chrisbanes.haze.haze
 import dev.chrisbanes.haze.hazeChild
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import android.speech.SpeechRecognizer
+import android.speech.RecognizerIntent
+import android.speech.RecognitionListener
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.foundation.text.appendInlineContent
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.animation.core.animateDpAsState
+import io.github.jan.supabase.storage.storage
+import com.kairos.os.data.api.AttachmentInfo
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 
 val dotoFont = FontFamily(
@@ -154,7 +174,8 @@ class LauncherActivity : ComponentActivity() {
                             isDarkTheme = isDarkTheme,
                             onThemeToggle = { isDarkTheme = !isDarkTheme },
                             onLogout = { authViewModel.signOut() },
-                            apiClient = apiClient
+                            apiClient = apiClient,
+                            supabaseClient = supabaseClient
                         )
                     } else {
                         var currentAuthScreen by remember { mutableStateOf("login") }
@@ -239,13 +260,57 @@ val composioApps = listOf(
     AppConnection("dropbox", "Dropbox", "https://logos.composio.dev/api/dropbox", null, "storage")
 )
 
+data class AttachmentState(
+    val uri: Uri,
+    val fileName: String,
+    val mimeType: String,
+    val fileSize: Long,
+    val uploading: Boolean = false,
+    val uploadedPath: String? = null
+)
+
+fun getFileInfo(context: android.content.Context, uri: Uri): Pair<String, Long> {
+    var name = "unknown"
+    var size = 0L
+    try {
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            val sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE)
+            if (cursor.moveToFirst()) {
+                if (nameIndex != -1) name = cursor.getString(nameIndex)
+                if (sizeIndex != -1) size = cursor.getLong(sizeIndex)
+            }
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+    return Pair(name, size)
+}
+
+fun processVoiceText(text: String, availableApps: List<AppConnection>): String {
+    if (text.isBlank()) return ""
+    val words = text.split(" ")
+    return words.joinToString(" ") { word ->
+        val cleanWord = word.replace(Regex("[^a-zA-Z0-9\\-]"), "").lowercase()
+        val matchingApp = availableApps.find { it.id == cleanWord || it.displayName.lowercase() == cleanWord }
+        if (matchingApp != null) {
+            val startPunc = word.takeWhile { !it.isLetterOrDigit() }
+            val endPunc = word.takeLastWhile { !it.isLetterOrDigit() }
+            "$startPunc@${matchingApp.id}$endPunc"
+        } else {
+            word
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MindfulLauncherScreen(
     isDarkTheme: Boolean = true,
     onThemeToggle: () -> Unit = {},
     onLogout: () -> Unit = {},
-    apiClient: com.kairos.os.data.api.KairosApiClient
+    apiClient: com.kairos.os.data.api.KairosApiClient,
+    supabaseClient: io.github.jan.supabase.SupabaseClient
 ) {
     val chatViewModel: com.kairos.os.ui.viewmodels.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val conversations by chatViewModel.conversations.collectAsState()
@@ -302,6 +367,119 @@ fun MindfulLauncherScreen(
 
     val availableApps = remember { (composioApps + installedApps).sortedBy { it.displayName } }
     
+    val selectedAttachments = remember { mutableStateListOf<AttachmentState>() }
+    val iconCache = remember { mutableStateMapOf<String, android.graphics.drawable.Drawable>() }
+
+    val sessionStatus by supabaseClient.auth.sessionStatus.collectAsState()
+    val currentUser = remember(sessionStatus) {
+        (sessionStatus as? io.github.jan.supabase.auth.status.SessionStatus.Authenticated)?.session?.user
+    }
+
+    fun uploadAttachment(attachment: AttachmentState) {
+        val user = currentUser ?: return
+        val conversationId = currentConversationId ?: "temp_conv"
+        val path = "${user.id}/$conversationId/${attachment.fileName}"
+        
+        val index = selectedAttachments.indexOf(attachment)
+        if (index != -1) {
+            selectedAttachments[index] = attachment.copy(uploading = true)
+        }
+        
+        coroutineScope.launch {
+            try {
+                val bytes = context.contentResolver.openInputStream(attachment.uri)?.use { it.readBytes() }
+                if (bytes != null) {
+                    supabaseClient.storage.from("attachments").upload(path, bytes) {
+                        upsert = true
+                    }
+                    val idx = selectedAttachments.indexOfFirst { it.uri == attachment.uri }
+                    if (idx != -1) {
+                        selectedAttachments[idx] = selectedAttachments[idx].copy(
+                            uploading = false,
+                            uploadedPath = path
+                        )
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                val idx = selectedAttachments.indexOfFirst { it.uri == attachment.uri }
+                if (idx != -1) {
+                    selectedAttachments[idx] = selectedAttachments[idx].copy(uploading = false)
+                }
+            }
+        }
+    }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val (name, size) = getFileInfo(context, uri)
+            val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+            val state = AttachmentState(uri, name, mimeType, size)
+            selectedAttachments.add(state)
+            uploadAttachment(state)
+        }
+    }
+
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            val (name, size) = getFileInfo(context, uri)
+            val mimeType = context.contentResolver.getType(uri) ?: "application/pdf"
+            val state = AttachmentState(uri, name, mimeType, size)
+            selectedAttachments.add(state)
+            uploadAttachment(state)
+        }
+    }
+
+    var isVoiceInputActive by remember { mutableStateOf(false) }
+    var rmsDbValue by remember { mutableStateOf(0f) }
+    var speechTextResult by remember { mutableStateOf("") }
+
+    val speechRecognizer = remember { SpeechRecognizer.createSpeechRecognizer(context) }
+    
+    DisposableEffect(Unit) {
+        onDispose {
+            speechRecognizer.destroy()
+        }
+    }
+
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            isVoiceInputActive = true
+            rmsDbValue = 0f
+            speechTextResult = ""
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+            }
+            speechRecognizer.setRecognitionListener(object : RecognitionListener {
+                override fun onReadyForSpeech(params: Bundle?) {}
+                override fun onBeginningOfSpeech() {}
+                override fun onRmsChanged(rmsdB: Float) {
+                    rmsDbValue = rmsdB
+                }
+                override fun onBufferReceived(buffer: ByteArray?) {}
+                override fun onEndOfSpeech() {}
+                override fun onError(error: Int) {}
+                override fun onResults(results: Bundle?) {
+                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    speechTextResult = matches?.firstOrNull() ?: ""
+                }
+                override fun onPartialResults(partialResults: Bundle?) {
+                    val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    speechTextResult = matches?.firstOrNull() ?: ""
+                }
+                override fun onEvent(eventType: Int, params: Bundle?) {}
+            })
+            speechRecognizer.startListening(intent)
+        }
+    }
+    
     val parsedActiveApp = remember(termInput) {
         val firstWord = termInput.substringBefore(' ')
         if (firstWord.startsWith("@")) {
@@ -316,6 +494,20 @@ fun MindfulLauncherScreen(
                 add(SvgDecoder.Factory())
             }
             .build()
+    }
+
+    LaunchedEffect(availableApps) {
+        availableApps.forEach { app ->
+            if (app.iconUrl != null && !iconCache.containsKey(app.id)) {
+                val request = coil.request.ImageRequest.Builder(context)
+                    .data(app.iconUrl)
+                    .target { drawable ->
+                        iconCache[app.id] = drawable
+                    }
+                    .build()
+                imageLoader.enqueue(request)
+            }
+        }
     }
 
     LaunchedEffect(termInput) {
@@ -405,7 +597,11 @@ fun MindfulLauncherScreen(
                                 ClockView()
                             }
                         } else {
-                            ChatView(interactions = interactions)
+                            ChatView(
+                                interactions = interactions,
+                                availableApps = availableApps,
+                                iconCache = iconCache
+                            )
                         }
                     }
                 }
@@ -535,6 +731,64 @@ fun MindfulLauncherScreen(
                     }
                 }
 
+                var isPlusMenuOpen by remember { mutableStateOf(false) }
+                val validStartsState = remember { mutableStateListOf<Int>() }
+                val mentionVisualTransformation = remember(availableApps) {
+                    MentionVisualTransformation(availableApps) { resolvedStarts ->
+                        validStartsState.clear()
+                        validStartsState.addAll(resolvedStarts)
+                    }
+                }
+
+                AnimatedVisibility(visible = isPlusMenuOpen) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), RoundedCornerShape(16.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        PlusMenuItem(
+                            icon = Icons.Default.Apps,
+                            label = "Add App",
+                            onClick = {
+                                isPlusMenuOpen = false
+                                if (!termInput.contains("@")) {
+                                    termInput += "@"
+                                    isAppDrawerOpen = true
+                                    searchQuery = ""
+                                }
+                            }
+                        )
+                        PlusMenuItem(
+                            icon = Icons.Default.AttachFile,
+                            label = "Add Files",
+                            onClick = {
+                                isPlusMenuOpen = false
+                                val supportedMimeTypes = arrayOf(
+                                    "application/pdf",
+                                    "text/plain",
+                                    "text/csv",
+                                    "text/html",
+                                    "text/rtf"
+                                )
+                                filePickerLauncher.launch(supportedMimeTypes)
+                            }
+                        )
+                        PlusMenuItem(
+                            icon = Icons.Default.Image,
+                            label = "Add Images",
+                            onClick = {
+                                isPlusMenuOpen = false
+                                imagePickerLauncher.launch("image/*")
+                            }
+                        )
+                    }
+                }
+
                 Box(
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -554,232 +808,322 @@ fun MindfulLauncherScreen(
                             )
                             .padding(20.dp)
                     ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(">", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        
-                        val mentionVisualTransformation = remember {
-                            VisualTransformation { text ->
-                                val firstWord = text.text.substringBefore(' ')
-                                val builder = androidx.compose.ui.text.AnnotatedString.Builder(text.text)
-                                if (firstWord.startsWith("@")) {
-                                    builder.addStyle(SpanStyle(color = Color(0xFFFF6B00)), 0, firstWord.length)
-                                }
-                                TransformedText(builder.toAnnotatedString(), OffsetMapping.Identity)
-                            }
-                        }
-
-                        BasicTextField(
-                            value = termInput,
-                            onValueChange = { termInput = it },
-                            textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(max = 100.dp)
-                                .focusRequester(focusRequester)
-                                .onFocusChanged { isTerminalFocused = it.isFocused }
-                                .drawBehind {
-                                    val layoutResult = textLayoutResult ?: return@drawBehind
-                                    val firstWord = termInput.substringBefore(' ')
-                                    if (firstWord.startsWith("@") && firstWord.length > 1 && layoutResult.layoutInput.text.text.startsWith(firstWord)) {
-                                        try {
-                                            val start = layoutResult.getBoundingBox(0)
-                                            val end = layoutResult.getBoundingBox(firstWord.length - 1)
-                                            val bgRect = androidx.compose.ui.geometry.Rect(
-                                                left = start.left,
-                                                top = start.top,
-                                                right = end.right,
-                                                bottom = start.bottom
-                                            )
-                                            val paddedRect = bgRect.inflate(2.dp.toPx())
-                                            val primaryColor = Color(0xFFFF6B00)
-                                            drawRoundRect(
-                                                color = primaryColor.copy(alpha = 0.2f),
-                                                topLeft = paddedRect.topLeft,
-                                                size = paddedRect.size,
-                                                cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
-                                            )
-                                            drawRoundRect(
-                                                color = primaryColor.copy(alpha = 0.5f),
-                                                topLeft = paddedRect.topLeft,
-                                                size = paddedRect.size,
-                                                style = Stroke(width = 1.dp.toPx()),
-                                                cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
-                                            )
-                                        } catch (e: Exception) {
-                                            // Ignore out of bounds
-                                        }
-                                    }
-                                },
-                            onTextLayout = { textLayoutResult = it },
-                            visualTransformation = mentionVisualTransformation,
-                            decorationBox = { innerTextField ->
-                                if (termInput.isEmpty()) {
-                                    Text("Type to search or command...", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp))
-                                }
-                                innerTextField()
-                            },
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                            keyboardActions = KeyboardActions(onGo = {
-                                if (termInput.isNotBlank() && !termInput.startsWith("/") && termInput != "@$parsedActiveApp") {
-                                    val currentIntent = if (parsedActiveApp != null) termInput.substringAfter(' ').trim() else termInput
-                                    val currentTarget = parsedActiveApp
-                                    isChatOpen = true
-                                    interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
-                                    isLoading = true
-                                    interactions.add(com.kairos.os.domain.models.Interaction.Loading())
-                                    termInput = ""
-
-                                    coroutineScope.launch {
-                                        try {
-                                            val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId)
-                                            chatViewModel.onPromptResponse(response.meta?.conversationId)
-                                            interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
-                                        } catch (e: Exception) {
-                                            interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
-                                                com.kairos.os.domain.models.KairosResponse(
-                                                    type = "ERROR",
-                                                    text = "Failed to connect to AI: ${e.message}"
-                                                )
-                                            ))
-                                        } finally {
-                                            isLoading = false
-                                        }
-                                    }
-                                }
-                            })
-                        )
-                        
-                        val currentApp = availableApps.find { it.id == parsedActiveApp }
-                        if (currentApp?.packageName != null) {
-                            IconButton(onClick = {
-                                val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
-                                if (launchIntent != null) {
-                                    context.startActivity(launchIntent)
-                                }
-                            }) {
-                                Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
-                            }
-                        }
-                        
-                        IconButton(onClick = {
-                            if (termInput.isNotBlank() && !termInput.startsWith("/") && termInput != "@$parsedActiveApp") {
-                                val currentIntent = if (parsedActiveApp != null) termInput.substringAfter(' ').trim() else termInput
-                                val currentTarget = parsedActiveApp
-                                isChatOpen = true
-                                interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
-                                isLoading = true
-                                interactions.add(com.kairos.os.domain.models.Interaction.Loading())
-                                termInput = ""
-
-                                coroutineScope.launch {
-                                    try {
-                                        val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId)
-                                        chatViewModel.onPromptResponse(response.meta?.conversationId)
-                                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
-                                    } catch (e: Exception) {
-                                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
-                                            com.kairos.os.domain.models.KairosResponse(
-                                                type = "ERROR",
-                                                text = "Failed to connect to AI: ${e.message}"
-                                            )
-                                        ))
-                                    } finally {
-                                        isLoading = false
-                                    }
-                                }
-                            }
-                        }) {
-                            Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary)
-                        }
-                    }
-
-                    AnimatedVisibility(visible = isFrictionMode) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 20.dp)
-                        ) {
-                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant))
-                            Spacer(modifier = Modifier.height(20.dp))
-                            
-                            Text(
-                                buildAnnotatedString {
-                                    append("Intentional friction engaged for ")
-                                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                                        append("${parsedActiveApp ?: "unknown"}.")
-                                    }
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                        if (selectedAttachments.isNotEmpty()) {
+                            SelectedAttachmentsRow(
+                                attachments = selectedAttachments,
+                                onRemove = { selectedAttachments.remove(it) }
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                listOf("5m", "10m", "15m", "30m").forEach { time ->
-                                    val isSelected = selectedFrictionTime == time
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .background(
-                                                if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.background,
-                                                RoundedCornerShape(8.dp)
-                                            )
-                                            .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                                            .clickable { selectedFrictionTime = time }
-                                            .padding(vertical = 10.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(time, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.bodyMedium)
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isVoiceInputActive) {
+                                IconButton(onClick = {
+                                    speechRecognizer.cancel()
+                                    isVoiceInputActive = false
+                                }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Cancel Voice", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                
+                                Box(modifier = Modifier.weight(1f)) {
+                                    WaveformView(rmsDb = rmsDbValue)
+                                }
+                                
+                                IconButton(onClick = {
+                                    speechRecognizer.stopListening()
+                                    isVoiceInputActive = false
+                                    val processed = processVoiceText(speechTextResult, availableApps)
+                                    termInput = processed
+                                }) {
+                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Confirm Voice", tint = MaterialTheme.colorScheme.primary)
+                                }
+                            } else {
+                                IconButton(
+                                    onClick = { isPlusMenuOpen = !isPlusMenuOpen },
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape)
+                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isPlusMenuOpen) Icons.Default.Close else Icons.Default.Add,
+                                        contentDescription = "Add Context",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                
+                                BasicTextField(
+                                    value = termInput,
+                                    onValueChange = { termInput = it },
+                                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
+                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(max = 100.dp)
+                                        .focusRequester(focusRequester)
+                                        .onFocusChanged { isTerminalFocused = it.isFocused }
+                                        .drawBehind {
+                                            val layoutResult = textLayoutResult ?: return@drawBehind
+                                            val textStr = termInput
+                                            val regex = Regex("@([a-zA-Z0-9\\-]+)")
+                                            val matches = regex.findAll(textStr).toList()
+                                            
+                                            var matchIndex = 0
+                                            matches.forEach { match ->
+                                                val appId = match.groups[1]?.value?.lowercase() ?: ""
+                                                val app = availableApps.find { it.id == appId }
+                                                if (app != null && matchIndex < validStartsState.size) {
+                                                    val originalStart = match.range.first
+                                                    val originalEnd = match.range.last + 1
+                                                    
+                                                    val spaceTransformed = validStartsState[matchIndex] + matchIndex
+                                                    val lastTransformed = spaceTransformed + (originalEnd - originalStart)
+                                                    
+                                                    try {
+                                                        val spaceRect = layoutResult.getBoundingBox(spaceTransformed)
+                                                        val wordEndRect = layoutResult.getBoundingBox(lastTransformed)
+                                                        
+                                                        val pillRect = androidx.compose.ui.geometry.Rect(
+                                                            left = spaceRect.left - 4.dp.toPx(),
+                                                            top = minOf(spaceRect.top, wordEndRect.top) - 2.dp.toPx(),
+                                                            right = wordEndRect.right + 6.dp.toPx(),
+                                                            bottom = maxOf(spaceRect.bottom, wordEndRect.bottom) + 2.dp.toPx()
+                                                        )
+                                                        
+                                                        val primaryColor = Color(0xFFFF6B00)
+                                                        drawRoundRect(
+                                                            color = primaryColor.copy(alpha = 0.15f),
+                                                            topLeft = pillRect.topLeft,
+                                                            size = pillRect.size,
+                                                            cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                                                        )
+                                                        drawRoundRect(
+                                                            color = primaryColor.copy(alpha = 0.4f),
+                                                            topLeft = pillRect.topLeft,
+                                                            size = pillRect.size,
+                                                            style = Stroke(width = 1.dp.toPx()),
+                                                            cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                                                        )
+                                                        
+                                                        val drawable = app.iconDrawable ?: iconCache[app.id]
+                                                        if (drawable != null) {
+                                                            val iconSize = 14.dp.toPx()
+                                                            val iconLeft = spaceRect.left + (spaceRect.width - iconSize) / 2
+                                                            val iconTop = spaceRect.top + (spaceRect.height - iconSize) / 2
+                                                            
+                                                            drawable.bounds = android.graphics.Rect(
+                                                                iconLeft.toInt(),
+                                                                iconTop.toInt(),
+                                                                (iconLeft + iconSize).toInt(),
+                                                                (iconTop + iconSize).toInt()
+                                                            )
+                                                            drawable.draw(drawContext.canvas.nativeCanvas)
+                                                        }
+                                                    } catch (e: Exception) {
+                                                        // ignore layout out of bounds
+                                                    }
+                                                    matchIndex++
+                                                }
+                                            }
+                                        },
+                                    onTextLayout = { textLayoutResult = it },
+                                    visualTransformation = mentionVisualTransformation,
+                                    decorationBox = { innerTextField ->
+                                        if (termInput.isEmpty()) {
+                                            Text("Type to search or command...", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp))
+                                        }
+                                        innerTextField()
+                                    },
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                                    keyboardActions = KeyboardActions(onGo = {
+                                        if (termInput.isNotBlank() && !termInput.startsWith("/") && termInput != "@$parsedActiveApp") {
+                                            val currentIntent = termInput
+                                            val currentTarget = parsedActiveApp
+                                            val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
+                                                attachment.uploadedPath?.let { path ->
+                                                    AttachmentInfo(
+                                                        filePath = path,
+                                                        fileName = attachment.fileName,
+                                                        mimeType = attachment.mimeType,
+                                                        fileSize = attachment.fileSize
+                                                    )
+                                                }
+                                            }
+                                            isChatOpen = true
+                                            interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
+                                            isLoading = true
+                                            interactions.add(com.kairos.os.domain.models.Interaction.Loading())
+                                            termInput = ""
+                                            selectedAttachments.clear()
+
+                                            coroutineScope.launch {
+                                                try {
+                                                    val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId, attachmentsPayload)
+                                                    chatViewModel.onPromptResponse(response.meta?.conversationId)
+                                                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                                                } catch (e: Exception) {
+                                                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
+                                                        com.kairos.os.domain.models.KairosResponse(
+                                                            type = "ERROR",
+                                                            text = "Failed to connect to AI: ${e.message}"
+                                                        )
+                                                    ))
+                                                } finally {
+                                                    isLoading = false
+                                                }
+                                            }
+                                        }
+                                    })
+                                )
+                                
+                                val currentApp = availableApps.find { it.id == parsedActiveApp }
+                                if (currentApp?.packageName != null) {
+                                    IconButton(onClick = {
+                                        val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
+                                        if (launchIntent != null) {
+                                            context.startActivity(launchIntent)
+                                        }
+                                    }) {
+                                        Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
                                     }
                                 }
+                                
+                                IconButton(onClick = {
+                                    recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                }) {
+                                    Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+
+                                IconButton(onClick = {
+                                    if (termInput.isNotBlank() && !termInput.startsWith("/") && termInput != "@$parsedActiveApp") {
+                                        val currentIntent = termInput
+                                        val currentTarget = parsedActiveApp
+                                        val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
+                                            attachment.uploadedPath?.let { path ->
+                                                AttachmentInfo(
+                                                    filePath = path,
+                                                    fileName = attachment.fileName,
+                                                    mimeType = attachment.mimeType,
+                                                    fileSize = attachment.fileSize
+                                                )
+                                            }
+                                        }
+                                        isChatOpen = true
+                                        interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
+                                        isLoading = true
+                                        interactions.add(com.kairos.os.domain.models.Interaction.Loading())
+                                        termInput = ""
+                                        selectedAttachments.clear()
+
+                                        coroutineScope.launch {
+                                            try {
+                                                val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId, attachmentsPayload)
+                                                chatViewModel.onPromptResponse(response.meta?.conversationId)
+                                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                                            } catch (e: Exception) {
+                                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
+                                                    com.kairos.os.domain.models.KairosResponse(
+                                                        type = "ERROR",
+                                                        text = "Failed to connect to AI: ${e.message}"
+                                                    )
+                                                ))
+                                            } finally {
+                                                isLoading = false
+                                            }
+                                        }
+                                    }
+                                }) {
+                                    Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary)
+                                }
                             }
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            BasicTextField(
-                                value = frictionReason,
-                                onValueChange = { frictionReason = it },
-                                textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
+                        }
+
+                        AnimatedVisibility(visible = isFrictionMode) {
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))
-                                    .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                                    .padding(12.dp),
-                                decorationBox = { innerTextField ->
-                                    if (frictionReason.isEmpty()) {
-                                        Text("[reason] (e.g. check messages)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp))
-                                    }
-                                    innerTextField()
-                                }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            
-                            val isLaunchValid = selectedFrictionTime != null && frictionReason.trim().length > 2
-                            Button(
-                                onClick = { termInput = ""; frictionReason = ""; selectedFrictionTime = null },
-                                enabled = isLaunchValid,
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = Color.Black,
-                                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                    disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                    .padding(top = 20.dp)
                             ) {
-                                Text("LAUNCH INTENT", style = MaterialTheme.typography.bodyMedium, letterSpacing = 0.08.sp)
+                                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant))
+                                Spacer(modifier = Modifier.height(20.dp))
+                                
+                                Text(
+                                    buildAnnotatedString {
+                                        append("Intentional friction engaged for ")
+                                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                                            append("${parsedActiveApp ?: "unknown"}.")
+                                        }
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    listOf("5m", "10m", "15m", "30m").forEach { time ->
+                                        val isSelected = selectedFrictionTime == time
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .background(
+                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.background,
+                                                    RoundedCornerShape(8.dp)
+                                                )
+                                                .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                                                .clickable { selectedFrictionTime = time }
+                                                .padding(vertical = 10.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(time, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.bodyMedium)
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                BasicTextField(
+                                    value = frictionReason,
+                                    onValueChange = { frictionReason = it },
+                                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
+                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))
+                                        .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                                        .padding(12.dp),
+                                    decorationBox = { innerTextField ->
+                                        if (frictionReason.isEmpty()) {
+                                            Text("[reason] (e.g. check messages)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp))
+                                        }
+                                        innerTextField()
+                                    }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                val isLaunchValid = selectedFrictionTime != null && frictionReason.trim().length > 2
+                                Button(
+                                    onClick = { termInput = ""; frictionReason = ""; selectedFrictionTime = null },
+                                    enabled = isLaunchValid,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary,
+                                        contentColor = Color.Black,
+                                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                ) {
+                                    Text("LAUNCH INTENT", style = MaterialTheme.typography.bodyMedium, letterSpacing = 0.08.sp)
+                                }
                             }
                         }
                     }
                 }
             }
-        }
         }
 
         if (isSidebarOpen || isSettingsOpen) {
@@ -1080,8 +1424,204 @@ fun ClockView() {
     }
 }
 
+class MentionOffsetMapping(
+    val originalText: String,
+    val starts: List<Int>
+) : OffsetMapping {
+    override fun originalToTransformed(offset: Int): Int {
+        var insertions = 0
+        for (start in starts) {
+            if (offset > start) {
+                insertions++
+            }
+        }
+        return offset + insertions
+    }
+
+    override fun transformedToOriginal(offset: Int): Int {
+        var insertions = 0
+        for (start in starts) {
+            if (offset > start + insertions) {
+                insertions++
+            }
+        }
+        return offset - insertions
+    }
+}
+
+class MentionVisualTransformation(
+    val availableApps: List<AppConnection>,
+    val onStartsResolved: (List<Int>) -> Unit
+) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val originalText = text.text
+        val regex = Regex("@([a-zA-Z0-9\\-]+)")
+        val matches = regex.findAll(originalText).toList()
+        
+        val validStarts = mutableListOf<Int>()
+        val builder = AnnotatedString.Builder()
+        
+        var lastOffset = 0
+        matches.forEach { match ->
+            val appId = match.groups[1]?.value?.lowercase() ?: ""
+            if (availableApps.any { it.id == appId }) {
+                validStarts.add(match.range.first)
+                
+                builder.append(originalText.substring(lastOffset, match.range.first))
+                
+                val spaceStart = builder.length
+                builder.append(" ")
+                builder.addStyle(
+                    SpanStyle(
+                        color = Color.Transparent,
+                        letterSpacing = 16.sp
+                    ),
+                    spaceStart,
+                    spaceStart + 1
+                )
+                
+                val mentionStart = builder.length
+                builder.append(match.value)
+                builder.addStyle(
+                    SpanStyle(
+                        color = Color(0xFFFF6B00),
+                        fontWeight = FontWeight.Bold
+                    ),
+                    mentionStart,
+                    builder.length
+                )
+            } else {
+                builder.append(originalText.substring(lastOffset, match.range.last + 1))
+            }
+            lastOffset = match.range.last + 1
+        }
+        if (lastOffset < originalText.length) {
+            builder.append(originalText.substring(lastOffset))
+        }
+        
+        onStartsResolved(validStarts)
+        return TransformedText(builder.toAnnotatedString(), MentionOffsetMapping(originalText, validStarts))
+    }
+}
+
 @Composable
-fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>) {
+fun WaveformView(rmsDb: Float) {
+    val barCount = 15
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(50.dp)
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val random = remember { java.util.Random() }
+        for (i in 0 until barCount) {
+            val normalizedDb = (rmsDb + 2f).coerceAtLeast(0f) / 12f
+            val baseHeight = 4.dp
+            val maxHeight = 40.dp
+            val centerFactor = 1f - (Math.abs(i - barCount / 2).toFloat() / (barCount / 2))
+            val targetHeight = baseHeight + (maxHeight - baseHeight) * normalizedDb * centerFactor * (0.6f + 0.4f * random.nextFloat())
+            
+            val animatedHeight by animateDpAsState(
+                targetValue = if (normalizedDb > 0.05f) targetHeight else baseHeight,
+                label = "bar_height_$i"
+            )
+            
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 2.dp)
+                    .width(4.dp)
+                    .height(animatedHeight)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        shape = RoundedCornerShape(2.dp)
+                    )
+            )
+        }
+    }
+}
+
+@Composable
+fun SelectedAttachmentsRow(
+    attachments: List<AttachmentState>,
+    onRemove: (AttachmentState) -> Unit
+) {
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(attachments) { attachment ->
+            Row(
+                modifier = Modifier
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (attachment.mimeType.startsWith("image/")) Icons.Default.Image else Icons.Default.InsertDriveFile,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = attachment.fileName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 120.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                if (attachment.uploading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(12.dp),
+                        strokeWidth = 1.5.dp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Remove",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier
+                            .size(14.dp)
+                            .clickable { onRemove(attachment) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PlusMenuItem(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .clickable(onClick = onClick)
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(icon, contentDescription = label, tint = MaterialTheme.colorScheme.primary)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+@Composable
+fun ChatView(
+    interactions: MutableList<com.kairos.os.domain.models.Interaction>,
+    availableApps: List<AppConnection>,
+    iconCache: Map<String, android.graphics.drawable.Drawable>
+) {
     val scrollState = rememberScrollState()
     val context = androidx.compose.ui.platform.LocalContext.current
     
@@ -1101,12 +1641,24 @@ fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>)
         interactions.forEach { interaction ->
             when (interaction) {
                 is com.kairos.os.domain.models.Interaction.UserCommand -> {
-                    val prefix = if (interaction.appTarget != null) "@${interaction.appTarget} " else ""
-                    ChatBubble(isUser = true, text = "> $prefix${interaction.command}")
+                    val showPrefix = if (interaction.appTarget != null && !interaction.command.contains("@${interaction.appTarget}")) {
+                        "@${interaction.appTarget} "
+                    } else ""
+                    ChatBubble(
+                        isUser = true, 
+                        text = "$showPrefix${interaction.command}",
+                        availableApps = availableApps,
+                        iconCache = iconCache
+                    )
                 }
                 is com.kairos.os.domain.models.Interaction.AssistantResponse -> {
                     if (!interaction.response.text.isNullOrBlank()) {
-                        ChatBubble(isUser = false, text = interaction.response.text)
+                        ChatBubble(
+                            isUser = false, 
+                            text = interaction.response.text,
+                            availableApps = availableApps,
+                            iconCache = iconCache
+                        )
                     }
                     if (interaction.response.widget != null) {
                         if (!interaction.response.text.isNullOrBlank()) {
@@ -1154,16 +1706,111 @@ fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>)
 }
 
 @Composable
-fun ChatBubble(isUser: Boolean, text: String) {
+fun ChatBubble(
+    isUser: Boolean, 
+    text: String,
+    availableApps: List<AppConnection>,
+    iconCache: Map<String, android.graphics.drawable.Drawable>
+) {
     val codeBg = MaterialTheme.colorScheme.surfaceVariant
     val codeText = MaterialTheme.colorScheme.primary
-    val annotatedText = remember(text, codeBg, codeText) {
+    val baseAnnotated = remember(text, codeBg, codeText) {
         if (isUser) {
             AnnotatedString(text)
         } else {
             parseMarkdownToAnnotatedString(text, codeBg, codeText)
         }
     }
+    
+    val inlineContentMap = remember(text, availableApps, iconCache) {
+        val map = mutableMapOf<String, InlineTextContent>()
+        val regex = Regex("@([a-zA-Z0-9\\-]+)")
+        val matches = regex.findAll(baseAnnotated.text).toList()
+        matches.forEach { match ->
+            val appId = match.groups[1]?.value?.lowercase() ?: ""
+            val app = availableApps.find { it.id == appId }
+            if (app != null) {
+                val inlineId = "app_logo_${app.id}"
+                if (!map.containsKey(inlineId)) {
+                    map[inlineId] = InlineTextContent(
+                        Placeholder(
+                            width = 20.sp,
+                            height = 20.sp,
+                            placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                        )
+                    ) {
+                        val drawable = app.iconDrawable ?: iconCache[app.id]
+                        Box(
+                            modifier = Modifier
+                                .padding(end = 4.dp)
+                                .size(16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (drawable != null) {
+                                val bitmap = remember(drawable) {
+                                    val bmp = android.graphics.Bitmap.createBitmap(
+                                        drawable.intrinsicWidth.coerceAtLeast(1),
+                                        drawable.intrinsicHeight.coerceAtLeast(1),
+                                        android.graphics.Bitmap.Config.ARGB_8888
+                                    )
+                                    val canvas = android.graphics.Canvas(bmp)
+                                    drawable.setBounds(0, 0, canvas.width, canvas.height)
+                                    drawable.draw(canvas)
+                                    bmp
+                                }
+                                androidx.compose.foundation.Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = app.displayName,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else if (app.iconUrl != null) {
+                                AsyncImage(
+                                    model = app.iconUrl,
+                                    contentDescription = app.displayName,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        map
+    }
+
+    val annotatedText = remember(text, baseAnnotated, availableApps) {
+        buildAnnotatedString {
+            val regex = Regex("@([a-zA-Z0-9\\-]+)")
+            val matches = regex.findAll(baseAnnotated.text).toList()
+            
+            var lastOffset = 0
+            matches.forEach { match ->
+                val appId = match.groups[1]?.value?.lowercase() ?: ""
+                val app = availableApps.find { it.id == appId }
+                if (app != null) {
+                    append(baseAnnotated.subSequence(lastOffset, match.range.first))
+                    appendInlineContent("app_logo_${app.id}", "[logo]")
+                    val start = length
+                    append(match.value)
+                    addStyle(
+                        SpanStyle(
+                            color = Color(0xFFFF6B00),
+                            fontWeight = FontWeight.Bold
+                        ),
+                        start,
+                        length
+                    )
+                } else {
+                    append(baseAnnotated.subSequence(lastOffset, match.range.last + 1))
+                }
+                lastOffset = match.range.last + 1
+            }
+            if (lastOffset < baseAnnotated.length) {
+                append(baseAnnotated.subSequence(lastOffset, baseAnnotated.length))
+            }
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
@@ -1188,6 +1835,7 @@ fun ChatBubble(isUser: Boolean, text: String) {
         ) {
             Text(
                 text = annotatedText,
+                inlineContent = inlineContentMap,
                 color = if (isUser) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
                 style = if (isUser) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal)
             )

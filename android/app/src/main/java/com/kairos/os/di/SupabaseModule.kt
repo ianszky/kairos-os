@@ -13,6 +13,7 @@ import javax.inject.Singleton
 
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
+import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.serializer.KotlinXSerializer
 import kotlinx.serialization.json.Json
 
@@ -32,6 +33,7 @@ object SupabaseModule {
             }
             install(Postgrest)
             install(Realtime)
+            install(Storage)
             defaultSerializer = KotlinXSerializer(Json { ignoreUnknownKeys = true })
         }
     }

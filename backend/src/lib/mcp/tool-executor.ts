@@ -4,14 +4,15 @@ import { COMPOSIO_ACTION_MAP } from './action-map';
 
 export async function executeComplexIntent(
   prompt: string, 
-  appTarget: string, 
+  appTargets: string | string[], 
   userId: string,
   history: Array<{ role: string; content: string }>,
   userMemory: Record<string, any> | null,
   taskType: string = 'default',
-  inferredDetails: string = ''
+  inferredDetails: string = '',
+  attachmentParts: any[] = []
 ) {
-  const normalizedTarget = appTarget.toLowerCase();
+  const targets = Array.isArray(appTargets) ? appTargets : [appTargets];
   
   // Normalize app targets to correct map keys
   const targetMap: Record<string, string> = {
@@ -84,33 +85,8 @@ export async function executeComplexIntent(
     'dropbox': 'dropbox'
   };
 
-  const mapKey = targetMap[normalizedTarget] || normalizedTarget;
-  
-  // Resolve slugs from actionMap
-  const appMapping = COMPOSIO_ACTION_MAP[mapKey];
-  const slugs = appMapping?.[taskType] || appMapping?.['default'] || [];
-
-  console.log(`[ToolExecutor] Resolved slugs for target ${mapKey} (intent: ${taskType}):`, slugs);
-
-  let tools: any[] = [];
-  if (slugs.length > 0) {
-    try {
-      tools = await composio.tools.get(userId, { tools: slugs });
-    } catch (err) {
-      console.error("[ToolExecutor] Error fetching tools by slug:", err);
-    }
-  } else {
-    // Fallback: search-based filtering with a tight limit to prevent bloat
-    try {
-      tools = await composio.tools.get(userId, {
-        toolkits: [mapKey],
-        search: prompt.substring(0, 100),
-        limit: 15,
-      });
-    } catch (err) {
-      console.error("[ToolExecutor] Fallback search tools retrieval failed:", err);
-    }
-  }
+  const functionDeclarations: any[] = [];
+  const validToolNames = new Set<string>();
 
   // Schema cleanup utility to satisfy Gemini API constraints
   const cleanSchema = (obj: any, isPropertiesObject: boolean = false): any => {
@@ -138,19 +114,50 @@ export async function executeComplexIntent(
     return obj;
   };
 
-  let functionDeclarations: any[] = [];
-  if (tools.length > 0) {
-    functionDeclarations = tools.map((t: any) => {
-      const func = t.function || t;
-      return {
-        name: func.name,
-        description: func.description || 'No description',
-        parameters: cleanSchema(func.parameters),
-      };
-    });
+  for (const appTarget of targets) {
+    const normalizedTarget = appTarget.toLowerCase();
+    const mapKey = targetMap[normalizedTarget] || normalizedTarget;
+    
+    // Resolve slugs from actionMap
+    const appMapping = COMPOSIO_ACTION_MAP[mapKey];
+    const slugs = appMapping?.[taskType] || appMapping?.['default'] || [];
+
+    console.log(`[ToolExecutor] Resolved slugs for target ${mapKey} (intent: ${taskType}):`, slugs);
+
+    let tools: any[] = [];
+    if (slugs.length > 0) {
+      try {
+        tools = await composio.tools.get(userId, { tools: slugs });
+      } catch (err) {
+        console.error(`[ToolExecutor] Error fetching tools by slug for ${mapKey}:`, err);
+      }
+    } else {
+      // Fallback: search-based filtering with a tight limit to prevent bloat
+      try {
+        tools = await composio.tools.get(userId, {
+          toolkits: [mapKey],
+          search: prompt.substring(0, 100),
+          limit: 15,
+        });
+      } catch (err) {
+        console.error(`[ToolExecutor] Fallback search tools retrieval failed for ${mapKey}:`, err);
+      }
+    }
+
+    if (tools.length > 0) {
+      const currentDeclarations = tools.map((t: any) => {
+        const func = t.function || t;
+        return {
+          name: func.name,
+          description: func.description || 'No description',
+          parameters: cleanSchema(func.parameters),
+        };
+      });
+      functionDeclarations.push(...currentDeclarations);
+      currentDeclarations.forEach(fd => validToolNames.add(fd.name));
+    }
   }
 
-  const validToolNames = new Set(functionDeclarations.map(fd => fd.name));
   const provider = composio.provider as any; 
 
   const systemInstruction = `# KAIROS OS Agent
@@ -234,7 +241,14 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
   });
 
   console.log("[ToolExecutor] Sending prompt to Gemini 2.5 Flash...");
-  let response = await chat.sendMessage({ message: prompt });
+  let messageContent: any = prompt;
+  if (attachmentParts && attachmentParts.length > 0) {
+    messageContent = [
+      prompt,
+      ...attachmentParts
+    ];
+  }
+  let response = await chat.sendMessage({ message: messageContent });
 
   const MAX_ITERATIONS = 5;
   let iterations = 0;

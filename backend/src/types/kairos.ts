@@ -39,3 +39,10 @@ export interface AndroidIntentPayload {
   data?: string;
   extras?: Record<string, string>;
 }
+
+export interface AttachmentRequest {
+  filePath: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+}

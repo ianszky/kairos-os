@@ -10,9 +10,26 @@ import io.ktor.client.request.*
 import io.ktor.client.call.body
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
+
+@Serializable
+data class AttachmentInfo(
+    val filePath: String,
+    val fileName: String,
+    val mimeType: String,
+    val fileSize: Long
+)
+
+@Serializable
+data class PromptRequest(
+    val intent: String,
+    val appTarget: String? = null,
+    val sessionId: String? = null,
+    val attachments: List<AttachmentInfo>? = null
+)
 
 @Singleton
 class KairosApiClient @Inject constructor(
@@ -32,7 +49,12 @@ class KairosApiClient @Inject constructor(
         }
     }
 
-    suspend fun postPrompt(intent: String, appTarget: String?, sessionId: String? = null): com.kairos.os.domain.models.KairosResponse {
+    suspend fun postPrompt(
+        intent: String, 
+        appTarget: String?, 
+        sessionId: String? = null,
+        attachments: List<AttachmentInfo>? = null
+    ): com.kairos.os.domain.models.KairosResponse {
         val session = supabaseClient.auth.currentSessionOrNull()
         val token = session?.accessToken
 
@@ -41,11 +63,12 @@ class KairosApiClient @Inject constructor(
                 bearerAuth(token)
             }
             setBody(
-                mapOf(
-                    "intent" to intent,
-                    "appTarget" to appTarget,
-                    "sessionId" to sessionId
-                ).filterValues { it != null }
+                PromptRequest(
+                    intent = intent,
+                    appTarget = appTarget,
+                    sessionId = sessionId,
+                    attachments = attachments
+                )
             )
         }
 

@@ -74,6 +74,7 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.github.jan-tennert.supabase:postgrest-kt")
     implementation("io.github.jan-tennert.supabase:realtime-kt")
+    implementation("io.github.jan-tennert.supabase:storage-kt")
 
     // Ktor (required HTTP engine for supabase-kt)
     implementation("io.ktor:ktor-client-android:3.4.3")

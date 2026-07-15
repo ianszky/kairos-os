@@ -76,13 +76,44 @@ export async function POST(request: Request) {
       isNewConversation = true;
     }
 
-    // Insert user's message
-    await supabase.from('messages').insert({
-      conversation_id: conversationId,
-      role: 'user',
-      content: prompt,
-      app_target: appTarget
-    });
+    const attachments = Array.isArray(body.attachments) ? body.attachments : [];
+
+    // Insert user's message and select the generated ID
+    const { data: msgData, error: msgErr } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        role: 'user',
+        content: prompt,
+        app_target: appTarget
+      })
+      .select('id')
+      .single();
+
+    if (msgErr || !msgData) {
+      throw new Error('Failed to insert user message: ' + (msgErr?.message || 'Unknown error'));
+    }
+
+    const messageId = msgData.id;
+
+    // Save attachments to public.message_attachments
+    if (attachments.length > 0) {
+      const attachmentsToInsert = attachments.map((att: any) => ({
+        message_id: messageId,
+        file_path: att.filePath,
+        file_name: att.fileName,
+        mime_type: att.mimeType,
+        file_size: att.fileSize
+      }));
+
+      const { error: attachErr } = await supabase
+        .from('message_attachments')
+        .insert(attachmentsToInsert);
+
+      if (attachErr) {
+        console.error('[API/Prompt] Error saving message attachments:', attachErr);
+      }
+    }
 
     // Touch updated_at so sidebar ordering stays current
     await supabase.from('conversations')
@@ -105,7 +136,7 @@ export async function POST(request: Request) {
     }
 
     // Bridge: pass the Supabase user ID and conversationId into the intent processing logic
-    const responsePayload = await processIntent(prompt, appTarget, user.id, conversationId, token || '');
+    const responsePayload = await processIntent(prompt, appTarget, user.id, conversationId, token || '', attachments);
     return NextResponse.json(responsePayload);
 
   } catch (error: unknown) {

@@ -4,8 +4,51 @@ import { buildResponse } from '../response/response-builder';
 import { getConversationContext, checkAndSummarizeIfNeeded } from '../ai/context-manager';
 import { getUserMemory, updateUserMemoryAsync } from '../ai/user-memory';
 import { KairosResponse } from '@/types/kairos';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-export async function processIntent(prompt: string, explicitAppTarget: string | null, userId: string, conversationId: string, token: string): Promise<KairosResponse> {
+async function fetchAttachmentParts(attachments: any[], token: string) {
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      global: {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    }
+  );
+
+  const parts = [];
+  for (const att of attachments) {
+    try {
+      const { data, error } = await supabase.storage.from('attachments').download(att.filePath);
+      if (error) {
+        console.error(`[IntentRouter] Error downloading attachment ${att.filePath}:`, error);
+        continue;
+      }
+      const buffer = Buffer.from(await data.arrayBuffer());
+      const base64Data = buffer.toString('base64');
+      parts.push({
+        inlineData: {
+          mimeType: att.mimeType,
+          data: base64Data
+        }
+      });
+      console.log(`[IntentRouter] Prepared attachment: ${att.fileName} (${att.mimeType})`);
+    } catch (err) {
+      console.error(`[IntentRouter] Exception downloading attachment:`, err);
+    }
+  }
+  return parts;
+}
+
+export async function processIntent(
+  prompt: string, 
+  explicitAppTarget: string | null, 
+  userId: string, 
+  conversationId: string, 
+  token: string,
+  attachments: any[] = []
+): Promise<KairosResponse> {
   // 1. Load conversation context
   const history = await getConversationContext(conversationId, token);
 
@@ -19,18 +62,42 @@ export async function processIntent(prompt: string, explicitAppTarget: string | 
     classification.appTarget = explicitAppTarget;
   }
 
+  // Find all app targets by scanning for @app tags in the prompt
+  const mentionRegex = /@([a-zA-Z0-9\-]+)/g;
+  const mentions = Array.from(prompt.matchAll(mentionRegex)).map(m => m[1].toLowerCase());
+  
+  const appTargetsSet = new Set<string>();
+  if (classification.appTarget && classification.appTarget !== 'generic' && classification.appTarget !== 'search') {
+    appTargetsSet.add(classification.appTarget.toLowerCase());
+  }
+  if (explicitAppTarget) {
+    appTargetsSet.add(explicitAppTarget.toLowerCase());
+  }
+  mentions.forEach(m => appTargetsSet.add(m));
+  
+  const appTargets = appTargetsSet.size > 0 ? Array.from(appTargetsSet) : [classification.appTarget || 'generic'];
+
   let rawResponseText = "";
 
   // 4. Route based on tier
   if (classification.tier === 'SIMPLE') {
     rawResponseText = `User asked for a simple task. Intent was classified as simple. Action: ${prompt}`;
   } else {
-    // 5. Check connection status for the target toolkit slug
+    // 5. Check connection status for all target toolkit slugs
     const { getConnectionStatus, initiateConnection } = await import('../mcp/connection-manager');
-    const connStatus = await getConnectionStatus(userId, classification.appTarget);
     
-    if (!connStatus.connected) {
-      const connectData = await initiateConnection(userId, classification.appTarget);
+    const unconnectedTargets: string[] = [];
+    for (const target of appTargets) {
+      if (['alarm', 'system', 'launcher', 'installed', 'generic', 'search'].includes(target)) continue;
+      const connStatus = await getConnectionStatus(userId, target);
+      if (!connStatus.connected) {
+        unconnectedTargets.push(target);
+      }
+    }
+    
+    if (unconnectedTargets.length > 0) {
+      const targetToConnect = unconnectedTargets[0];
+      const connectData = await initiateConnection(userId, targetToConnect);
       
       const displayNameMap: Record<string, string> = {
         'googlesuper': 'Google',
@@ -43,8 +110,8 @@ export async function processIntent(prompt: string, explicitAppTarget: string | 
         'hackernews': 'Hacker News',
         'discordbot': 'Discord Bot',
       };
-      const displayName = displayNameMap[classification.appTarget.toLowerCase()] || 
-                          (classification.appTarget.charAt(0).toUpperCase() + classification.appTarget.slice(1));
+      const displayName = displayNameMap[targetToConnect.toLowerCase()] || 
+                          (targetToConnect.charAt(0).toUpperCase() + targetToConnect.slice(1));
       
       return {
         type: 'WIDGET',
@@ -67,17 +134,21 @@ export async function processIntent(prompt: string, explicitAppTarget: string | 
       } as KairosResponse;
     }
 
+    // Download attachments from Supabase and format them as Gemini parts
+    const attachmentParts = attachments.length > 0 ? await fetchAttachmentParts(attachments, token) : [];
+
     // 6. Complex intent requiring Composio tool execution
-    console.log(`[Router] Intent classified as COMPLEX. Routing to Composio for appTarget: ${classification.appTarget}`);
+    console.log(`[Router] Intent classified as COMPLEX. Routing to Composio for appTargets:`, appTargets);
     try {
       rawResponseText = await executeComplexIntent(
         prompt, 
-        classification.appTarget, 
+        appTargets, 
         userId, 
         history, 
         userMemory,
         classification.taskType,
-        classification.inferredDetails
+        classification.inferredDetails,
+        attachmentParts
       ) || "";
     } catch (err: unknown) {
       console.error("Error executing complex intent:", err);
@@ -87,7 +158,8 @@ export async function processIntent(prompt: string, explicitAppTarget: string | 
   }
 
   // 6. Build and return the structured UI widget
-  const response = await buildResponse(prompt, rawResponseText, classification.appTarget, conversationId, token, history, userMemory);
+  const primaryTarget = appTargets[0] || classification.appTarget;
+  const response = await buildResponse(prompt, rawResponseText, primaryTarget, conversationId, token, history, userMemory);
 
   // 7. Fire-and-forget memory updates
   updateUserMemoryAsync(userId, prompt, response.text || "", userMemory, token);
