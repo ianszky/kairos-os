@@ -16,6 +16,8 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -113,8 +115,10 @@ val DarkKairosColors = darkColorScheme(
 val KairosTypography = Typography(
     displayLarge = TextStyle(fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 72.sp, letterSpacing = (-2).sp),
     titleLarge = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Bold, fontSize = 20.sp),
+    titleMedium = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Bold, fontSize = 16.sp),
     bodyLarge = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 16.sp),
     bodyMedium = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
+    bodySmall = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 12.sp),
     labelSmall = TextStyle(fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 0.08.sp)
 )
 
@@ -266,6 +270,7 @@ fun MindfulLauncherScreen(
 
     val focusRequester = remember { FocusRequester() }
     var isTerminalFocused by remember { mutableStateOf(false) }
+    var activeScreen by remember { mutableStateOf("home") }
     val hazeState = remember { HazeState() }
     var textLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     
@@ -378,17 +383,27 @@ fun MindfulLauncherScreen(
                     .statusBarsPadding()
             ) {
                 // Main Content
-                if (!isChatOpen) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        ClockView()
+                when (activeScreen) {
+                    "search" -> {
+                        SearchDummyScreen()
                     }
-                } else {
-                    ChatView(interactions = interactions)
+                    "scheduled" -> {
+                        ScheduledDummyScreen()
+                    }
+                    else -> { // "home"
+                        if (!isChatOpen) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ClockView()
+                            }
+                        } else {
+                            ChatView(interactions = interactions)
+                        }
+                    }
                 }
             }
         }
@@ -780,22 +795,98 @@ fun MindfulLauncherScreen(
 
         AnimatedVisibility(
             visible = isSidebarOpen,
-            enter = slideInVertically(initialOffsetY = { 0 }) + fadeIn(),
-            exit = fadeOut()
+            enter = slideInHorizontally(initialOffsetX = { -it }) + fadeIn(),
+            exit = slideOutHorizontally(targetOffsetX = { -it }) + fadeOut()
         ) {
+            val surfaceVariantColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
             Box(modifier = Modifier.fillMaxSize()) {
                 Column(
                     modifier = Modifier
                         .width(280.dp)
                         .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.background)
-                        .border(1.dp, MaterialTheme.colorScheme.surfaceVariant)
+                        .background(MaterialTheme.colorScheme.background.copy(alpha = 0.90f))
+                        .drawBehind {
+                            val strokeWidth = 1.dp.toPx()
+                            drawLine(
+                                color = surfaceVariantColor,
+                                start = androidx.compose.ui.geometry.Offset(size.width - strokeWidth / 2, 0f),
+                                end = androidx.compose.ui.geometry.Offset(size.width - strokeWidth / 2, size.height),
+                                strokeWidth = strokeWidth
+                            )
+                        }
                         .statusBarsPadding()
                         .navigationBarsPadding()
                         .padding(24.dp)
                 ) {
-                    Text("SYSTEM.LOGS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.1.sp)
+                    val logoPath = if (isDarkTheme) "file:///android_asset/logomark-for-dark.svg" else "file:///android_asset/logomark-for-light.svg"
+                    val wordmarkPath = if (isDarkTheme) "file:///android_asset/wordmark-for-dark.svg" else "file:///android_asset/wordmark-for-light.svg"
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        AsyncImage(
+                            model = logoPath,
+                            contentDescription = "KaiOS Logo",
+                            imageLoader = imageLoader,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        AsyncImage(
+                            model = wordmarkPath,
+                            contentDescription = "KaiOS Wordmark",
+                            imageLoader = imageLoader,
+                            modifier = Modifier.height(18.dp)
+                        )
+                    }
                     Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Ghost Buttons
+                    SidebarButton(
+                        icon = Icons.Default.Add,
+                        text = "New chat",
+                        isSelected = activeScreen == "home" && !isChatOpen,
+                        onClick = {
+                            isSidebarOpen = false
+                            activeScreen = "home"
+                            isChatOpen = false
+                            chatViewModel.startNewConversation()
+                            interactions.clear()
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SidebarButton(
+                        icon = Icons.Default.Search,
+                        text = "Search Chat",
+                        isSelected = activeScreen == "search",
+                        onClick = {
+                            isSidebarOpen = false
+                            activeScreen = "search"
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SidebarButton(
+                        icon = Icons.Default.Schedule,
+                        text = "Scheduled",
+                        isSelected = activeScreen == "scheduled",
+                        onClick = {
+                            isSidebarOpen = false
+                            activeScreen = "scheduled"
+                        }
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // History subheading
+                    Text(
+                        text = "HISTORY",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontFamily = googleSansFont,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.1.sp
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
                     
                     androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.fillMaxSize()) {
                         items(conversations.size) { index ->
@@ -807,6 +898,7 @@ fun MindfulLauncherScreen(
                                         isSidebarOpen = false
                                         chatViewModel.selectConversation(conv.id)
                                         isChatOpen = true
+                                        activeScreen = "home"
                                     }
                                     .padding(vertical = 16.dp)
                             ) {
@@ -980,8 +1072,21 @@ fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>)
                         if (!interaction.response.text.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(8.dp))
                         }
+                        var associatedAppTarget: String? = null
+                        val currentIndex = interactions.indexOf(interaction)
+                        if (currentIndex != -1) {
+                            for (i in (currentIndex - 1) downTo 0) {
+                                val prev = interactions[i]
+                                if (prev is com.kairos.os.domain.models.Interaction.UserCommand) {
+                                    associatedAppTarget = prev.appTarget
+                                    break
+                                }
+                            }
+                        }
+
                         com.kairos.os.ui.components.WidgetRenderer(
                             widget = interaction.response.widget,
+                            appTarget = associatedAppTarget,
                             onAction = { action ->
                                 if (action.actionType == "DEEP_LINK") {
                                     try {
@@ -1163,3 +1268,100 @@ fun parseMarkdownToAnnotatedString(
         }
     }
 }
+
+@Composable
+fun SidebarButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent)
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = text,
+            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontFamily = googleSansFont,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            ),
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+        )
+    }
+}
+
+@Composable
+fun SearchDummyScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = androidx.compose.material.icons.Icons.Default.Search,
+            contentDescription = "Search",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(64.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Search Chat Histories",
+            style = MaterialTheme.typography.titleLarge.copy(fontFamily = googleSansFont),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Dummy Page — Search UI will be integrated here.",
+            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+    }
+}
+
+@Composable
+fun ScheduledDummyScreen() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = androidx.compose.material.icons.Icons.Default.Schedule,
+            contentDescription = "Scheduled",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(64.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Scheduled Tasks & Flows",
+            style = MaterialTheme.typography.titleLarge.copy(fontFamily = googleSansFont),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Dummy Page — Scheduled triggers and automations will live here.",
+            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+    }
+}
+

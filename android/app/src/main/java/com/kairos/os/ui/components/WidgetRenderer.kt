@@ -15,6 +15,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import coil.ImageLoader
+import coil.decode.SvgDecoder
 import com.kairos.os.domain.models.WidgetAction
 import com.kairos.os.domain.models.WidgetItem
 import com.kairos.os.domain.models.WidgetPayload
@@ -22,6 +27,7 @@ import com.kairos.os.domain.models.WidgetPayload
 @Composable
 fun WidgetRenderer(
     widget: WidgetPayload,
+    appTarget: String? = null,
     onAction: (WidgetAction) -> Unit = {}
 ) {
     Card(
@@ -48,7 +54,7 @@ fun WidgetRenderer(
             
             if (!widget.actions.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(16.dp))
-                WidgetActionsRow(actions = widget.actions, onAction = onAction)
+                WidgetActionsRow(actions = widget.actions, appTarget = appTarget, onAction = onAction)
             }
         }
     }
@@ -169,19 +175,54 @@ fun WidgetItemRow(item: WidgetItem) {
 }
 
 @Composable
-fun WidgetActionsRow(actions: List<WidgetAction>, onAction: (WidgetAction) -> Unit) {
+fun WidgetActionsRow(
+    actions: List<WidgetAction>,
+    appTarget: String? = null,
+    onAction: (WidgetAction) -> Unit
+) {
+    val context = LocalContext.current
+    val imageLoader = remember(context) {
+        ImageLoader.Builder(context)
+            .components {
+                add(SvgDecoder.Factory())
+            }
+            .build()
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         actions.forEach { action ->
-            OutlinedButton(
+            Button(
                 onClick = { onAction(action) },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.Black
+                ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
             ) {
-                Text(action.label, style = MaterialTheme.typography.labelSmall)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (!appTarget.isNullOrEmpty()) {
+                        AsyncImage(
+                            model = "https://logos.composio.dev/api/$appTarget",
+                            imageLoader = imageLoader,
+                            contentDescription = appTarget,
+                            modifier = Modifier
+                                .size(18.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                        )
+                    }
+                    Text(
+                        text = action.label,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
         }
     }
