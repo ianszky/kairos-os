@@ -22,6 +22,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -237,6 +239,7 @@ val composioApps = listOf(
     AppConnection("dropbox", "Dropbox", "https://logos.composio.dev/api/dropbox", null, "storage")
 )
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MindfulLauncherScreen(
     isDarkTheme: Boolean = true,
@@ -271,6 +274,7 @@ fun MindfulLauncherScreen(
     val focusRequester = remember { FocusRequester() }
     var isTerminalFocused by remember { mutableStateOf(false) }
     var activeScreen by remember { mutableStateOf("home") }
+    val deletedConversationIds = remember { mutableStateListOf<String>() }
     val hazeState = remember { HazeState() }
     var textLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     
@@ -816,7 +820,7 @@ fun MindfulLauncherScreen(
                         }
                         .statusBarsPadding()
                         .navigationBarsPadding()
-                        .padding(24.dp)
+                        .padding(horizontal = 16.dp, vertical = 24.dp)
                 ) {
                     val logoPath = if (isDarkTheme) "file:///android_asset/logomark-for-dark.svg" else "file:///android_asset/logomark-for-light.svg"
                     val wordmarkPath = if (isDarkTheme) "file:///android_asset/wordmark-for-dark.svg" else "file:///android_asset/wordmark-for-light.svg"
@@ -889,28 +893,63 @@ fun MindfulLauncherScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     
+                    val visibleConversations = conversations.filter { it.id !in deletedConversationIds }
                     androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(conversations.size) { index ->
-                            val conv = conversations[index]
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        isSidebarOpen = false
-                                        chatViewModel.selectConversation(conv.id)
-                                        isChatOpen = true
-                                        activeScreen = "home"
-                                    }
-                                    .padding(horizontal = 12.dp, vertical = 16.dp)
-                            ) {
-                                val displayTitle = conv.title ?: "New Conversation"
-                                Text(displayTitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                // Very basic date formatter fallback since we have ISO string
-                                val displayDate = conv.createdAt.take(10)
-                                Text(displayDate, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        items(visibleConversations.size) { index ->
+                            val conv = visibleConversations[index]
+                            var showMenu by remember { mutableStateOf(false) }
+                            Box {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .combinedClickable(
+                                            onClick = {
+                                                isSidebarOpen = false
+                                                chatViewModel.selectConversation(conv.id)
+                                                isChatOpen = true
+                                                activeScreen = "home"
+                                            },
+                                            onLongClick = {
+                                                showMenu = true
+                                            }
+                                        )
+                                        .padding(horizontal = 12.dp, vertical = 16.dp)
+                                ) {
+                                    val displayTitle = conv.title ?: "New Conversation"
+                                    Text(displayTitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    val displayDate = conv.createdAt.take(10)
+                                    Text(displayDate, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
+                                
+                                DropdownMenu(
+                                    expanded = showMenu,
+                                    onDismissRequest = { showMenu = false }
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text("Open", style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont)) },
+                                        onClick = {
+                                            showMenu = false
+                                            isSidebarOpen = false
+                                            chatViewModel.selectConversation(conv.id)
+                                            isChatOpen = true
+                                            activeScreen = "home"
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        text = { Text("Delete", style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont)) },
+                                        onClick = {
+                                            showMenu = false
+                                            deletedConversationIds.add(conv.id)
+                                            if (currentConversationId == conv.id) {
+                                                isChatOpen = false
+                                                chatViewModel.startNewConversation()
+                                                interactions.clear()
+                                            }
+                                        }
+                                    )
+                                }
                             }
-                            Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant))
                         }
                     }
                 }
