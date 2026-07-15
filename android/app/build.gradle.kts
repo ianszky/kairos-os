@@ -80,6 +80,7 @@ dependencies {
 
     // Kotlin Serialization (required by supabase-kt)
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    implementation("dev.chrisbanes.haze:haze:0.6.0")
 }
 
 

@@ -73,6 +73,9 @@ import androidx.compose.ui.text.input.OffsetMapping
 import coil.ImageLoader
 import coil.decode.SvgDecoder
 import androidx.compose.ui.graphics.graphicsLayer
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.haze
+import dev.chrisbanes.haze.hazeChild
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -263,6 +266,7 @@ fun MindfulLauncherScreen(
 
     val focusRequester = remember { FocusRequester() }
     var isTerminalFocused by remember { mutableStateOf(false) }
+    val hazeState = remember { HazeState() }
     var textLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -341,7 +345,7 @@ fun MindfulLauncherScreen(
         }
     }
     
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().haze(hazeState)) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val radius = 450.dp.toPx()
             val center = Offset(size.width / 2, size.height * 0.95f)
@@ -503,15 +507,7 @@ fun MindfulLauncherScreen(
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .graphicsLayer {
-                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                                    renderEffect = androidx.compose.ui.graphics.BlurEffect(
-                                        radiusX = 30f,
-                                        radiusY = 30f,
-                                        edgeTreatment = androidx.compose.ui.graphics.TileMode.Clamp
-                                    )
-                                }
-                            }
+                            .hazeChild(state = hazeState, shape = RoundedCornerShape(16.dp))
                             .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f), RoundedCornerShape(16.dp))
                     )
                     Column(
