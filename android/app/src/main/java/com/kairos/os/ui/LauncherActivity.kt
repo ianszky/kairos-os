@@ -345,26 +345,55 @@ fun MindfulLauncherScreen(
         }
     }
     
-    Box(modifier = Modifier.fillMaxSize().haze(hazeState)) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val radius = 450.dp.toPx()
-            val center = Offset(size.width / 2, size.height * 0.95f)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    0.0f to Color(0xFFFF6B00).copy(alpha = 0.25f),
-                    0.4f to Color(0xFFFF4600).copy(alpha = 0.10f),
-                    0.85f to Color.Transparent,
-                    center = center,
-                    radius = radius
-                ),
-                radius = radius,
-                center = center
-            )
+    val screenOffset = if (isSidebarOpen) 280f else if (isSettingsOpen) -280f else 0f
+    val animatedOffset by animateFloatAsState(targetValue = screenOffset, label = "ScreenOffset")
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Blur Source Box (contains background Canvas and main scrollable content)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .haze(hazeState)
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val radius = 450.dp.toPx()
+                val center = Offset(size.width / 2, size.height * 0.95f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        0.0f to Color(0xFFFF6B00).copy(alpha = 0.25f),
+                        0.4f to Color(0xFFFF4600).copy(alpha = 0.10f),
+                        0.85f to Color.Transparent,
+                        center = center,
+                        radius = radius
+                    ),
+                    radius = radius,
+                    center = center
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .offset(x = animatedOffset.dp)
+                    .statusBarsPadding()
+            ) {
+                // Main Content
+                if (!isChatOpen) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        ClockView()
+                    }
+                } else {
+                    ChatView(interactions = interactions)
+                }
+            }
         }
 
-        val screenOffset = if (isSidebarOpen) 280f else if (isSettingsOpen) -280f else 0f
-        val animatedOffset by animateFloatAsState(targetValue = screenOffset, label = "ScreenOffset")
-        
+        // Overlay Box (sits on top, not captured by Haze, keeps Header and Input Box fully sharp)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -372,20 +401,6 @@ fun MindfulLauncherScreen(
                 .statusBarsPadding()
                 .imePadding()
         ) {
-            // Main Content
-            if (!isChatOpen) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    ClockView()
-                }
-            } else {
-                ChatView(interactions = interactions)
-            }
-
             // Header (Aligned to TopCenter, fading vertical gradient background)
             Box(
                 modifier = Modifier
