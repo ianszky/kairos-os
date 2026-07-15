@@ -365,7 +365,6 @@ fun MindfulLauncherScreen(
                 .fillMaxSize()
                 .offset(x = animatedOffset.dp)
                 .statusBarsPadding()
-                .navigationBarsPadding()
                 .imePadding()
         ) {
             // Main Content
@@ -436,9 +435,10 @@ fun MindfulLauncherScreen(
                         Brush.verticalGradient(
                             0.0f to Color.Transparent,
                             0.4f to MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
-                            1.0f to MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
+                            1.0f to MaterialTheme.colorScheme.background
                         )
                     )
+                    .navigationBarsPadding()
                     .padding(24.dp)
             ) {
                 AnimatedVisibility(visible = isAppDrawerOpen) {
