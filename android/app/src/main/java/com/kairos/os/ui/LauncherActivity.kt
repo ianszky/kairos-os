@@ -60,6 +60,7 @@ import androidx.core.view.WindowCompat
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.AnnotatedString
 import coil.compose.AsyncImage
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.key
@@ -78,6 +79,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 val dotoFont = FontFamily(
     Font(R.font.doto_regular, FontWeight.Normal),
     Font(R.font.doto_bold, FontWeight.Bold)
+)
+
+val googleSansFont = FontFamily(
+    Font(R.font.google_sans_regular, FontWeight.Normal),
+    Font(R.font.google_sans_bold, FontWeight.Bold)
 )
 
 val LightKairosColors = lightColorScheme(
@@ -102,9 +108,9 @@ val DarkKairosColors = darkColorScheme(
 
 val KairosTypography = Typography(
     displayLarge = TextStyle(fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 72.sp, letterSpacing = (-2).sp),
-    titleLarge = TextStyle(fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 20.sp),
-    bodyLarge = TextStyle(fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 16.sp),
-    bodyMedium = TextStyle(fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 14.sp),
+    titleLarge = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Bold, fontSize = 20.sp),
+    bodyLarge = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 16.sp),
+    bodyMedium = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
     labelSmall = TextStyle(fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 0.08.sp)
 )
 
@@ -336,13 +342,13 @@ fun MindfulLauncherScreen(
     
     Box(modifier = Modifier.fillMaxSize()) {
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val radius = 250.dp.toPx()
-            val center = Offset(size.width / 2, size.height * 0.45f)
+            val radius = 450.dp.toPx()
+            val center = Offset(size.width / 2, size.height * 0.95f)
             drawCircle(
                 brush = Brush.radialGradient(
-                    0.0f to Color(0xFFFF6B00).copy(alpha = 0.9f),
-                    0.4f to Color(0xFFFF4600).copy(alpha = 0.4f),
-                    0.75f to Color.Transparent,
+                    0.0f to Color(0xFFFF6B00).copy(alpha = 0.25f),
+                    0.4f to Color(0xFFFF4600).copy(alpha = 0.10f),
+                    0.85f to Color.Transparent,
                     center = center,
                     radius = radius
                 ),
@@ -498,7 +504,7 @@ fun MindfulLauncherScreen(
                         BasicTextField(
                             value = termInput,
                             onValueChange = { termInput = it },
-                            textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 14.sp),
+                            textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
                             cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
                             modifier = Modifier
                                 .weight(1f)
@@ -542,7 +548,7 @@ fun MindfulLauncherScreen(
                             visualTransformation = mentionVisualTransformation,
                             decorationBox = { innerTextField ->
                                 if (termInput.isEmpty()) {
-                                    Text("Type to search or command...", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = dotoFont, fontSize = 14.sp))
+                                    Text("Type to search or command...", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp))
                                 }
                                 innerTextField()
                             },
@@ -670,7 +676,7 @@ fun MindfulLauncherScreen(
                             BasicTextField(
                                 value = frictionReason,
                                 onValueChange = { frictionReason = it },
-                                textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 14.sp),
+                                textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
                                 cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -679,7 +685,7 @@ fun MindfulLauncherScreen(
                                     .padding(12.dp),
                                 decorationBox = { innerTextField ->
                                     if (frictionReason.isEmpty()) {
-                                        Text("[reason] (e.g. check messages)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = dotoFont, fontSize = 14.sp))
+                                        Text("[reason] (e.g. check messages)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp))
                                     }
                                     innerTextField()
                                 }
@@ -886,7 +892,7 @@ fun ClockView() {
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = dateString,
-            style = MaterialTheme.typography.bodyMedium.copy(letterSpacing = 0.1.sp),
+            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = dotoFont, fontWeight = FontWeight.Bold, letterSpacing = 0.1.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
@@ -951,6 +957,15 @@ fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>)
 
 @Composable
 fun ChatBubble(isUser: Boolean, text: String) {
+    val codeBg = MaterialTheme.colorScheme.surfaceVariant
+    val codeText = MaterialTheme.colorScheme.primary
+    val annotatedText = remember(text, codeBg, codeText) {
+        if (isUser) {
+            AnnotatedString(text)
+        } else {
+            parseMarkdownToAnnotatedString(text, codeBg, codeText)
+        }
+    }
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
@@ -966,17 +981,132 @@ fun ChatBubble(isUser: Boolean, text: String) {
                     if (isUser) MaterialTheme.colorScheme.surfaceVariant else Color.Transparent,
                     if (isUser) RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 12.dp, bottomEnd = 4.dp) else RoundedCornerShape(0.dp)
                 )
-                .then(
-                    if (!isUser) Modifier.border(width = 2.dp, color = MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(0.dp)).padding(start = 16.dp)
-                    else Modifier
+                .padding(
+                    start = if (isUser) 18.dp else 0.dp,
+                    end = if (isUser) 18.dp else 0.dp,
+                    top = if (isUser) 14.dp else 8.dp,
+                    bottom = if (isUser) 14.dp else 8.dp
                 )
-                .padding(horizontal = 18.dp, vertical = 14.dp)
         ) {
             Text(
-                text = text,
+                text = annotatedText,
                 color = if (isUser) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
                 style = if (isUser) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal)
             )
+        }
+    }
+}
+
+fun parseMarkdownToAnnotatedString(
+    text: String,
+    codeBgColor: Color,
+    codeTextColor: Color
+): AnnotatedString {
+    return buildAnnotatedString {
+        val lines = text.split("\n")
+        var inCodeBlock = false
+        
+        lines.forEachIndexed { index, line ->
+            if (line.trim().startsWith("```")) {
+                inCodeBlock = !inCodeBlock
+                return@forEachIndexed
+            }
+            
+            if (inCodeBlock) {
+                withStyle(
+                    SpanStyle(
+                        fontFamily = FontFamily.Monospace,
+                        background = codeBgColor,
+                        color = codeTextColor
+                    )
+                ) {
+                    append(line)
+                }
+                if (index < lines.size - 1) {
+                    append("\n")
+                }
+                return@forEachIndexed
+            }
+            
+            var formattedLine = line
+            var isHeading = false
+            var headingLevel = 0
+            if (line.startsWith("#")) {
+                val match = Regex("^(#{1,6})\\s+(.*)$").find(line)
+                if (match != null) {
+                    headingLevel = match.groupValues[1].length
+                    formattedLine = match.groupValues[2]
+                    isHeading = true
+                }
+            }
+            
+            if (!isHeading && (line.startsWith("- ") || line.startsWith("* "))) {
+                formattedLine = "• " + line.substring(2)
+            }
+            
+            val headingStyle = when (headingLevel) {
+                1 -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                2 -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                3 -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                else -> SpanStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+            
+            val pattern = Regex("(\\*\\*.*?\\*\\*|\\*.*?\\*|`.*?`)")
+            var currentIndex = 0
+            val matches = pattern.findAll(formattedLine)
+            
+            for (match in matches) {
+                if (match.range.first > currentIndex) {
+                    val plainText = formattedLine.substring(currentIndex, match.range.first)
+                    if (isHeading) {
+                        withStyle(headingStyle) {
+                            append(plainText)
+                        }
+                    } else {
+                        append(plainText)
+                    }
+                }
+                
+                val token = match.value
+                val innerText = when {
+                    token.startsWith("**") && token.endsWith("**") -> token.substring(2, token.length - 2)
+                    token.startsWith("*") && token.endsWith("*") -> token.substring(1, token.length - 1)
+                    token.startsWith("`") && token.endsWith("`") -> token.substring(1, token.length - 1)
+                    else -> token
+                }
+                
+                val style = when {
+                    token.startsWith("**") -> SpanStyle(fontWeight = FontWeight.Bold)
+                    token.startsWith("*") -> SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic)
+                    token.startsWith("`") -> SpanStyle(
+                        fontFamily = FontFamily.Monospace,
+                        background = codeBgColor,
+                        color = codeTextColor
+                    )
+                    else -> SpanStyle()
+                }
+                
+                withStyle(style.merge(if (isHeading) headingStyle else SpanStyle())) {
+                    append(innerText)
+                }
+                
+                currentIndex = match.range.last + 1
+            }
+            
+            if (currentIndex < formattedLine.length) {
+                val remainingText = formattedLine.substring(currentIndex)
+                if (isHeading) {
+                    withStyle(headingStyle) {
+                        append(remainingText)
+                    }
+                } else {
+                    append(remainingText)
+                }
+            }
+            
+            if (index < lines.size - 1) {
+                append("\n")
+            }
         }
     }
 }

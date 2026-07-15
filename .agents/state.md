@@ -7,8 +7,12 @@
   - Resolved Gradle/Hilt/Kotlin metadata compatibility hell by migrating to KSP 2.3.9 natively on AGP 9.0.0 and Gradle 9.1.0, paired with Hilt 2.60.
   - Successfully compiled `assembleDebug` with Hilt generation successfully working.
   - `LoginScreen` and `AuthViewModel` configured.
+  - Implemented UI/UX adjustments:
+    - Integrated Google Sans font for the majority of the app (body, chats, input fields, titles) while keeping Doto for homepage clock/date and small labels.
+    - Toned down the background radial orange gradient and shifted its center majorly to the bottom of the screen.
+    - Cleaned up agent replies layout (removed orange border and start-padding offset, aligning text naturally on the left).
+    - Added markdown rendering support (bold, italic, inline code, headings, bullet lists, code blocks) in agent replies.
 
 ## Next Steps
 - Implement end-to-end testing between the Android Auth flow, proxy server, and Supabase cloud.
-- Address any further UI/UX requirements for the Login screen.
 - Continue implementing the rest of the OS architecture.
