@@ -72,6 +72,7 @@ import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.OffsetMapping
 import coil.ImageLoader
 import coil.decode.SvgDecoder
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -496,17 +497,33 @@ fun MindfulLauncherScreen(
                     }
                 }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
-                        .border(
-                            1.dp, 
-                            if (isTerminalFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), 
-                            RoundedCornerShape(16.dp)
-                        )
-                        .padding(20.dp)
+                Box(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .graphicsLayer {
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                                    renderEffect = androidx.compose.ui.graphics.BlurEffect(
+                                        radiusX = 30f,
+                                        radiusY = 30f,
+                                        edgeTreatment = androidx.compose.ui.graphics.TileMode.Clamp
+                                    )
+                                }
+                            }
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.65f), RoundedCornerShape(16.dp))
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                1.dp, 
+                                if (isTerminalFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), 
+                                RoundedCornerShape(16.dp)
+                            )
+                            .padding(20.dp)
+                    ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(">", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                         Spacer(modifier = Modifier.width(12.dp))
@@ -732,6 +749,7 @@ fun MindfulLauncherScreen(
                     }
                 }
             }
+        }
         }
 
         if (isSidebarOpen || isSettingsOpen) {
