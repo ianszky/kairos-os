@@ -15,7 +15,7 @@
     - Removed the orange border container on the typing loading indicator and added a staggered vertical bounce animation to the three dots.
     - Converted the main layout container of MindfulLauncherScreen to a Box layout to layer components, preventing cutoff in content when scrolling.
     - Applied a fading vertical gradient opacity background to the header.
-    - Made the input box translucent with a translucent border (liquid glass effect) and added a bottom-up gradient underneath it so messages fade out smoothly when scrolling.
+    - Made the input box translucent with a 0.65f alpha background, applied a native BlurEffect (RenderEffect) background layer to solidify the frosted glassmorphism, added a translucent border, and left surroundings transparent to let the orange gradient shine through fully.
 
 ## Next Steps
 - Implement end-to-end testing between the Android Auth flow, proxy server, and Supabase cloud.
