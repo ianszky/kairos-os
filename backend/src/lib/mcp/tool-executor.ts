@@ -173,7 +173,7 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
   };
 
   const chat = ai.chats.create({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.5-flash',
     config: {
       tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : [],
       systemInstruction: systemInstruction,

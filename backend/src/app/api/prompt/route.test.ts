@@ -42,7 +42,7 @@ vi.mock('@/lib/router/intent-router', () => ({
         meta: {
           conversationId: 'test-conversation-id',
           timestamp: new Date().toISOString(),
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash',
         },
       };
     }
@@ -56,7 +56,7 @@ vi.mock('@/lib/router/intent-router', () => ({
       meta: {
         conversationId: 'test-conversation-id',
         timestamp: new Date().toISOString(),
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.5-flash',
       },
     };
   }),

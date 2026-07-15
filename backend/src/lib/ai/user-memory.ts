@@ -51,7 +51,7 @@ System responded: ${response}
 Return ONLY valid JSON.`;
 
     const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-3.1-flash-lite',
       contents: updatePrompt,
       config: { 
         temperature: 0.1,
