@@ -431,13 +431,6 @@ fun MindfulLauncherScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(
-                        Brush.verticalGradient(
-                            0.0f to Color.Transparent,
-                            0.4f to MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
-                            1.0f to MaterialTheme.colorScheme.background
-                        )
-                    )
                     .navigationBarsPadding()
                     .padding(24.dp)
             ) {
