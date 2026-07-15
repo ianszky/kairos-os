@@ -99,6 +99,12 @@ import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
 import io.github.jan.supabase.storage.storage
 import com.kairos.os.data.api.AttachmentInfo
 import androidx.compose.ui.graphics.asImageBitmap
@@ -303,6 +309,19 @@ fun processVoiceText(text: String, availableApps: List<AppConnection>): String {
     }
 }
 
+fun insertAppMention(currentInput: String, appId: String): String {
+    val atIndex = currentInput.lastIndexOf('@')
+    return if (atIndex != -1) {
+        currentInput.substring(0, atIndex) + "@$appId "
+    } else {
+        if (currentInput.isEmpty() || currentInput.endsWith(" ")) {
+            currentInput + "@$appId "
+        } else {
+            currentInput + " @$appId "
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MindfulLauncherScreen(
@@ -446,6 +465,20 @@ fun MindfulLauncherScreen(
         }
     }
 
+    val systemSpeechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val text = matches?.firstOrNull() ?: ""
+            if (text.isNotBlank()) {
+                termInput = processVoiceText(text, availableApps)
+            }
+        }
+        isVoiceInputActive = false
+        rmsDbValue = 0f
+    }
+
     val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -465,14 +498,34 @@ fun MindfulLauncherScreen(
                 }
                 override fun onBufferReceived(buffer: ByteArray?) {}
                 override fun onEndOfSpeech() {}
-                override fun onError(error: Int) {}
+                override fun onError(error: Int) {
+                    android.util.Log.e("Speech", "Speech recognizer error: $error")
+                    isVoiceInputActive = false
+                    rmsDbValue = 0f
+                    val fallbackIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    }
+                    try {
+                        systemSpeechLauncher.launch(fallbackIntent)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
                 override fun onResults(results: Bundle?) {
                     val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    speechTextResult = matches?.firstOrNull() ?: ""
+                    val text = matches?.firstOrNull() ?: ""
+                    if (text.isNotBlank()) {
+                        termInput = processVoiceText(text, availableApps)
+                    }
+                    isVoiceInputActive = false
+                    rmsDbValue = 0f
                 }
                 override fun onPartialResults(partialResults: Bundle?) {
                     val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    speechTextResult = matches?.firstOrNull() ?: ""
+                    val text = matches?.firstOrNull() ?: ""
+                    if (text.isNotBlank()) {
+                        termInput = processVoiceText(text, availableApps)
+                    }
                 }
                 override fun onEvent(eventType: Int, params: Bundle?) {}
             })
@@ -487,6 +540,7 @@ fun MindfulLauncherScreen(
             if (availableApps.any { it.id.equals(slug, ignoreCase = true) }) slug.lowercase() else null
         } else null
     }
+
 
     val imageLoader = remember {
         ImageLoader.Builder(context)
@@ -527,6 +581,48 @@ fun MindfulLauncherScreen(
 
     val interactions = remember { mutableStateListOf<com.kairos.os.domain.models.Interaction>() }
     var isLoading by remember { mutableStateOf(false) }
+
+    val onSendPrompt = {
+        if (termInput.isNotBlank() && !termInput.startsWith("/") && termInput != "@$parsedActiveApp") {
+            val currentIntent = termInput
+            val currentTarget = parsedActiveApp
+            val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
+                attachment.uploadedPath?.let { path ->
+                    AttachmentInfo(
+                        filePath = path,
+                        fileName = attachment.fileName,
+                        mimeType = attachment.mimeType,
+                        fileSize = attachment.fileSize
+                    )
+                }
+            }
+            isChatOpen = true
+            interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
+            isLoading = true
+            interactions.add(com.kairos.os.domain.models.Interaction.Loading())
+            termInput = ""
+            selectedAttachments.clear()
+
+            coroutineScope.launch {
+                try {
+                    val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId, attachmentsPayload)
+                    chatViewModel.onPromptResponse(response.meta?.conversationId)
+                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                } catch (e: Exception) {
+                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
+                        com.kairos.os.domain.models.KairosResponse(
+                            type = "ERROR",
+                            text = "Failed to connect to AI: ${e.message}"
+                        )
+                    ))
+                } finally {
+                    isLoading = false
+                }
+            }
+        }
+    }
 
     LaunchedEffect(currentMessages) {
         if (currentMessages.isNotEmpty() || currentConversationId != null) {
@@ -697,7 +793,7 @@ fun MindfulLauncherScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            termInput = "@${app.id} "
+                                            termInput = insertAppMention(termInput, app.id)
                                             isAppDrawerOpen = false
                                         }
                                         .padding(12.dp),
@@ -756,11 +852,15 @@ fun MindfulLauncherScreen(
                             label = "Add App",
                             onClick = {
                                 isPlusMenuOpen = false
-                                if (!termInput.contains("@")) {
-                                    termInput += "@"
-                                    isAppDrawerOpen = true
-                                    searchQuery = ""
+                                if (!termInput.endsWith("@")) {
+                                    termInput = if (termInput.isEmpty() || termInput.endsWith(" ")) {
+                                        termInput + "@"
+                                    } else {
+                                        termInput + " @"
+                                    }
                                 }
+                                isAppDrawerOpen = true
+                                searchQuery = ""
                             }
                         )
                         PlusMenuItem(
@@ -813,232 +913,194 @@ fun MindfulLauncherScreen(
                                 attachments = selectedAttachments,
                                 onRemove = { selectedAttachments.remove(it) }
                             )
+                            Spacer(modifier = Modifier.height(8.dp))
                         }
 
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        BasicTextField(
+                            value = termInput,
+                            onValueChange = { termInput = it },
+                            textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 36.dp, max = 150.dp)
+                                .focusRequester(focusRequester)
+                                .onFocusChanged { isTerminalFocused = it.isFocused }
+                                .drawBehind {
+                                    val layoutResult = textLayoutResult ?: return@drawBehind
+                                    val textStr = termInput
+                                    val regex = Regex("@([a-zA-Z0-9\\-]+)")
+                                    val matches = regex.findAll(textStr).toList()
+                                    
+                                    var matchIndex = 0
+                                    matches.forEach { match ->
+                                        val appId = match.groups[1]?.value?.lowercase() ?: ""
+                                        val app = availableApps.find { it.id == appId }
+                                        if (app != null && matchIndex < validStartsState.size) {
+                                            val originalStart = match.range.first
+                                            val originalEnd = match.range.last + 1
+                                            
+                                            val spaceTransformed = validStartsState[matchIndex] + matchIndex
+                                            val lastTransformed = spaceTransformed + (originalEnd - originalStart)
+                                            
+                                            try {
+                                                val spaceRect = layoutResult.getBoundingBox(spaceTransformed)
+                                                val wordEndRect = layoutResult.getBoundingBox(lastTransformed)
+                                                
+                                                val pillRect = androidx.compose.ui.geometry.Rect(
+                                                    left = spaceRect.left - 4.dp.toPx(),
+                                                    top = minOf(spaceRect.top, wordEndRect.top) - 2.dp.toPx(),
+                                                    right = wordEndRect.right + 6.dp.toPx(),
+                                                    bottom = maxOf(spaceRect.bottom, wordEndRect.bottom) + 2.dp.toPx()
+                                                )
+                                                
+                                                val primaryColor = Color(0xFFFF6B00)
+                                                drawRoundRect(
+                                                    color = primaryColor.copy(alpha = 0.15f),
+                                                    topLeft = pillRect.topLeft,
+                                                    size = pillRect.size,
+                                                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                                                )
+                                                drawRoundRect(
+                                                    color = primaryColor.copy(alpha = 0.4f),
+                                                    topLeft = pillRect.topLeft,
+                                                    size = pillRect.size,
+                                                    style = Stroke(width = 1.dp.toPx()),
+                                                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                                                )
+                                                
+                                                val drawable = app.iconDrawable ?: iconCache[app.id]
+                                                if (drawable != null) {
+                                                    val iconSize = 14.dp.toPx()
+                                                    val iconLeft = spaceRect.left + (spaceRect.width - iconSize) / 2
+                                                    val iconTop = spaceRect.top + (spaceRect.height - iconSize) / 2
+                                                    
+                                                    drawable.bounds = android.graphics.Rect(
+                                                        iconLeft.toInt(),
+                                                        iconTop.toInt(),
+                                                        (iconLeft + iconSize).toInt(),
+                                                        (iconTop + iconSize).toInt()
+                                                    )
+                                                    drawable.draw(drawContext.canvas.nativeCanvas)
+                                                }
+                                            } catch (e: Exception) {
+                                                // ignore layout out of bounds
+                                            }
+                                            matchIndex++
+                                        }
+                                    }
+                                },
+                            onTextLayout = { textLayoutResult = it },
+                            visualTransformation = mentionVisualTransformation,
+                            decorationBox = { innerTextField ->
+                                if (termInput.isEmpty()) {
+                                    Text(
+                                        text = "Type your command",
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                innerTextField()
+                            },
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                            keyboardActions = KeyboardActions(onGo = {
+                                onSendPrompt()
+                            })
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             if (isVoiceInputActive) {
-                                IconButton(onClick = {
-                                    speechRecognizer.cancel()
-                                    isVoiceInputActive = false
-                                }) {
+                                IconButton(
+                                    onClick = {
+                                        speechRecognizer.cancel()
+                                        isVoiceInputActive = false
+                                        rmsDbValue = 0f
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
                                     Icon(Icons.Default.Close, contentDescription = "Cancel Voice", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                
+
                                 Box(modifier = Modifier.weight(1f)) {
                                     WaveformView(rmsDb = rmsDbValue)
                                 }
-                                
-                                IconButton(onClick = {
-                                    speechRecognizer.stopListening()
-                                    isVoiceInputActive = false
-                                    val processed = processVoiceText(speechTextResult, availableApps)
-                                    termInput = processed
-                                }) {
-                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Confirm Voice", tint = MaterialTheme.colorScheme.primary)
+
+                                IconButton(
+                                    onClick = {
+                                        speechRecognizer.stopListening()
+                                        isVoiceInputActive = false
+                                        rmsDbValue = 0f
+                                    },
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(Color(0xFF8AB4F8), CircleShape)
+                                ) {
+                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Confirm Voice", tint = Color.Black, modifier = Modifier.size(20.dp))
                                 }
                             } else {
                                 IconButton(
                                     onClick = { isPlusMenuOpen = !isPlusMenuOpen },
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape)
-                                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), CircleShape)
+                                    modifier = Modifier.size(36.dp)
                                 ) {
                                     Icon(
                                         imageVector = if (isPlusMenuOpen) Icons.Default.Close else Icons.Default.Add,
                                         contentDescription = "Add Context",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                
-                                BasicTextField(
-                                    value = termInput,
-                                    onValueChange = { termInput = it },
-                                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
-                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .heightIn(max = 100.dp)
-                                        .focusRequester(focusRequester)
-                                        .onFocusChanged { isTerminalFocused = it.isFocused }
-                                        .drawBehind {
-                                            val layoutResult = textLayoutResult ?: return@drawBehind
-                                            val textStr = termInput
-                                            val regex = Regex("@([a-zA-Z0-9\\-]+)")
-                                            val matches = regex.findAll(textStr).toList()
-                                            
-                                            var matchIndex = 0
-                                            matches.forEach { match ->
-                                                val appId = match.groups[1]?.value?.lowercase() ?: ""
-                                                val app = availableApps.find { it.id == appId }
-                                                if (app != null && matchIndex < validStartsState.size) {
-                                                    val originalStart = match.range.first
-                                                    val originalEnd = match.range.last + 1
-                                                    
-                                                    val spaceTransformed = validStartsState[matchIndex] + matchIndex
-                                                    val lastTransformed = spaceTransformed + (originalEnd - originalStart)
-                                                    
-                                                    try {
-                                                        val spaceRect = layoutResult.getBoundingBox(spaceTransformed)
-                                                        val wordEndRect = layoutResult.getBoundingBox(lastTransformed)
-                                                        
-                                                        val pillRect = androidx.compose.ui.geometry.Rect(
-                                                            left = spaceRect.left - 4.dp.toPx(),
-                                                            top = minOf(spaceRect.top, wordEndRect.top) - 2.dp.toPx(),
-                                                            right = wordEndRect.right + 6.dp.toPx(),
-                                                            bottom = maxOf(spaceRect.bottom, wordEndRect.bottom) + 2.dp.toPx()
-                                                        )
-                                                        
-                                                        val primaryColor = Color(0xFFFF6B00)
-                                                        drawRoundRect(
-                                                            color = primaryColor.copy(alpha = 0.15f),
-                                                            topLeft = pillRect.topLeft,
-                                                            size = pillRect.size,
-                                                            cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                                                        )
-                                                        drawRoundRect(
-                                                            color = primaryColor.copy(alpha = 0.4f),
-                                                            topLeft = pillRect.topLeft,
-                                                            size = pillRect.size,
-                                                            style = Stroke(width = 1.dp.toPx()),
-                                                            cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                                                        )
-                                                        
-                                                        val drawable = app.iconDrawable ?: iconCache[app.id]
-                                                        if (drawable != null) {
-                                                            val iconSize = 14.dp.toPx()
-                                                            val iconLeft = spaceRect.left + (spaceRect.width - iconSize) / 2
-                                                            val iconTop = spaceRect.top + (spaceRect.height - iconSize) / 2
-                                                            
-                                                            drawable.bounds = android.graphics.Rect(
-                                                                iconLeft.toInt(),
-                                                                iconTop.toInt(),
-                                                                (iconLeft + iconSize).toInt(),
-                                                                (iconTop + iconSize).toInt()
-                                                            )
-                                                            drawable.draw(drawContext.canvas.nativeCanvas)
-                                                        }
-                                                    } catch (e: Exception) {
-                                                        // ignore layout out of bounds
-                                                    }
-                                                    matchIndex++
-                                                }
-                                            }
-                                        },
-                                    onTextLayout = { textLayoutResult = it },
-                                    visualTransformation = mentionVisualTransformation,
-                                    decorationBox = { innerTextField ->
-                                        if (termInput.isEmpty()) {
-                                            Text("Type to search or command...", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp))
-                                        }
-                                        innerTextField()
-                                    },
-                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                                    keyboardActions = KeyboardActions(onGo = {
-                                        if (termInput.isNotBlank() && !termInput.startsWith("/") && termInput != "@$parsedActiveApp") {
-                                            val currentIntent = termInput
-                                            val currentTarget = parsedActiveApp
-                                            val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
-                                                attachment.uploadedPath?.let { path ->
-                                                    AttachmentInfo(
-                                                        filePath = path,
-                                                        fileName = attachment.fileName,
-                                                        mimeType = attachment.mimeType,
-                                                        fileSize = attachment.fileSize
-                                                    )
-                                                }
-                                            }
-                                            isChatOpen = true
-                                            interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
-                                            isLoading = true
-                                            interactions.add(com.kairos.os.domain.models.Interaction.Loading())
-                                            termInput = ""
-                                            selectedAttachments.clear()
 
-                                            coroutineScope.launch {
-                                                try {
-                                                    val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId, attachmentsPayload)
-                                                    chatViewModel.onPromptResponse(response.meta?.conversationId)
-                                                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
-                                                } catch (e: Exception) {
-                                                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
-                                                        com.kairos.os.domain.models.KairosResponse(
-                                                            type = "ERROR",
-                                                            text = "Failed to connect to AI: ${e.message}"
-                                                        )
-                                                    ))
-                                                } finally {
-                                                    isLoading = false
-                                                }
-                                            }
-                                        }
-                                    })
-                                )
-                                
+                                Spacer(modifier = Modifier.weight(1f))
+
                                 val currentApp = availableApps.find { it.id == parsedActiveApp }
                                 if (currentApp?.packageName != null) {
-                                    IconButton(onClick = {
-                                        val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
-                                        if (launchIntent != null) {
-                                            context.startActivity(launchIntent)
-                                        }
-                                    }) {
+                                    IconButton(
+                                        onClick = {
+                                            val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
+                                            if (launchIntent != null) {
+                                                context.startActivity(launchIntent)
+                                            }
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
                                         Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
                                     }
                                 }
-                                
-                                IconButton(onClick = {
-                                    recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                }) {
+
+                                IconButton(
+                                    onClick = {
+                                        if (SpeechRecognizer.isRecognitionAvailable(context)) {
+                                            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                        } else {
+                                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                            }
+                                            systemSpeechLauncher.launch(intent)
+                                        }
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
                                     Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
 
-                                IconButton(onClick = {
-                                    if (termInput.isNotBlank() && !termInput.startsWith("/") && termInput != "@$parsedActiveApp") {
-                                        val currentIntent = termInput
-                                        val currentTarget = parsedActiveApp
-                                        val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
-                                            attachment.uploadedPath?.let { path ->
-                                                AttachmentInfo(
-                                                    filePath = path,
-                                                    fileName = attachment.fileName,
-                                                    mimeType = attachment.mimeType,
-                                                    fileSize = attachment.fileSize
-                                                )
-                                            }
-                                        }
-                                        isChatOpen = true
-                                        interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
-                                        isLoading = true
-                                        interactions.add(com.kairos.os.domain.models.Interaction.Loading())
-                                        termInput = ""
-                                        selectedAttachments.clear()
+                                Spacer(modifier = Modifier.width(8.dp))
 
-                                        coroutineScope.launch {
-                                            try {
-                                                val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId, attachmentsPayload)
-                                                chatViewModel.onPromptResponse(response.meta?.conversationId)
-                                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
-                                            } catch (e: Exception) {
-                                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
-                                                    com.kairos.os.domain.models.KairosResponse(
-                                                        type = "ERROR",
-                                                        text = "Failed to connect to AI: ${e.message}"
-                                                    )
-                                                ))
-                                            } finally {
-                                                isLoading = false
-                                            }
-                                        }
-                                    }
-                                }) {
-                                    Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary)
+                                IconButton(
+                                    onClick = {
+                                        onSendPrompt()
+                                    },
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(Color(0xFF8AB4F8), CircleShape)
+                                ) {
+                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Send", tint = Color.Black, modifier = Modifier.size(20.dp))
                                 }
                             }
                         }
@@ -1506,7 +1568,18 @@ class MentionVisualTransformation(
 
 @Composable
 fun WaveformView(rmsDb: Float) {
-    val barCount = 15
+    val barCount = 20
+    val infiniteTransition = rememberInfiniteTransition(label = "waveform")
+    val phase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 2f * Math.PI.toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "phase"
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1515,27 +1588,29 @@ fun WaveformView(rmsDb: Float) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val random = remember { java.util.Random() }
+        val normalizedDb = ((rmsDb + 2f).coerceAtLeast(0f) / 10f).coerceIn(0f, 1f)
+        val baseHeight = 6.dp
+        val maxHeight = 36.dp
+
         for (i in 0 until barCount) {
-            val normalizedDb = (rmsDb + 2f).coerceAtLeast(0f) / 12f
-            val baseHeight = 4.dp
-            val maxHeight = 40.dp
             val centerFactor = 1f - (Math.abs(i - barCount / 2).toFloat() / (barCount / 2))
-            val targetHeight = baseHeight + (maxHeight - baseHeight) * normalizedDb * centerFactor * (0.6f + 0.4f * random.nextFloat())
-            
+            val waveAmplitude = Math.sin((phase + i * 0.5f).toDouble()).toFloat() * 0.3f + 0.7f
+            val targetHeight = baseHeight + (maxHeight - baseHeight) * normalizedDb * centerFactor * waveAmplitude
+
+            val idleHeight = baseHeight + (Math.sin((phase + i * 0.3f).toDouble()).toFloat() * 3f).dp
             val animatedHeight by animateDpAsState(
-                targetValue = if (normalizedDb > 0.05f) targetHeight else baseHeight,
+                targetValue = if (normalizedDb > 0.05f) targetHeight else idleHeight,
                 label = "bar_height_$i"
             )
-            
+
             Box(
                 modifier = Modifier
                     .padding(horizontal = 2.dp)
-                    .width(4.dp)
+                    .width(3.dp)
                     .height(animatedHeight)
                     .background(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                        shape = RoundedCornerShape(2.dp)
+                        shape = RoundedCornerShape(1.5.dp)
                     )
             )
         }
