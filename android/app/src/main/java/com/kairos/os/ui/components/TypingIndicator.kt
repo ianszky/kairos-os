@@ -2,17 +2,14 @@ package com.kairos.os.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -23,21 +20,16 @@ fun TypingIndicator() {
     ) {
         Box(
             modifier = Modifier
-                .background(Color.Transparent)
-                .border(
-                    width = 2.dp,
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = RoundedCornerShape(0.dp)
-                )
-                .padding(start = 16.dp, top = 14.dp, bottom = 14.dp, end = 18.dp)
+                .padding(start = 0.dp, top = 16.dp, bottom = 8.dp, end = 18.dp)
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.Bottom,
+                modifier = Modifier.height(20.dp)
             ) {
                 Dot(delayMillis = 0)
-                Dot(delayMillis = 200)
-                Dot(delayMillis = 400)
+                Dot(delayMillis = 150)
+                Dot(delayMillis = 300)
             }
         }
     }
@@ -46,20 +38,22 @@ fun TypingIndicator() {
 @Composable
 private fun Dot(delayMillis: Int) {
     val infiniteTransition = rememberInfiniteTransition(label = "typing")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 1f,
+    val yOffset by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = -8f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 600, delayMillis = delayMillis, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            animation = tween(durationMillis = 400, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+            initialStartOffset = StartOffset(delayMillis)
         ),
-        label = "alpha"
+        label = "yOffset"
     )
 
     Box(
         modifier = Modifier
-            .size(6.dp)
+            .size(8.dp)
+            .offset(y = yOffset.dp)
             .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primary.copy(alpha = alpha))
+            .background(MaterialTheme.colorScheme.primary)
     )
 }

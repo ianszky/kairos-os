@@ -360,7 +360,7 @@ fun MindfulLauncherScreen(
         val screenOffset = if (isSidebarOpen) 280f else if (isSettingsOpen) -280f else 0f
         val animatedOffset by animateFloatAsState(targetValue = screenOffset, label = "ScreenOffset")
         
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .offset(x = animatedOffset.dp)
@@ -368,51 +368,79 @@ fun MindfulLauncherScreen(
                 .navigationBarsPadding()
                 .imePadding()
         ) {
-            Row(
+            // Main Content
+            if (!isChatOpen) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ClockView()
+                }
+            } else {
+                ChatView(interactions = interactions)
+            }
+
+            // Header (Aligned to TopCenter, fading vertical gradient background)
+            Box(
                 modifier = Modifier
+                    .align(Alignment.TopCenter)
                     .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .background(
+                        Brush.verticalGradient(
+                            0.0f to MaterialTheme.colorScheme.background.copy(alpha = 0.95f),
+                            0.6f to MaterialTheme.colorScheme.background.copy(alpha = 0.70f),
+                            1.0f to Color.Transparent
+                        )
+                    )
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    IconButton(onClick = { isSidebarOpen = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "System Logs", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        IconButton(onClick = { isSidebarOpen = true }) {
+                            Icon(Icons.Default.Menu, contentDescription = "System Logs", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        if (isChatOpen) {
+                            IconButton(onClick = { 
+                                isChatOpen = false 
+                                chatViewModel.startNewConversation()
+                                interactions.clear()
+                            }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
-                    if (isChatOpen) {
-                        IconButton(onClick = { 
-                            isChatOpen = false 
-                            chatViewModel.startNewConversation()
-                            interactions.clear()
-                        }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        IconButton(onClick = onThemeToggle) {
+                            Icon(if (isDarkTheme) Icons.Default.Brightness4 else Icons.Default.Brightness7, contentDescription = "Toggle Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        IconButton(onClick = { isSettingsOpen = true }) {
+                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    IconButton(onClick = onThemeToggle) {
-                        Icon(if (isDarkTheme) Icons.Default.Brightness4 else Icons.Default.Brightness7, contentDescription = "Toggle Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    IconButton(onClick = { isSettingsOpen = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
             }
 
-            Box(
+            // Input box column (Aligned to BottomCenter, fading bottom gradient background)
+            Column(
                 modifier = Modifier
-                    .weight(1f)
+                    .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.Center
+                    .background(
+                        Brush.verticalGradient(
+                            0.0f to Color.Transparent,
+                            0.4f to MaterialTheme.colorScheme.background.copy(alpha = 0.6f),
+                            1.0f to MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
+                        )
+                    )
+                    .padding(24.dp)
             ) {
-                if (!isChatOpen) {
-                    ClockView()
-                } else {
-                    ChatView(interactions = interactions)
-                }
-            }
-
-            Column(modifier = Modifier.padding(24.dp)) {
                 AnimatedVisibility(visible = isAppDrawerOpen) {
                     val filteredApps = availableApps.filter { 
                         it.id.contains(searchQuery, ignoreCase = true) || 
@@ -478,10 +506,10 @@ fun MindfulLauncherScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.8f), RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
                         .border(
                             1.dp, 
-                            if (isTerminalFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, 
+                            if (isTerminalFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), 
                             RoundedCornerShape(16.dp)
                         )
                         .padding(20.dp)
@@ -910,9 +938,10 @@ fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>)
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(vertical = 10.dp)
+            .padding(horizontal = 24.dp)
             .verticalScroll(scrollState)
     ) {
+        Spacer(modifier = Modifier.height(90.dp))
         Spacer(modifier = Modifier.weight(1f))
         
         interactions.forEach { interaction ->
@@ -952,6 +981,8 @@ fun ChatView(interactions: MutableList<com.kairos.os.domain.models.Interaction>)
             }
             Spacer(modifier = Modifier.height(24.dp))
         }
+        
+        Spacer(modifier = Modifier.height(130.dp))
     }
 }
 

@@ -51,9 +51,9 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 **Status:** DONE
 **Summary:** Mapped all remaining 34 Composio integrations present in the Android app drawer into COMPOSIO_ACTION_MAP on the backend, using verified tool names from the Composio SDK to prevent hallucinations.
 
-### 12. Mobile UI/UX Adjustments
+### 12. Mobile UI/UX Adjustments & Animations
 **Status:** DONE
-**Summary:** Replaced Doto font with Google Sans for the majority of the app (retaining Doto for homepage clock/date and labels), toned down and bottom-aligned the radial orange gradient, removed orange border and offset on agent replies, and implemented custom markdown rendering support for agent responses.
+**Summary:** Replaced Doto font with Google Sans for the majority of the app (retaining Doto for homepage clock/date and labels), toned down and bottom-aligned the radial orange gradient, removed orange border and offset on agent replies, and implemented custom markdown rendering support. Also removed orange border on typing loading indicator, added a staggered vertical bounce animation to the three dots, converted the main layout container of MindfulLauncherScreen to a Box to layer components (preventing scroll cutoffs), and applied fading top/bottom gradients and translucent liquid glass effect to the header and input boxes.
 
 ---
 

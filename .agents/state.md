@@ -12,6 +12,10 @@
     - Toned down the background radial orange gradient and shifted its center majorly to the bottom of the screen.
     - Cleaned up agent replies layout (removed orange border and start-padding offset, aligning text naturally on the left).
     - Added markdown rendering support (bold, italic, inline code, headings, bullet lists, code blocks) in agent replies.
+    - Removed the orange border container on the typing loading indicator and added a staggered vertical bounce animation to the three dots.
+    - Converted the main layout container of MindfulLauncherScreen to a Box layout to layer components, preventing cutoff in content when scrolling.
+    - Applied a fading vertical gradient opacity background to the header.
+    - Made the input box translucent with a translucent border (liquid glass effect) and added a bottom-up gradient underneath it so messages fade out smoothly when scrolling.
 
 ## Next Steps
 - Implement end-to-end testing between the Android Auth flow, proxy server, and Supabase cloud.
