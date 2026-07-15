@@ -194,13 +194,17 @@ fun WidgetActionsRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         actions.forEach { action ->
+            val isDark = MaterialTheme.colorScheme.surface == Color(0xFF111111)
+            val btnBgColor = if (isDark) Color(0xFFE65F00) else MaterialTheme.colorScheme.primary
+            val btnTextColor = if (isDark) Color.White else Color.Black
+
             Button(
                 onClick = { onAction(action) },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.Black
+                    containerColor = btnBgColor,
+                    contentColor = btnTextColor
                 ),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
             ) {
@@ -220,7 +224,10 @@ fun WidgetActionsRow(
                     }
                     Text(
                         text = action.label,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            color = btnTextColor
+                        )
                     )
                 }
             }

@@ -822,7 +822,8 @@ fun MindfulLauncherScreen(
                     val wordmarkPath = if (isDarkTheme) "file:///android_asset/wordmark-for-dark.svg" else "file:///android_asset/wordmark-for-light.svg"
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)
                     ) {
                         AsyncImage(
                             model = logoPath,
@@ -900,7 +901,7 @@ fun MindfulLauncherScreen(
                                         isChatOpen = true
                                         activeScreen = "home"
                                     }
-                                    .padding(vertical = 16.dp)
+                                    .padding(horizontal = 12.dp, vertical = 16.dp)
                             ) {
                                 val displayTitle = conv.title ?: "New Conversation"
                                 Text(displayTitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
