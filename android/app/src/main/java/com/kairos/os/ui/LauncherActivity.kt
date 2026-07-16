@@ -431,6 +431,8 @@ fun MindfulLauncherScreen(
     val deletedConversationIds = remember { mutableStateListOf<String>() }
     val hazeState = remember { HazeState() }
     var textLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
+    var forceStackedLayout by remember { mutableStateOf(false) }
+    var isPlusMenuOpen by remember { mutableStateOf(false) }
     
     val context = androidx.compose.ui.platform.LocalContext.current
     val packageManager = context.packageManager
@@ -458,6 +460,13 @@ fun MindfulLauncherScreen(
     
     val selectedAttachments = remember { mutableStateListOf<AttachmentState>() }
     val iconCache = remember { mutableStateMapOf<String, android.graphics.drawable.Drawable>() }
+    val validStartsState = remember { mutableStateListOf<Int>() }
+    val mentionVisualTransformation = remember(availableApps) {
+        MentionVisualTransformation(availableApps) { resolvedStarts ->
+            validStartsState.clear()
+            validStartsState.addAll(resolvedStarts)
+        }
+    }
 
     val sessionStatus by supabaseClient.auth.sessionStatus.collectAsState()
     val currentUser = remember(sessionStatus) {
@@ -691,6 +700,41 @@ fun MindfulLauncherScreen(
                     isLoading = false
                 }
             }
+        }
+    }
+
+    val movableTextField = remember {
+        movableContentOf { modifier: Modifier ->
+            BasicTextField(
+                value = termInput,
+                onValueChange = { termInput = it },
+                textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
+                modifier = modifier
+                    .focusRequester(focusRequester)
+                    .onFocusChanged { isTerminalFocused = it.isFocused }
+                    .drawBehind {
+                        drawMentionsPills(textLayoutResult, termInput, availableApps, validStartsState, iconCache)
+                    },
+                onTextLayout = { textLayoutResult = it },
+                visualTransformation = mentionVisualTransformation,
+                decorationBox = { innerTextField ->
+                    if (termInput.isEmpty()) {
+                        Text(
+                            text = "Type your command",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                    innerTextField()
+                },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                keyboardActions = KeyboardActions(onGo = {
+                    onSendPrompt()
+                })
+            )
         }
     }
 
@@ -978,7 +1022,15 @@ fun MindfulLauncherScreen(
                             )
                             .padding(20.dp)
                     ) {
-                        val isStackedLayout = (textLayoutResult?.lineCount ?: 1) > 1 || selectedAttachments.isNotEmpty() || isVoiceInputActive
+                        val currentLineCount = textLayoutResult?.lineCount ?: 1
+                        if (currentLineCount > 1) {
+                            forceStackedLayout = true
+                        }
+                        if (termInput.trim().isEmpty()) {
+                            forceStackedLayout = false
+                        }
+
+                        val isStackedLayout = forceStackedLayout || selectedAttachments.isNotEmpty() || isVoiceInputActive
 
                         if (isStackedLayout) {
                             if (selectedAttachments.isNotEmpty()) {
@@ -989,38 +1041,9 @@ fun MindfulLauncherScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
                             }
 
-                            BasicTextField(
-                                value = termInput,
-                                onValueChange = { termInput = it },
-                                textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 36.dp, max = 150.dp)
-                                    .focusRequester(focusRequester)
-                                    .onFocusChanged { isTerminalFocused = it.isFocused }
-                                    .drawBehind {
-                                        drawMentionsPills(textLayoutResult, termInput, availableApps, validStartsState, iconCache)
-                                    },
-                                onTextLayout = { textLayoutResult = it },
-                                visualTransformation = mentionVisualTransformation,
-                                decorationBox = { innerTextField ->
-                                    if (termInput.isEmpty()) {
-                                        Text(
-                                            text = "Type your command",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp),
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    }
-                                    innerTextField()
-                                },
-                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                                keyboardActions = KeyboardActions(onGo = {
-                                    onSendPrompt()
-                                })
-                            )
+                            Box(modifier = Modifier.fillMaxWidth().heightIn(min = 36.dp, max = 150.dp)) {
+                                movableTextField(Modifier.fillMaxWidth().heightIn(min = 36.dp, max = 150.dp))
+                            }
 
                             Spacer(modifier = Modifier.height(12.dp))
 
@@ -1088,22 +1111,7 @@ fun MindfulLauncherScreen(
 
                                     IconButton(
                                         onClick = {
-                                            if (SpeechRecognizer.isRecognitionAvailable(context)) {
-                                                recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                            } else {
-                                                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                                                }
-                                                try {
-                                                    systemSpeechLauncher.launch(intent)
-                                                } catch (e: Exception) {
-                                                    android.widget.Toast.makeText(
-                                                        context,
-                                                        "Voice recognition is not supported on this device",
-                                                        android.widget.Toast.LENGTH_SHORT
-                                                    ).show()
-                                                }
-                                            }
+                                            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                                         },
                                         modifier = Modifier.size(36.dp)
                                     ) {
@@ -1141,37 +1149,9 @@ fun MindfulLauncherScreen(
 
                                 Spacer(modifier = Modifier.width(8.dp))
 
-                                BasicTextField(
-                                    value = termInput,
-                                    onValueChange = { termInput = it },
-                                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
-                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .focusRequester(focusRequester)
-                                        .onFocusChanged { isTerminalFocused = it.isFocused }
-                                        .drawBehind {
-                                            drawMentionsPills(textLayoutResult, termInput, availableApps, validStartsState, iconCache)
-                                        },
-                                    onTextLayout = { textLayoutResult = it },
-                                    visualTransformation = mentionVisualTransformation,
-                                    decorationBox = { innerTextField ->
-                                        if (termInput.isEmpty()) {
-                                            Text(
-                                                text = "Type your command",
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
-                                            )
-                                        }
-                                        innerTextField()
-                                    },
-                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                                    keyboardActions = KeyboardActions(onGo = {
-                                        onSendPrompt()
-                                    })
-                                )
+                                Box(modifier = Modifier.weight(1f)) {
+                                    movableTextField(Modifier.fillMaxWidth())
+                                }
 
                                 val currentApp = availableApps.find { it.id == parsedActiveApp }
                                 if (currentApp?.packageName != null) {
@@ -1190,22 +1170,7 @@ fun MindfulLauncherScreen(
 
                                 IconButton(
                                     onClick = {
-                                        if (SpeechRecognizer.isRecognitionAvailable(context)) {
-                                            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                        } else {
-                                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                                            }
-                                            try {
-                                                systemSpeechLauncher.launch(intent)
-                                            } catch (e: Exception) {
-                                                android.widget.Toast.makeText(
-                                                    context,
-                                                    "Voice recognition is not supported on this device",
-                                                    android.widget.Toast.LENGTH_SHORT
-                                                ).show()
-                                            }
-                                        }
+                                        recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
                                     },
                                     modifier = Modifier.size(36.dp)
                                 ) {
