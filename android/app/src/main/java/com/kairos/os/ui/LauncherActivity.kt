@@ -544,6 +544,24 @@ fun MindfulLauncherScreen(
         }
     }
 
+    val currentLineCount = textLayoutResult?.lineCount ?: 1
+    if (currentLineCount > 1) {
+        forceStackedLayout = true
+    }
+    if (termInput.trim().isEmpty()) {
+        forceStackedLayout = false
+    }
+
+    val isStackedLayout = forceStackedLayout || selectedAttachments.isNotEmpty() || isVoiceInputActive
+
+    LaunchedEffect(isStackedLayout) {
+        try {
+            focusRequester.requestFocus()
+        } catch (e: Exception) {
+            // ignore
+        }
+    }
+
     val systemSpeechLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -581,13 +599,29 @@ fun MindfulLauncherScreen(
                     android.util.Log.e("Speech", "Speech recognizer error: $error")
                     isVoiceInputActive = false
                     rmsDbValue = 0f
-                    val fallbackIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                    }
-                    try {
-                        systemSpeechLauncher.launch(fallbackIntent)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
+                    if (error == SpeechRecognizer.ERROR_CLIENT) {
+                        coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                            android.widget.Toast.makeText(
+                                context,
+                                "No voice recognition service is selected in device settings.",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    } else {
+                        val fallbackIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                        }
+                        try {
+                            systemSpeechLauncher.launch(fallbackIntent)
+                        } catch (e: Exception) {
+                            coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                                android.widget.Toast.makeText(
+                                    context,
+                                    "Voice input is not supported on this device.",
+                                    android.widget.Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
                     }
                 }
                 override fun onResults(results: Bundle?) {
