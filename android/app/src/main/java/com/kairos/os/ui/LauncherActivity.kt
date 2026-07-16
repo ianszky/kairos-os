@@ -322,6 +322,76 @@ fun insertAppMention(currentInput: String, appId: String): String {
     }
 }
 
+fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMentionsPills(
+    layoutResult: androidx.compose.ui.text.TextLayoutResult?,
+    termInput: String,
+    availableApps: List<AppConnection>,
+    validStartsState: List<Int>,
+    iconCache: Map<String, android.graphics.drawable.Drawable>
+) {
+    if (layoutResult == null) return
+    val regex = Regex("@([a-zA-Z0-9\\-]+)")
+    val matches = regex.findAll(termInput).toList()
+    
+    var matchIndex = 0
+    matches.forEach { match ->
+        val appId = match.groups[1]?.value?.lowercase() ?: ""
+        val app = availableApps.find { it.id == appId }
+        if (app != null && matchIndex < validStartsState.size) {
+            val originalStart = match.range.first
+            val originalEnd = match.range.last + 1
+            
+            val spaceTransformed = validStartsState[matchIndex] + matchIndex
+            val lastTransformed = spaceTransformed + (originalEnd - originalStart)
+            
+            try {
+                val spaceRect = layoutResult.getBoundingBox(spaceTransformed)
+                val wordEndRect = layoutResult.getBoundingBox(lastTransformed)
+                
+                val pillRect = androidx.compose.ui.geometry.Rect(
+                    left = spaceRect.left - 4.dp.toPx(),
+                    top = minOf(spaceRect.top, wordEndRect.top) - 2.dp.toPx(),
+                    right = wordEndRect.right + 6.dp.toPx(),
+                    bottom = maxOf(spaceRect.bottom, wordEndRect.bottom) + 2.dp.toPx()
+                )
+                
+                val primaryColor = Color(0xFFFF6B00)
+                drawRoundRect(
+                    color = primaryColor.copy(alpha = 0.15f),
+                    topLeft = pillRect.topLeft,
+                    size = pillRect.size,
+                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                )
+                drawRoundRect(
+                    color = primaryColor.copy(alpha = 0.4f),
+                    topLeft = pillRect.topLeft,
+                    size = pillRect.size,
+                    style = Stroke(width = 1.dp.toPx()),
+                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                )
+                
+                val drawable = app.iconDrawable ?: iconCache[app.id]
+                if (drawable != null) {
+                    val iconSize = 14.dp.toPx()
+                    val iconLeft = spaceRect.left + (spaceRect.width - iconSize) / 2
+                    val iconTop = spaceRect.top + (spaceRect.height - iconSize) / 2
+                    
+                    drawable.bounds = android.graphics.Rect(
+                        iconLeft.toInt(),
+                        iconTop.toInt(),
+                        (iconLeft + iconSize).toInt(),
+                        (iconTop + iconSize).toInt()
+                    )
+                    drawable.draw(drawContext.canvas.nativeCanvas)
+                }
+            } catch (e: Exception) {
+                // ignore layout out of bounds
+            }
+            matchIndex++
+        }
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MindfulLauncherScreen(
@@ -908,143 +978,155 @@ fun MindfulLauncherScreen(
                             )
                             .padding(20.dp)
                     ) {
-                        if (selectedAttachments.isNotEmpty()) {
-                            SelectedAttachmentsRow(
-                                attachments = selectedAttachments,
-                                onRemove = { selectedAttachments.remove(it) }
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
+                        val isStackedLayout = (textLayoutResult?.lineCount ?: 1) > 1 || selectedAttachments.isNotEmpty() || isVoiceInputActive
 
-                        BasicTextField(
-                            value = termInput,
-                            onValueChange = { termInput = it },
-                            textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 36.dp, max = 150.dp)
-                                .focusRequester(focusRequester)
-                                .onFocusChanged { isTerminalFocused = it.isFocused }
-                                .drawBehind {
-                                    val layoutResult = textLayoutResult ?: return@drawBehind
-                                    val textStr = termInput
-                                    val regex = Regex("@([a-zA-Z0-9\\-]+)")
-                                    val matches = regex.findAll(textStr).toList()
-                                    
-                                    var matchIndex = 0
-                                    matches.forEach { match ->
-                                        val appId = match.groups[1]?.value?.lowercase() ?: ""
-                                        val app = availableApps.find { it.id == appId }
-                                        if (app != null && matchIndex < validStartsState.size) {
-                                            val originalStart = match.range.first
-                                            val originalEnd = match.range.last + 1
-                                            
-                                            val spaceTransformed = validStartsState[matchIndex] + matchIndex
-                                            val lastTransformed = spaceTransformed + (originalEnd - originalStart)
-                                            
-                                            try {
-                                                val spaceRect = layoutResult.getBoundingBox(spaceTransformed)
-                                                val wordEndRect = layoutResult.getBoundingBox(lastTransformed)
-                                                
-                                                val pillRect = androidx.compose.ui.geometry.Rect(
-                                                    left = spaceRect.left - 4.dp.toPx(),
-                                                    top = minOf(spaceRect.top, wordEndRect.top) - 2.dp.toPx(),
-                                                    right = wordEndRect.right + 6.dp.toPx(),
-                                                    bottom = maxOf(spaceRect.bottom, wordEndRect.bottom) + 2.dp.toPx()
-                                                )
-                                                
-                                                val primaryColor = Color(0xFFFF6B00)
-                                                drawRoundRect(
-                                                    color = primaryColor.copy(alpha = 0.15f),
-                                                    topLeft = pillRect.topLeft,
-                                                    size = pillRect.size,
-                                                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                                                )
-                                                drawRoundRect(
-                                                    color = primaryColor.copy(alpha = 0.4f),
-                                                    topLeft = pillRect.topLeft,
-                                                    size = pillRect.size,
-                                                    style = Stroke(width = 1.dp.toPx()),
-                                                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                                                )
-                                                
-                                                val drawable = app.iconDrawable ?: iconCache[app.id]
-                                                if (drawable != null) {
-                                                    val iconSize = 14.dp.toPx()
-                                                    val iconLeft = spaceRect.left + (spaceRect.width - iconSize) / 2
-                                                    val iconTop = spaceRect.top + (spaceRect.height - iconSize) / 2
-                                                    
-                                                    drawable.bounds = android.graphics.Rect(
-                                                        iconLeft.toInt(),
-                                                        iconTop.toInt(),
-                                                        (iconLeft + iconSize).toInt(),
-                                                        (iconTop + iconSize).toInt()
-                                                    )
-                                                    drawable.draw(drawContext.canvas.nativeCanvas)
+                        if (isStackedLayout) {
+                            if (selectedAttachments.isNotEmpty()) {
+                                SelectedAttachmentsRow(
+                                    attachments = selectedAttachments,
+                                    onRemove = { selectedAttachments.remove(it) }
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+
+                            BasicTextField(
+                                value = termInput,
+                                onValueChange = { termInput = it },
+                                textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(min = 36.dp, max = 150.dp)
+                                    .focusRequester(focusRequester)
+                                    .onFocusChanged { isTerminalFocused = it.isFocused }
+                                    .drawBehind {
+                                        drawMentionsPills(textLayoutResult, termInput, availableApps, validStartsState, iconCache)
+                                    },
+                                onTextLayout = { textLayoutResult = it },
+                                visualTransformation = mentionVisualTransformation,
+                                decorationBox = { innerTextField ->
+                                    if (termInput.isEmpty()) {
+                                        Text(
+                                            text = "Type your command",
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    innerTextField()
+                                },
+                                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                                keyboardActions = KeyboardActions(onGo = {
+                                    onSendPrompt()
+                                })
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (isVoiceInputActive) {
+                                    IconButton(
+                                        onClick = {
+                                            speechRecognizer.cancel()
+                                            isVoiceInputActive = false
+                                            rmsDbValue = 0f
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.Close, contentDescription = "Cancel Voice", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+
+                                    Box(modifier = Modifier.weight(1f)) {
+                                        WaveformView(rmsDb = rmsDbValue)
+                                    }
+
+                                    IconButton(
+                                        onClick = {
+                                            speechRecognizer.stopListening()
+                                            isVoiceInputActive = false
+                                            rmsDbValue = 0f
+                                        },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(Color(0xFFFF6B00), CircleShape)
+                                    ) {
+                                        Icon(Icons.Default.ArrowUpward, contentDescription = "Confirm Voice", tint = Color.White, modifier = Modifier.size(20.dp))
+                                    }
+                                } else {
+                                    IconButton(
+                                        onClick = { isPlusMenuOpen = !isPlusMenuOpen },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isPlusMenuOpen) Icons.Default.Close else Icons.Default.Add,
+                                            contentDescription = "Add Context",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.weight(1f))
+
+                                    val currentApp = availableApps.find { it.id == parsedActiveApp }
+                                    if (currentApp?.packageName != null) {
+                                        IconButton(
+                                            onClick = {
+                                                val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
+                                                if (launchIntent != null) {
+                                                    context.startActivity(launchIntent)
                                                 }
-                                            } catch (e: Exception) {
-                                                // ignore layout out of bounds
-                                            }
-                                            matchIndex++
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
                                         }
                                     }
-                                },
-                            onTextLayout = { textLayoutResult = it },
-                            visualTransformation = mentionVisualTransformation,
-                            decorationBox = { innerTextField ->
-                                if (termInput.isEmpty()) {
-                                    Text(
-                                        text = "Type your command",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                                innerTextField()
-                            },
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                            keyboardActions = KeyboardActions(onGo = {
-                                onSendPrompt()
-                            })
-                        )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                                    IconButton(
+                                        onClick = {
+                                            if (SpeechRecognizer.isRecognitionAvailable(context)) {
+                                                recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                            } else {
+                                                val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                                    putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                                }
+                                                try {
+                                                    systemSpeechLauncher.launch(intent)
+                                                } catch (e: Exception) {
+                                                    android.widget.Toast.makeText(
+                                                        context,
+                                                        "Voice recognition is not supported on this device",
+                                                        android.widget.Toast.LENGTH_SHORT
+                                                    ).show()
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (isVoiceInputActive) {
-                                IconButton(
-                                    onClick = {
-                                        speechRecognizer.cancel()
-                                        isVoiceInputActive = false
-                                        rmsDbValue = 0f
-                                    },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(Icons.Default.Close, contentDescription = "Cancel Voice", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
+                                    Spacer(modifier = Modifier.width(8.dp))
 
-                                Box(modifier = Modifier.weight(1f)) {
-                                    WaveformView(rmsDb = rmsDbValue)
+                                    IconButton(
+                                        onClick = {
+                                            onSendPrompt()
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                    }
                                 }
-
-                                IconButton(
-                                    onClick = {
-                                        speechRecognizer.stopListening()
-                                        isVoiceInputActive = false
-                                        rmsDbValue = 0f
-                                    },
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .background(Color(0xFF8AB4F8), CircleShape)
-                                ) {
-                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Confirm Voice", tint = Color.Black, modifier = Modifier.size(20.dp))
-                                }
-                            } else {
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 IconButton(
                                     onClick = { isPlusMenuOpen = !isPlusMenuOpen },
                                     modifier = Modifier.size(36.dp)
@@ -1057,7 +1139,39 @@ fun MindfulLauncherScreen(
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.weight(1f))
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                BasicTextField(
+                                    value = termInput,
+                                    onValueChange = { termInput = it },
+                                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
+                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .focusRequester(focusRequester)
+                                        .onFocusChanged { isTerminalFocused = it.isFocused }
+                                        .drawBehind {
+                                            drawMentionsPills(textLayoutResult, termInput, availableApps, validStartsState, iconCache)
+                                        },
+                                    onTextLayout = { textLayoutResult = it },
+                                    visualTransformation = mentionVisualTransformation,
+                                    decorationBox = { innerTextField ->
+                                        if (termInput.isEmpty()) {
+                                            Text(
+                                                text = "Type your command",
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        innerTextField()
+                                    },
+                                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+                                    keyboardActions = KeyboardActions(onGo = {
+                                        onSendPrompt()
+                                    })
+                                )
 
                                 val currentApp = availableApps.find { it.id == parsedActiveApp }
                                 if (currentApp?.packageName != null) {
@@ -1082,7 +1196,15 @@ fun MindfulLauncherScreen(
                                             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                                                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
                                             }
-                                            systemSpeechLauncher.launch(intent)
+                                            try {
+                                                systemSpeechLauncher.launch(intent)
+                                            } catch (e: Exception) {
+                                                android.widget.Toast.makeText(
+                                                    context,
+                                                    "Voice recognition is not supported on this device",
+                                                    android.widget.Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
                                         }
                                     },
                                     modifier = Modifier.size(36.dp)
@@ -1096,11 +1218,9 @@ fun MindfulLauncherScreen(
                                     onClick = {
                                         onSendPrompt()
                                     },
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .background(Color(0xFF8AB4F8), CircleShape)
+                                    modifier = Modifier.size(36.dp)
                                 ) {
-                                    Icon(Icons.Default.ArrowUpward, contentDescription = "Send", tint = Color.Black, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                 }
                             }
                         }
