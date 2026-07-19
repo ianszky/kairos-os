@@ -362,13 +362,6 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMentionsPills(
                     size = pillRect.size,
                     cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                 )
-                drawRoundRect(
-                    color = primaryColor.copy(alpha = 0.4f),
-                    topLeft = pillRect.topLeft,
-                    size = pillRect.size,
-                    style = Stroke(width = 1.dp.toPx()),
-                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                )
                 
                 val drawable = app.iconDrawable ?: iconCache[app.id]
                 if (drawable != null) {
