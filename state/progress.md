@@ -71,4 +71,11 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🔴 OPEN TASKS
 
-None. All scheduled tasks are completed!
+### 15. Local AI Inference & Essential Apps Integration
+**Status:** PLANNED (Awaiting Approval)
+- **Local Routing & Simple Query Offloading**: Implement on-device Gemma classifier in `LocalAgentEngine.kt` to route queries into SIMPLE, LOCAL_AGENT, or CLOUD_AGENT, offloading simple prompts to on-device Gemma via `LocalLlmClient`.
+- **Local Notes & Alarms Database**: Configure Room DB tables/DAOs and controllers (`LocalNotesController.kt`, `LocalAlarmController.kt`) to manage notes and alarms locally in `KairosDatabase`.
+- **Universal Calendar Sync**: Implement `LocalCalendarController.kt` bridging to Android `CalendarContract` ContentProvider.
+- **Local Title Generation**: Implement local title generator using Gemma to update Supabase conversation titles programmatically.
+- **Visual Feedback & UI Screen Integration**: Create `LocalNotesScreen`, `LocalCalendarScreen`, custom widgets, and full-screen alarm screen overlay (`AlarmAlertActivity`). Add "Gemma 4 (Local)" vs "Gemini (Cloud)" badges in conversation bubbles.
+
