@@ -67,8 +67,13 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 **Status:** DONE
 **Summary:** Swapped the cloud-based notification interception with Room-based local persistence database. Replaced MediaPipe GenAI with LiteRT-LM (`com.google.ai.edge.litertlm:litertlm-android:latest.release`) for on-device notification classification (into CRITICAL/DIGEST) and structured summary digest generation via local Gemma LLM models. Extracted text responses natively from the JNI-backed `Message.contents.contents` properties and verified it builds and compiles successfully.
 
+### 15. Next.js 16 Configuration Allowed Dev Origins Hotfix
+**Status:** DONE
+**Summary:** Moved `allowedDevOrigins` configuration from the `experimental` block to the top level of the config in `next.config.ts` to support Next.js 16 schema changes. Additionally configured `turbopack.root` path resolution to resolve the multiple lockfiles workspace warning.
+
 ---
 
 ## 🔴 OPEN TASKS
 
 None. All scheduled tasks are completed!
+
