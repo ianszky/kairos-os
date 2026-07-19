@@ -146,9 +146,9 @@ val KairosTypography = Typography(
     displayLarge = TextStyle(fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 72.sp, letterSpacing = (-2).sp),
     titleLarge = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Bold, fontSize = 20.sp),
     titleMedium = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Bold, fontSize = 16.sp),
-    bodyLarge = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 16.sp),
-    bodyMedium = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
-    bodySmall = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 12.sp),
+    bodyLarge = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 16.sp, lineHeight = 24.sp, letterSpacing = 0.25.sp),
+    bodyMedium = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp, lineHeight = 20.sp, letterSpacing = 0.25.sp),
+    bodySmall = TextStyle(fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 16.sp, letterSpacing = 0.4.sp),
     labelSmall = TextStyle(fontFamily = dotoFont, fontWeight = FontWeight.Bold, fontSize = 11.sp, letterSpacing = 0.08.sp)
 )
 
@@ -1875,7 +1875,7 @@ fun ChatView(
                     }
                     if (interaction.response.widget != null) {
                         if (!interaction.response.text.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(12.dp))
                         }
                         var associatedAppTarget: String? = null
                         val currentIndex = interactions.indexOf(interaction)
@@ -1911,7 +1911,7 @@ fun ChatView(
                     com.kairos.os.ui.components.TypingIndicator()
                 }
             }
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
         }
         
         Spacer(modifier = Modifier.height(130.dp))
@@ -2024,12 +2024,18 @@ fun ChatBubble(
         }
     }
 
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val maxBubbleWidth = (configuration.screenWidthDp * 0.6f).dp
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Box(
             modifier = Modifier
+                .then(
+                    if (isUser) Modifier.widthIn(max = maxBubbleWidth) else Modifier
+                )
                 .background(
                     if (isUser) MaterialTheme.colorScheme.surface else Color.Transparent,
                     if (isUser) RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 12.dp, bottomEnd = 4.dp) else RoundedCornerShape(0.dp)
@@ -2040,17 +2046,21 @@ fun ChatBubble(
                     if (isUser) RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp, bottomStart = 12.dp, bottomEnd = 4.dp) else RoundedCornerShape(0.dp)
                 )
                 .padding(
-                    start = if (isUser) 18.dp else 0.dp,
-                    end = if (isUser) 18.dp else 0.dp,
-                    top = if (isUser) 14.dp else 8.dp,
-                    bottom = if (isUser) 14.dp else 8.dp
+                    start = if (isUser) 20.dp else 0.dp,
+                    end = if (isUser) 20.dp else 0.dp,
+                    top = if (isUser) 16.dp else 12.dp,
+                    bottom = if (isUser) 16.dp else 12.dp
                 )
         ) {
             Text(
                 text = annotatedText,
                 inlineContent = inlineContentMap,
                 color = if (isUser) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
-                style = if (isUser) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Normal)
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.Normal,
+                    lineHeight = 24.sp,
+                    letterSpacing = 0.25.sp
+                )
             )
         }
     }

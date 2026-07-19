@@ -59,6 +59,10 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 **Status:** DONE
 **Summary:** Replaced Doto font with Google Sans for the majority of the app (retaining Doto for homepage clock/date and labels), toned down and bottom-aligned the radial orange gradient, removed orange border and offset on agent replies, and implemented custom markdown rendering support. Also removed orange border on typing loading indicator, added a staggered vertical bounce animation to the three dots, converted the main layout container of MindfulLauncherScreen to a Box to layer components (preventing scroll cutoffs), and applied fading top gradient to the header. Made the input box translucent with a 0.65f alpha background, applied a native BlurEffect (RenderEffect) background layer to solidify the glassmorphism look, added a translucent border, and left the margins transparent to let the orange gradient bleed through.
 
+### 13. Mobile Conversation UI/UX Adjustments (Spacing, Bubble Widths & Typography)
+**Status:** DONE
+**Summary:** Restricted user typed prompt chat bubble width to a maximum of 60% of the screen width (retaining content wrap below that width). Increased default bodyLarge, bodyMedium, and bodySmall line heights and letter spacing globally. Upgraded message body font in chat bubbles to bodyLarge with a generous line spacing (24.sp) and padding. Increased vertical layout margins between consecutive interactions and widgets for a spacious, modern, and breathing layout.
+
 ---
 
 ## 🔴 OPEN TASKS
