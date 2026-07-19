@@ -722,8 +722,24 @@ fun MindfulLauncherScreen(
     }
 
     LaunchedEffect(termInput) {
-        if (textFieldValue.text != termInput) {
-            textFieldValue = TextFieldValue(text = termInput, selection = TextRange(termInput.length))
+        val firstWord = termInput.substringBefore(' ')
+        val activeApp = if (firstWord.startsWith("@")) {
+            val slug = firstWord.drop(1)
+            val app = availableApps.find { it.id.equals(slug, ignoreCase = true) }
+            if (app != null && app.category == "installed") app else null
+        } else null
+        
+        val resolvedText = if (activeApp != null) {
+            "@${activeApp.id}"
+        } else {
+            termInput
+        }
+        
+        if (textFieldValue.text != resolvedText) {
+            textFieldValue = TextFieldValue(text = resolvedText, selection = TextRange(resolvedText.length))
+        }
+        if (termInput != resolvedText) {
+            termInput = resolvedText
         }
     }
 
@@ -753,6 +769,45 @@ fun MindfulLauncherScreen(
                             textFieldValue = TextFieldValue(text = newText, selection = newSelection)
                             termInput = newText
                             handled = true
+                        }
+                    }
+                    
+                    if (!handled) {
+                        val firstWordOld = oldVal.text.substringBefore(' ')
+                        val activeAppOld = if (firstWordOld.startsWith("@")) {
+                            val slug = firstWordOld.drop(1)
+                            val app = availableApps.find { it.id.equals(slug, ignoreCase = true) }
+                            if (app != null && app.category == "installed") app else null
+                        } else null
+                        
+                        if (activeAppOld != null) {
+                            val expectedText = "@${activeAppOld.id}"
+                            val expectedTextWithSpace = "@${activeAppOld.id} "
+                            if (newVal.text != expectedText && newVal.text != expectedTextWithSpace) {
+                                handled = true
+                            }
+                        }
+                    }
+                    
+                    if (!handled) {
+                        val firstWordNew = newVal.text.substringBefore(' ')
+                        val activeAppNew = if (firstWordNew.startsWith("@")) {
+                            val slug = firstWordNew.drop(1)
+                            val app = availableApps.find { it.id.equals(slug, ignoreCase = true) }
+                            if (app != null && app.category == "installed") app else null
+                        } else null
+                        
+                        if (activeAppNew != null) {
+                            val formattedText = "@${activeAppNew.id}"
+                            if (newVal.text != formattedText && newVal.text != "$formattedText ") {
+                                val resolvedVal = TextFieldValue(
+                                    text = formattedText,
+                                    selection = TextRange(formattedText.length)
+                                )
+                                textFieldValue = resolvedVal
+                                termInput = formattedText
+                                handled = true
+                            }
                         }
                     }
                     
@@ -1160,26 +1215,26 @@ fun MindfulLauncherScreen(
                                         ) {
                                             Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
                                         }
-                                    }
+                                    } else {
+                                        IconButton(
+                                            onClick = {
+                                                recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
 
-                                    IconButton(
-                                        onClick = {
-                                            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                        },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
+                                        Spacer(modifier = Modifier.width(8.dp))
 
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    IconButton(
-                                        onClick = {
-                                            onSendPrompt()
-                                        },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                        IconButton(
+                                            onClick = {
+                                                onSendPrompt()
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                        }
                                     }
                                 }
                             }
@@ -1219,26 +1274,26 @@ fun MindfulLauncherScreen(
                                     ) {
                                         Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
                                     }
-                                }
+                                } else {
+                                    IconButton(
+                                        onClick = {
+                                            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
 
-                                IconButton(
-                                    onClick = {
-                                        recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                    },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
+                                    Spacer(modifier = Modifier.width(8.dp))
 
-                                Spacer(modifier = Modifier.width(8.dp))
-
-                                IconButton(
-                                    onClick = {
-                                        onSendPrompt()
-                                    },
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                    IconButton(
+                                        onClick = {
+                                            onSendPrompt()
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                    }
                                 }
                             }
                         }
