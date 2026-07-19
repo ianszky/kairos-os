@@ -3,6 +3,10 @@ package com.kairos.os.domain.usecases
 import android.app.Notification
 import android.util.Log
 import com.google.mlkit.genai.prompt.Generation
+import com.google.mlkit.genai.prompt.generationConfig
+import com.google.mlkit.genai.prompt.modelConfig
+import com.google.mlkit.genai.prompt.ModelReleaseStage
+import com.google.mlkit.genai.prompt.ModelPreference
 import com.google.mlkit.genai.common.FeatureStatus
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,8 +23,14 @@ class LocalNotificationClassifier @Inject constructor() {
     // Lazy initialization of GenerativeModel client from ML Kit
     private val generativeModel by lazy {
         try {
-            Log.d(TAG, "Initializing ML Kit GenAI client...")
-            Generation.getClient()
+            Log.d(TAG, "Initializing ML Kit GenAI client with PREVIEW and FULL configuration...")
+            val config = generationConfig {
+                modelConfig = modelConfig {
+                    releaseStage = ModelReleaseStage.PREVIEW
+                    preference = ModelPreference.FULL
+                }
+            }
+            Generation.getClient(config)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize ML Kit GenAI client", e)
             null
