@@ -348,21 +348,6 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMentionsPills(
                 val spaceRect = layoutResult.getBoundingBox(spaceTransformed)
                 val wordEndRect = layoutResult.getBoundingBox(lastTransformed)
                 
-                val pillRect = androidx.compose.ui.geometry.Rect(
-                    left = spaceRect.left - 4.dp.toPx(),
-                    top = minOf(spaceRect.top, wordEndRect.top) - 2.dp.toPx(),
-                    right = wordEndRect.right + 6.dp.toPx(),
-                    bottom = maxOf(spaceRect.bottom, wordEndRect.bottom) + 2.dp.toPx()
-                )
-                
-                val primaryColor = Color(0xFFFF6B00)
-                drawRoundRect(
-                    color = primaryColor.copy(alpha = 0.15f),
-                    topLeft = pillRect.topLeft,
-                    size = pillRect.size,
-                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
-                )
-                
                 val drawable = app.iconDrawable ?: iconCache[app.id]
                 if (drawable != null) {
                     val iconSize = 14.dp.toPx()
