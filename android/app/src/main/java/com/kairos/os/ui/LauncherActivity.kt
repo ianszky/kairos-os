@@ -51,6 +51,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -715,11 +717,50 @@ fun MindfulLauncherScreen(
         }
     }
 
+    var textFieldValue by remember {
+        mutableStateOf(TextFieldValue(text = termInput, selection = TextRange(termInput.length)))
+    }
+
+    LaunchedEffect(termInput) {
+        if (textFieldValue.text != termInput) {
+            textFieldValue = TextFieldValue(text = termInput, selection = TextRange(termInput.length))
+        }
+    }
+
     val movableTextField = remember {
         movableContentOf { modifier: Modifier ->
             BasicTextField(
-                value = termInput,
-                onValueChange = { termInput = it },
+                value = textFieldValue,
+                onValueChange = { newVal ->
+                    val oldVal = textFieldValue
+                    val isDeletion = newVal.text.length < oldVal.text.length
+                    var handled = false
+                    
+                    if (isDeletion) {
+                        val deletedIndex = newVal.selection.start
+                        val oldText = oldVal.text
+                        val regex = Regex("@([a-zA-Z0-9\\-]+)")
+                        val match = regex.findAll(oldText).find { m ->
+                            deletedIndex >= m.range.first && deletedIndex <= m.range.last + 1
+                        }
+                        
+                        if (match != null) {
+                            val start = match.range.first
+                            val end = match.range.last + 1
+                            val newText = oldText.substring(0, start) + oldText.substring(end)
+                            val newSelection = TextRange(start)
+                            
+                            textFieldValue = TextFieldValue(text = newText, selection = newSelection)
+                            termInput = newText
+                            handled = true
+                        }
+                    }
+                    
+                    if (!handled) {
+                        textFieldValue = newVal
+                        termInput = newVal.text
+                    }
+                },
                 textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
                 modifier = modifier
@@ -1629,7 +1670,7 @@ class MentionVisualTransformation(
                 builder.append(originalText.substring(lastOffset, match.range.first))
                 
                 val spaceStart = builder.length
-                builder.append(" ")
+                builder.append("\u00A0")
                 builder.addStyle(
                     SpanStyle(
                         color = Color.Transparent,
