@@ -35,6 +35,16 @@
                 <data android:scheme="kairos" android:host="login" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".services.KairosNotificationListener"
+            android:label="KAIROS Notification Interceptor"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>
 
