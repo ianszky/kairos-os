@@ -1,87 +1,95 @@
 package com.kairos.os.domain.usecases
 
+import android.content.Context
 import android.util.Log
-import com.google.mlkit.genai.common.FeatureStatus
-import com.google.mlkit.genai.prompt.Generation
-import com.google.mlkit.genai.prompt.generationConfig
-import com.google.mlkit.genai.prompt.modelConfig
-import com.google.mlkit.genai.prompt.ModelReleaseStage
-import com.google.mlkit.genai.prompt.ModelPreference
+import com.google.mediapipe.tasks.genai.llminference.LlmInference
 import com.kairos.os.data.db.LocalNotificationDao
 import com.kairos.os.domain.models.KairosResponse
 import com.kairos.os.domain.models.WidgetPayload
 import com.kairos.os.domain.models.WidgetItem
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class LocalDigestGenerator @Inject constructor(
-    private val localNotificationDao: LocalNotificationDao
+    private val localNotificationDao: LocalNotificationDao,
+    @ApplicationContext private val context: Context
 ) {
     private val TAG = "LocalDigestGenerator"
+    private val MODEL_PATH = "/data/local/tmp/llm/gemma.bin"
+    
+    private var llmInference: LlmInference? = null
 
-    private val generativeModel by lazy {
+    init {
+        initializeLlm()
+    }
+
+    private fun initializeLlm() {
         try {
-            Log.d(TAG, "Initializing ML Kit GenAI client with PREVIEW and FULL configuration...")
-            val config = generationConfig {
-                modelConfig = modelConfig {
-                    releaseStage = ModelReleaseStage.PREVIEW
-                    preference = ModelPreference.FULL
-                }
+            val modelFile = File(MODEL_PATH)
+            if (modelFile.exists() && modelFile.canRead()) {
+                Log.d(TAG, "Initializing MediaPipe LlmInference with model at $MODEL_PATH...")
+                val options = LlmInference.LlmInferenceOptions.builder()
+                    .setModelPath(MODEL_PATH)
+                    .setMaxTokens(512)
+                    .setTemperature(0.2f)
+                    .build()
+                llmInference = LlmInference.createFromOptions(context, options)
+                Log.i(TAG, "MediaPipe LlmInference successfully initialized.")
+            } else {
+                Log.w(TAG, "Gemma model file not found or unreadable at $MODEL_PATH. Fallback summary will be used.")
             }
-            Generation.getClient(config)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize ML Kit GenAI client", e)
-            null
+            Log.e(TAG, "Failed to initialize MediaPipe LlmInference client", e)
         }
     }
 
     suspend fun generateDigest(): KairosResponse {
         Log.d(TAG, "Generating daily digest from local notifications database...")
         
-        // Run database queries on IO thread
         val notifications = withContext(Dispatchers.IO) {
             localNotificationDao.getUnreadNotifications()
         }
 
         if (notifications.isEmpty()) {
-            Log.d(TAG, "No unread notifications found. Returning text response.")
             return KairosResponse(
                 type = "TEXT",
                 text = "You have no new notifications. Enjoy your peace."
             )
         }
 
-        Log.d(TAG, "Found ${notifications.size} unread notifications.")
+        if (llmInference == null) {
+            initializeLlm()
+        }
 
-        val model = generativeModel
-        val status = model?.checkStatus()
-        Log.d(TAG, "Local Gemma model status: $status (AVAILABLE = 3, DOWNLOADABLE = 1, DOWNLOADING = 2, UNAVAILABLE = 0)")
-
-        if (model != null && status == FeatureStatus.AVAILABLE) {
+        val inference = llmInference
+        if (inference != null) {
             try {
                 val notifListText = notifications.joinToString("\n") {
                     "- App: ${it.packageName}, Title: ${it.title}, Content: ${it.text}"
                 }
 
+                // Configured prompt requesting JSON formatted output
                 val prompt = """
-                    You are a notifications summarizer. Please summarize these notification messages into a daily digest.
-                    Group them by application or sender.
+                    You are a notifications summarizer. Please summarize the following notification messages into a structured daily digest.
+                    Group them by application, sender, or category (e.g. Social, Work, Finance, System).
                     
-                    Respond with a JSON object adhering strictly to this schema:
+                    Format your response strictly as a JSON object matching this schema:
                     {
                       "items": [
                         {
-                          "id": "string (unique identifier, e.g. 'social_instagram')",
-                          "primary": "string (group name + count, e.g. 'Instagram (3)')",
-                          "secondary": "string (brief summary of notifications in this group)",
-                          "icon": "string (one of: 'social', 'mail', 'calendar', 'notification')"
+                          "id": "unique string key, e.g. 'social_instagram'",
+                          "primary": "group name + count, e.g. 'Instagram (3)'",
+                          "secondary": "brief summary sentence of notifications in this group",
+                          "icon": "one of: 'social', 'mail', 'calendar', 'notification'"
                         }
                       ]
                     }
@@ -89,17 +97,26 @@ class LocalDigestGenerator @Inject constructor(
                     Notifications:
                     $notifListText
 
-                    Respond ONLY with valid JSON.
+                    Return ONLY the JSON. Do not include markdown code block formatting (like ```json).
                 """.trimIndent()
 
-                Log.d(TAG, "Sending prompt to on-device Gemma model...")
-                val response = model.generateContent(prompt)
-                val responseText = response.candidates.firstOrNull()?.text?.trim() ?: "{}"
-                Log.d(TAG, "On-device Gemma model response: $responseText")
+                Log.d(TAG, "Sending prompt to on-device Gemma via MediaPipe...")
+                val responseText = withContext(Dispatchers.IO) {
+                    inference.generateResponse(prompt).trim()
+                }
+                Log.d(TAG, "On-device MediaPipe Gemma response: $responseText")
 
-                // Parse the JSON array
+                // Extract JSON if model wraps it in markdown blocks despite prompt instruction
+                val cleanJson = if (responseText.startsWith("```json")) {
+                    responseText.substringAfter("```json").substringBeforeLast("```").trim()
+                } else if (responseText.startsWith("```")) {
+                    responseText.substringAfter("```").substringBeforeLast("```").trim()
+                } else {
+                    responseText
+                }
+
                 val json = Json { ignoreUnknownKeys = true }
-                val root = json.parseToJsonElement(responseText).jsonObject
+                val root = json.parseToJsonElement(cleanJson).jsonObject
                 val itemsArray = root["items"]?.jsonArray
                 
                 val items = itemsArray?.map { element ->
@@ -112,12 +129,10 @@ class LocalDigestGenerator @Inject constructor(
                     )
                 } ?: emptyList()
 
-                // Mark read locally on IO thread
                 val notificationIds = notifications.map { it.id }
                 withContext(Dispatchers.IO) {
                     localNotificationDao.markAsRead(notificationIds)
                 }
-                Log.d(TAG, "Successfully marked ${notifications.size} notifications as read locally.")
 
                 return KairosResponse(
                     type = "WIDGET",
@@ -129,10 +144,8 @@ class LocalDigestGenerator @Inject constructor(
                 )
 
             } catch (e: Exception) {
-                Log.e(TAG, "Error generating local digest with Gemma. Falling back to rules.", e)
+                Log.e(TAG, "Error generating local digest with MediaPipe. Falling back to rules.", e)
             }
-        } else {
-            Log.d(TAG, "Gemma model not ready or unavailable. Falling back to rule-based grouping.")
         }
 
         // Graceful Fallback: Local rule-based summary
@@ -146,12 +159,10 @@ class LocalDigestGenerator @Inject constructor(
             )
         }
 
-        // Mark read locally on IO thread
         val notificationIds = notifications.map { it.id }
         withContext(Dispatchers.IO) {
             localNotificationDao.markAsRead(notificationIds)
         }
-        Log.d(TAG, "Fallback: successfully marked ${notifications.size} notifications as read locally.")
 
         return KairosResponse(
             type = "WIDGET",

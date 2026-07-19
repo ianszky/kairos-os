@@ -1,13 +1,13 @@
 package com.kairos.os.domain.usecases
 
 import android.app.Notification
+import android.content.Context
 import android.util.Log
-import com.google.mlkit.genai.prompt.Generation
-import com.google.mlkit.genai.prompt.generationConfig
-import com.google.mlkit.genai.prompt.modelConfig
-import com.google.mlkit.genai.prompt.ModelReleaseStage
-import com.google.mlkit.genai.prompt.ModelPreference
-import com.google.mlkit.genai.common.FeatureStatus
+import com.google.mediapipe.tasks.genai.llminference.LlmInference
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -17,23 +17,35 @@ enum class ClassificationTier {
 }
 
 @Singleton
-class LocalNotificationClassifier @Inject constructor() {
+class LocalNotificationClassifier @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
     private val TAG = "LocalNotificationClassifier"
+    private val MODEL_PATH = "/data/local/tmp/llm/gemma.bin"
     
-    // Lazy initialization of GenerativeModel client from ML Kit
-    private val generativeModel by lazy {
+    private var llmInference: LlmInference? = null
+
+    init {
+        initializeLlm()
+    }
+
+    private fun initializeLlm() {
         try {
-            Log.d(TAG, "Initializing ML Kit GenAI client with PREVIEW and FULL configuration...")
-            val config = generationConfig {
-                modelConfig = modelConfig {
-                    releaseStage = ModelReleaseStage.PREVIEW
-                    preference = ModelPreference.FULL
-                }
+            val modelFile = File(MODEL_PATH)
+            if (modelFile.exists() && modelFile.canRead()) {
+                Log.d(TAG, "Initializing MediaPipe LlmInference with model at $MODEL_PATH...")
+                val options = LlmInference.LlmInferenceOptions.builder()
+                    .setModelPath(MODEL_PATH)
+                    .setMaxTokens(128)
+                    .setTemperature(0.2f)
+                    .build()
+                llmInference = LlmInference.createFromOptions(context, options)
+                Log.i(TAG, "MediaPipe LlmInference successfully initialized.")
+            } else {
+                Log.w(TAG, "Gemma model file not found or unreadable at $MODEL_PATH. Gemma classification will be bypassed.")
             }
-            Generation.getClient(config)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize ML Kit GenAI client", e)
-            null
+            Log.e(TAG, "Failed to initialize MediaPipe LlmInference client", e)
         }
     }
 
@@ -71,7 +83,6 @@ class LocalNotificationClassifier @Inject constructor() {
         // --- Tier 0: Direct Rule Checks (System Bypass) ---
         Log.d(TAG, "[Tier 0] Checking direct rule bypasses...")
         
-        // 1. Check notification category
         if (category == Notification.CATEGORY_CALL ||
             category == Notification.CATEGORY_ALARM ||
             category == Notification.CATEGORY_NAVIGATION ||
@@ -81,7 +92,6 @@ class LocalNotificationClassifier @Inject constructor() {
             return ClassificationTier.CRITICAL
         }
 
-        // 2. Dialer/Phone/Clock app packages are critical
         if (packageName.contains("dialer") ||
             packageName.contains("telecom") ||
             packageName.contains("deskclock") ||
@@ -91,11 +101,8 @@ class LocalNotificationClassifier @Inject constructor() {
             return ClassificationTier.CRITICAL
         }
 
-        // 3. Known social media apps are categorized as digest by default
         if (digestAppPackages.contains(packageName)) {
             Log.d(TAG, "[Tier 0] DIGEST match: package $packageName matches a known social app list.")
-            
-            // But we will still run regex keyword checking in case it's an urgent DM
             val combinedText = "$title $text".lowercase()
             if (criticalKeywords.any { combinedText.contains(it) }) {
                 Log.d(TAG, "[Tier 0] OVERRIDE: Social app notification matches a critical keyword. Promoting to CRITICAL.")
@@ -114,54 +121,47 @@ class LocalNotificationClassifier @Inject constructor() {
             return ClassificationTier.CRITICAL
         }
 
-        // --- Tier 2: On-Device AI Classification (Gemma-4-e2b via ML Kit GenAI) ---
-        Log.d(TAG, "[Tier 2] Preparing local Gemma-4-e2b model...")
-        val model = generativeModel
-        if (model != null) {
-            try {
-                // Check if the model is available
-                val status = model.checkStatus()
-                Log.d(TAG, "[Tier 2] Local Gemma model status: $status (AVAILABLE = 3, DOWNLOADABLE = 1, DOWNLOADING = 2, UNAVAILABLE = 0)")
-                
-                if (status == FeatureStatus.AVAILABLE) {
-                    val prompt = """
-                        You are KAIROS OS's notification classifier. Decide if the following notification is CRITICAL (urgent, requires immediate human attention, e.g. direct text messages, work updates, meeting reminders, security alerts, OTPs) or DIGEST (non-urgent, promotional, social media likes/follows, newsletters, group chats).
-                        
-                        Notification details:
-                        App Package: $packageName
-                        Title: $title
-                        Text: $text
-                        
-                        Respond with exactly one word: CRITICAL or DIGEST. Do not write any other explanation or text.
-                    """.trimIndent()
-
-                    Log.d(TAG, "[Tier 2] Sending prompt to Gemma-4-e2b...")
-                    Log.d(TAG, "[Tier 2] PROMPT:\n$prompt")
-
-                    val response = model.generateContent(prompt)
-                    val result = response.candidates.firstOrNull()?.text?.trim()?.uppercase()
-                    Log.d(TAG, "[Tier 2] Gemma-4-e2b response text: $result")
-                    
-                    if (result == "CRITICAL") {
-                        Log.d(TAG, "[Tier 2] Gemma classified as CRITICAL")
-                        return ClassificationTier.CRITICAL
-                    } else if (result == "DIGEST") {
-                        Log.d(TAG, "[Tier 2] Gemma classified as DIGEST")
-                        return ClassificationTier.DIGEST
-                    } else {
-                        Log.w(TAG, "[Tier 2] Gemma returned unexpected response shape. Defaulting to DIGEST.")
-                    }
-                } else {
-                    Log.d(TAG, "[Tier 2] Gemma model not ready or downloadable (status: $status). Falling back to rules.")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "[Tier 2] Error executing on-device Gemma classification", e)
-            }
-        } else {
-            Log.d(TAG, "[Tier 2] ML Kit GenAI client not available. Falling back to rules.")
+        // --- Tier 2: On-Device AI Classification (Gemma via MediaPipe LlmInference) ---
+        Log.d(TAG, "[Tier 2] Checking MediaPipe LlmInference...")
+        
+        if (llmInference == null) {
+            initializeLlm()
         }
 
-        // Default to DIGEST if rules/AI don't mark as CRITICAL
+        val inference = llmInference
+        if (inference != null) {
+            try {
+                val prompt = """
+                    You are KAIROS OS's notification classifier. Decide if the following notification is CRITICAL (urgent, requires immediate human attention, e.g. direct text messages, work updates, meeting reminders, security alerts, OTPs) or DIGEST (non-urgent, promotional, social media likes/follows, newsletters, group chats).
+                    
+                    Notification details:
+                    App Package: $packageName
+                    Title: $title
+                    Text: $text
+                    
+                    Respond with exactly one word: CRITICAL or DIGEST. Do not write any other explanation or text.
+                """.trimIndent()
+
+                Log.d(TAG, "[Tier 2] Sending prompt to Gemma via MediaPipe...")
+                val result = withContext(Dispatchers.IO) {
+                    inference.generateResponse(prompt).trim().uppercase()
+                }
+                Log.d(TAG, "[Tier 2] MediaPipe response text: $result")
+                
+                if (result.contains("CRITICAL")) {
+                    Log.d(TAG, "[Tier 2] Classified as CRITICAL")
+                    return ClassificationTier.CRITICAL
+                } else if (result.contains("DIGEST")) {
+                    Log.d(TAG, "[Tier 2] Classified as DIGEST")
+                    return ClassificationTier.DIGEST
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "[Tier 2] Error executing on-device MediaPipe classification", e)
+            }
+        } else {
+            Log.d(TAG, "[Tier 2] MediaPipe LlmInference client not available. Falling back to rules.")
+        }
+
         Log.d(TAG, "No critical markers found. Defaulting to DIGEST.")
         return ClassificationTier.DIGEST
     }

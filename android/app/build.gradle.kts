@@ -83,9 +83,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
     implementation("dev.chrisbanes.haze:haze:0.6.0")
 
-    // ML Kit GenAI Prompt API for on-device Gemma
-    implementation("com.google.mlkit:genai-prompt:1.0.0-beta2")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+    // MediaPipe LLM Inference SDK (Bypasses AICore)
+    implementation("com.google.mediapipe:tasks-genai:0.10.14")
 
     // Room Database
     val roomVersion = "2.6.1"
