@@ -84,7 +84,7 @@ dependencies {
     implementation("dev.chrisbanes.haze:haze:0.6.0")
 
     // ML Kit GenAI Prompt API for on-device Gemma
-    implementation("com.google.mlkit:genai-prompt:1.0.0-beta3")
+    implementation("com.google.mlkit:genai-prompt:1.0.0-beta2")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
 
     // Room Database
