@@ -46,8 +46,21 @@ class KairosNotificationListener : NotificationListenerService() {
 
         val notification = sbn.notification
         val title = notification.extras.getString(Notification.EXTRA_TITLE) ?: ""
-        val text = notification.extras.getString(Notification.EXTRA_TEXT) ?: ""
+        var text = notification.extras.getString(Notification.EXTRA_TEXT) ?: ""
         val category = notification.category
+
+        // If it's a MessagingStyle notification (e.g. WhatsApp, Messages), extract all message parts
+        val messagingStyle = androidx.core.app.NotificationCompat.MessagingStyle
+            .extractMessagingStyleFromNotification(notification)
+        if (messagingStyle != null) {
+            val messages = messagingStyle.messages
+            if (messages.isNotEmpty()) {
+                text = messages.joinToString("\n") { message ->
+                    val sender = message.person?.name ?: message.sender ?: ""
+                    if (sender.isNotEmpty()) "$sender: ${message.text}" else "${message.text}"
+                }
+            }
+        }
 
         serviceScope.launch {
             try {
@@ -58,15 +71,15 @@ class KairosNotificationListener : NotificationListenerService() {
                     category = category
                 )
 
-                Log.d(TAG, "Notification from ${sbn.packageName} classified as $tier")
+                Log.i(TAG, "🔔 Intercepted notification from ${sbn.packageName} classified as: $tier")
 
                 if (tier == ClassificationTier.DIGEST) {
                     // Suppress: Dismiss the notification so it doesn't alert the user
                     cancelNotification(sbn.key)
-                    Log.d(TAG, "Suppressed notification from ${sbn.packageName}")
+                    Log.i(TAG, "🔕 Suppressed and dismissed notification from ${sbn.packageName}")
 
                     // Store it in the local Room database
-                    Log.d(TAG, "Syncing suppressed notification to local Room database")
+                    Log.i(TAG, "💾 Saving suppressed notification to local Room database...")
                     
                     val localNotif = LocalNotification(
                         packageName = sbn.packageName,
@@ -76,10 +89,10 @@ class KairosNotificationListener : NotificationListenerService() {
                     )
 
                     localNotificationDao.insert(localNotif)
-                    Log.d(TAG, "Successfully saved notification to local database")
+                    Log.i(TAG, "✅ Successfully saved notification to local database.")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error handling notification in interceptor", e)
+                Log.e(TAG, "❌ Error handling notification in interceptor", e)
             }
         }
     }

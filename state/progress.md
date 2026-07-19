@@ -63,6 +63,10 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 **Status:** DONE
 **Summary:** Restricted user typed prompt chat bubble width to a maximum of 60% of the screen width (retaining content wrap below that width). Increased default bodyLarge, bodyMedium, and bodySmall line heights and letter spacing globally. Upgraded message body font in chat bubbles to bodyLarge with a generous line spacing (24.sp) and padding. Increased vertical layout margins between consecutive interactions and widgets for a spacious, modern, and breathing layout.
 
+### 14. Local Notification Interception & On-Device Digest (LiteRT-LM Migration)
+**Status:** DONE
+**Summary:** Swapped the cloud-based notification interception with Room-based local persistence database. Replaced MediaPipe GenAI with LiteRT-LM (`com.google.ai.edge.litertlm:litertlm-android:latest.release`) for on-device notification classification (into CRITICAL/DIGEST) and structured summary digest generation via local Gemma LLM models. Extracted text responses natively from the JNI-backed `Message.contents.contents` properties and verified it builds and compiles successfully.
+
 ---
 
 ## 🔴 OPEN TASKS

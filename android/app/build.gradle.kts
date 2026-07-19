@@ -83,8 +83,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
     implementation("dev.chrisbanes.haze:haze:0.6.0")
 
-    // MediaPipe LLM Inference SDK (Bypasses AICore)
-    implementation("com.google.mediapipe:tasks-genai:0.10.14")
+    // LiteRT-LM SDK (Google's latest on-device LLM engine)
+    implementation("com.google.ai.edge.litertlm:litertlm-android:latest.release")
 
     // Room Database
     val roomVersion = "2.6.1"
