@@ -5,7 +5,6 @@ import { getConversationContext, checkAndSummarizeIfNeeded } from '../ai/context
 import { getUserMemory, updateUserMemoryAsync } from '../ai/user-memory';
 import { KairosResponse } from '@/types/kairos';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { ai } from '../ai/gemini-client';
 
 async function fetchAttachmentParts(attachments: any[], token: string) {
   const supabase = createSupabaseClient(
@@ -79,118 +78,6 @@ export async function processIntent(
   const appTargets = appTargetsSet.size > 0 ? Array.from(appTargetsSet) : [classification.appTarget || 'generic'];
 
   let rawResponseText = "";
-
-  // 3.5 Intercept local launcher digest command
-  const isDigestPrompt = appTargets.includes('launcher') && (
-    prompt.toLowerCase().includes('digest') || 
-    prompt.toLowerCase().includes('notification') || 
-    prompt.toLowerCase().includes('summary')
-  );
-
-  if (isDigestPrompt) {
-    console.log('[IntentRouter] Intercepted launcher digest command');
-    const supabase = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      }
-    );
-
-    const { data: notifications, error: dbError } = await supabase
-      .from('notifications')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('is_read', false)
-      .order('created_at', { ascending: false });
-
-    if (dbError) {
-      console.error('[Digest] Database error:', dbError);
-      throw dbError;
-    }
-
-    if (!notifications || notifications.length === 0) {
-      return {
-        type: 'TEXT',
-        text: 'You have no new notifications. Enjoy your peace.',
-        meta: {
-          conversationId,
-          timestamp: new Date().toISOString(),
-          model: 'system'
-        }
-      } as KairosResponse;
-    }
-
-    const digestPrompt = `You are a notifications summarizer. Please summarize the following list of raw notification messages into a concise daily digest for KAIROS OS.
-Group them by application, sender, or category (e.g. Social, Work, Finance, System).
-For each group, provide a clear title (primary) and a brief summary of the key messages/updates (secondaries).
-
-Respond with a JSON object adhering strictly to this schema:
-{
-  "items": [
-    {
-      "id": "string (unique identifier, e.g. 'social_instagram')",
-      "primary": "string (group name + count, e.g. 'Instagram (3)')",
-      "secondary": "string (brief summary of notifications in this group)",
-      "icon": "string (one of: 'social', 'mail', 'calendar', 'notification')"
-    }
-  ]
-}
-
-Raw Notifications:
-${JSON.stringify(notifications)}
-
-Respond ONLY with valid JSON.`;
-
-    const result = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: digestPrompt,
-      config: {
-        responseMimeType: 'application/json',
-      }
-    });
-
-    const responseText = result.text || '{}';
-    let parsedDigest;
-    try {
-      parsedDigest = JSON.parse(responseText);
-    } catch (e) {
-      console.error('[Digest] Failed to parse Gemini response as JSON. Response:', responseText);
-      parsedDigest = {
-        items: [
-          {
-            id: 'fallback_summary',
-            primary: `Unread Notifications (${notifications.length})`,
-            secondary: notifications.map(n => `${n.title}: ${n.body}`).join(' | '),
-            icon: 'notification'
-          }
-        ]
-      };
-    }
-
-    // Mark notifications as read
-    const notificationIds = notifications.map(n => n.id);
-    await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .in('id', notificationIds);
-
-    return {
-      type: "WIDGET",
-      widget: {
-        widgetType: "DIGEST_SUMMARY",
-        title: `Daily Digest — ${notifications.length} notification${notifications.length > 1 ? 's' : ''}`,
-        items: parsedDigest.items || []
-      },
-      meta: {
-        conversationId,
-        timestamp: new Date().toISOString(),
-        model: 'gemini-2.5-flash'
-      }
-    } as KairosResponse;
-  }
 
   // 4. Route based on tier
   if (classification.tier === 'SIMPLE') {

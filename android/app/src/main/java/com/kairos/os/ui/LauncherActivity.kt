@@ -161,6 +161,9 @@ class LauncherActivity : ComponentActivity() {
     @Inject
     lateinit var apiClient: com.kairos.os.data.api.KairosApiClient
 
+    @Inject
+    lateinit var localDigestGenerator: com.kairos.os.domain.usecases.LocalDigestGenerator
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         supabaseClient.handleDeeplinks(intent)
@@ -183,7 +186,8 @@ class LauncherActivity : ComponentActivity() {
                             onThemeToggle = { isDarkTheme = !isDarkTheme },
                             onLogout = { authViewModel.signOut() },
                             apiClient = apiClient,
-                            supabaseClient = supabaseClient
+                            supabaseClient = supabaseClient,
+                            localDigestGenerator = localDigestGenerator
                         )
                     } else {
                         var currentAuthScreen by remember { mutableStateOf("login") }
@@ -220,6 +224,7 @@ data class AppConnection(
 )
 
 val composioApps = listOf(
+    AppConnection("digest", "Digest Summary", null, null, "utility"),
     AppConnection("gmail", "Gmail", "https://logos.composio.dev/api/gmail", null, "productivity"),
     AppConnection("composio", "Composio", "https://logos.composio.dev/api/composio", null, "developer"),
     AppConnection("github", "Github", "https://logos.composio.dev/api/github", null, "developer"),
@@ -379,7 +384,8 @@ fun MindfulLauncherScreen(
     onThemeToggle: () -> Unit = {},
     onLogout: () -> Unit = {},
     apiClient: com.kairos.os.data.api.KairosApiClient,
-    supabaseClient: io.github.jan.supabase.SupabaseClient
+    supabaseClient: io.github.jan.supabase.SupabaseClient,
+    localDigestGenerator: com.kairos.os.domain.usecases.LocalDigestGenerator
 ) {
     val chatViewModel: com.kairos.os.ui.viewmodels.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val conversations by chatViewModel.conversations.collectAsState()
@@ -696,22 +702,44 @@ fun MindfulLauncherScreen(
             termInput = ""
             selectedAttachments.clear()
 
-            coroutineScope.launch {
-                try {
-                    val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId, attachmentsPayload)
-                    chatViewModel.onPromptResponse(response.meta?.conversationId)
-                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
-                } catch (e: Exception) {
-                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
-                        com.kairos.os.domain.models.KairosResponse(
-                            type = "ERROR",
-                            text = "Failed to connect to AI: ${e.message}"
-                        )
-                    ))
-                } finally {
-                    isLoading = false
+            val isDigest = currentTarget == "digest" || currentIntent.contains("@digest") || currentIntent.lowercase().trim() == "digest"
+
+            if (isDigest) {
+                coroutineScope.launch {
+                    try {
+                        val response = localDigestGenerator.generateDigest()
+                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                    } catch (e: Exception) {
+                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
+                            com.kairos.os.domain.models.KairosResponse(
+                                type = "ERROR",
+                                text = "Failed to compile local digest: ${e.message}"
+                            )
+                        ))
+                    } finally {
+                        isLoading = false
+                    }
+                }
+            } else {
+                coroutineScope.launch {
+                    try {
+                        val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId, attachmentsPayload)
+                        chatViewModel.onPromptResponse(response.meta?.conversationId)
+                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                    } catch (e: Exception) {
+                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
+                            com.kairos.os.domain.models.KairosResponse(
+                                type = "ERROR",
+                                text = "Failed to connect to AI: ${e.message}"
+                            )
+                        ))
+                    } finally {
+                        isLoading = false
+                    }
                 }
             }
         }

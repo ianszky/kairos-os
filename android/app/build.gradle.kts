@@ -86,6 +86,12 @@ dependencies {
     // ML Kit GenAI Prompt API for on-device Gemma
     implementation("com.google.mlkit:genai-prompt:1.0.0-beta3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
+
+    // Room Database
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
 }
 
 

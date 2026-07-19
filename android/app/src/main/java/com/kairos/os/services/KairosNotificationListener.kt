@@ -4,24 +4,13 @@ import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import com.kairos.os.data.db.LocalNotification
+import com.kairos.os.data.db.LocalNotificationDao
 import com.kairos.os.domain.usecases.LocalNotificationClassifier
 import com.kairos.os.domain.usecases.ClassificationTier
 import dagger.hilt.android.AndroidEntryPoint
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.postgrest.postgrest
 import kotlinx.coroutines.*
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import javax.inject.Inject
-
-@Serializable
-data class NotificationInsert(
-    @SerialName("user_id") val userId: String,
-    val title: String,
-    val body: String,
-    @SerialName("is_read") val isRead: Boolean = false
-)
 
 @AndroidEntryPoint
 class KairosNotificationListener : NotificationListenerService() {
@@ -32,7 +21,7 @@ class KairosNotificationListener : NotificationListenerService() {
     lateinit var notificationClassifier: LocalNotificationClassifier
 
     @Inject
-    lateinit var supabaseClient: SupabaseClient
+    lateinit var localNotificationDao: LocalNotificationDao
 
     private val serviceJob = SupervisorJob()
     private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
@@ -76,22 +65,18 @@ class KairosNotificationListener : NotificationListenerService() {
                     cancelNotification(sbn.key)
                     Log.d(TAG, "Suppressed notification from ${sbn.packageName}")
 
-                    // Get current Supabase user
-                    val user = supabaseClient.auth.currentUserOrNull()
-                    if (user != null) {
-                        Log.d(TAG, "Syncing suppressed notification to Supabase for user: ${user.id}")
-                        
-                        val insertPayload = NotificationInsert(
-                            userId = user.id,
-                            title = title.ifBlank { "Notification" },
-                            body = text.ifBlank { "No content" }
-                        )
+                    // Store it in the local Room database
+                    Log.d(TAG, "Syncing suppressed notification to local Room database")
+                    
+                    val localNotif = LocalNotification(
+                        packageName = sbn.packageName,
+                        title = title.ifBlank { "Notification" },
+                        text = text.ifBlank { "No content" },
+                        timestamp = sbn.postTime
+                    )
 
-                        supabaseClient.postgrest["notifications"].insert(insertPayload)
-                        Log.d(TAG, "Successfully synced notification to Supabase")
-                    } else {
-                        Log.w(TAG, "No authenticated user. Suppressed notification was not synced.")
-                    }
+                    localNotificationDao.insert(localNotif)
+                    Log.d(TAG, "Successfully saved notification to local database")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error handling notification in interceptor", e)
