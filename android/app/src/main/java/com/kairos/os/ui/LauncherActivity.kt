@@ -11,6 +11,8 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.status.SessionStatus
 import io.github.jan.supabase.auth.handleDeeplinks
 import javax.inject.Inject
+import android.util.Log
+import io.github.jan.supabase.postgrest.postgrest
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -164,6 +166,18 @@ class LauncherActivity : ComponentActivity() {
     @Inject
     lateinit var localDigestGenerator: com.kairos.os.domain.usecases.LocalDigestGenerator
 
+    @Inject
+    lateinit var localAgentEngine: com.kairos.os.domain.usecases.LocalAgentEngine
+
+    @Inject
+    lateinit var localTitleGenerator: com.kairos.os.domain.usecases.LocalTitleGenerator
+
+    @Inject
+    lateinit var localNotesController: com.kairos.os.domain.tools.LocalNotesController
+
+    @Inject
+    lateinit var localCalendarController: com.kairos.os.domain.tools.LocalCalendarController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         supabaseClient.handleDeeplinks(intent)
@@ -187,7 +201,11 @@ class LauncherActivity : ComponentActivity() {
                             onLogout = { authViewModel.signOut() },
                             apiClient = apiClient,
                             supabaseClient = supabaseClient,
-                            localDigestGenerator = localDigestGenerator
+                            localDigestGenerator = localDigestGenerator,
+                            localAgentEngine = localAgentEngine,
+                            localTitleGenerator = localTitleGenerator,
+                            localNotesController = localNotesController,
+                            localCalendarController = localCalendarController
                         )
                     } else {
                         var currentAuthScreen by remember { mutableStateOf("login") }
@@ -385,7 +403,11 @@ fun MindfulLauncherScreen(
     onLogout: () -> Unit = {},
     apiClient: com.kairos.os.data.api.KairosApiClient,
     supabaseClient: io.github.jan.supabase.SupabaseClient,
-    localDigestGenerator: com.kairos.os.domain.usecases.LocalDigestGenerator
+    localDigestGenerator: com.kairos.os.domain.usecases.LocalDigestGenerator,
+    localAgentEngine: com.kairos.os.domain.usecases.LocalAgentEngine,
+    localTitleGenerator: com.kairos.os.domain.usecases.LocalTitleGenerator,
+    localNotesController: com.kairos.os.domain.tools.LocalNotesController,
+    localCalendarController: com.kairos.os.domain.tools.LocalCalendarController
 ) {
     val chatViewModel: com.kairos.os.ui.viewmodels.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val conversations by chatViewModel.conversations.collectAsState()
@@ -678,76 +700,143 @@ fun MindfulLauncherScreen(
         }
     }
 
+    var textFieldValue by remember {
+        mutableStateOf(TextFieldValue(text = termInput, selection = TextRange(termInput.length)))
+    }
+
     val interactions = remember { mutableStateListOf<com.kairos.os.domain.models.Interaction>() }
     var isLoading by remember { mutableStateOf(false) }
 
     val onSendPrompt = {
-        if (termInput.isNotBlank() && !termInput.startsWith("/") && termInput != "@$parsedActiveApp") {
-            val currentIntent = termInput
+        if (termInput.isNotBlank()) {
+            val currentIntent = termInput.trim()
             val currentTarget = parsedActiveApp
-            val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
-                attachment.uploadedPath?.let { path ->
-                    AttachmentInfo(
-                        filePath = path,
-                        fileName = attachment.fileName,
-                        mimeType = attachment.mimeType,
-                        fileSize = attachment.fileSize
-                    )
+            
+            // Check for /open commands (Tier 0 direct launcher & local screens)
+            if (currentIntent.startsWith("/open ")) {
+                val appToOpen = currentIntent.substringAfter("/open ").trim().lowercase()
+                if (appToOpen == "notes") {
+                    activeScreen = "notes"
+                    termInput = ""
+                    textFieldValue = TextFieldValue("")
+                } else if (appToOpen == "calendar") {
+                    activeScreen = "calendar"
+                    termInput = ""
+                    textFieldValue = TextFieldValue("")
+                } else {
+                    val app = availableApps.find { it.id.equals(appToOpen, ignoreCase = true) || it.displayName.lowercase() == appToOpen }
+                    if (app?.packageName != null) {
+                        try {
+                            val intent = packageManager.getLaunchIntentForPackage(app.packageName)
+                            if (intent != null) {
+                                context.startActivity(intent)
+                            }
+                        } catch (e: Exception) {
+                            Log.e("Launcher", "Failed to launch app: ${app.packageName}", e)
+                        }
+                    }
+                    termInput = ""
+                    textFieldValue = TextFieldValue("")
                 }
-            }
-            isChatOpen = true
-            interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
-            isLoading = true
-            interactions.add(com.kairos.os.domain.models.Interaction.Loading())
-            termInput = ""
-            selectedAttachments.clear()
-
-            val isDigest = currentTarget == "digest" || currentIntent.contains("@digest") || currentIntent.lowercase().trim() == "digest"
-
-            if (isDigest) {
-                coroutineScope.launch {
-                    try {
-                        val response = localDigestGenerator.generateDigest()
-                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
-                    } catch (e: Exception) {
-                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
-                            com.kairos.os.domain.models.KairosResponse(
-                                type = "ERROR",
-                                text = "Failed to compile local digest: ${e.message}"
-                            )
-                        ))
-                    } finally {
-                        isLoading = false
+            } else if (currentIntent != "@$parsedActiveApp") {
+                val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
+                    attachment.uploadedPath?.let { path ->
+                        AttachmentInfo(
+                            filePath = path,
+                            fileName = attachment.fileName,
+                            mimeType = attachment.mimeType,
+                            fileSize = attachment.fileSize
+                        )
                     }
                 }
-            } else {
-                coroutineScope.launch {
-                    try {
-                        val response = apiClient.postPrompt(currentIntent, currentTarget, currentConversationId, attachmentsPayload)
-                        chatViewModel.onPromptResponse(response.meta?.conversationId)
-                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
-                    } catch (e: Exception) {
-                        interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                        interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
-                            com.kairos.os.domain.models.KairosResponse(
-                                type = "ERROR",
-                                text = "Failed to connect to AI: ${e.message}"
+                isChatOpen = true
+                interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
+                isLoading = true
+                interactions.add(com.kairos.os.domain.models.Interaction.Loading())
+                termInput = ""
+                selectedAttachments.clear()
+
+                val isDigest = currentTarget == "digest" || currentIntent.contains("@digest") || currentIntent.lowercase().trim() == "digest"
+
+                if (isDigest) {
+                    coroutineScope.launch {
+                        try {
+                            val response = localDigestGenerator.generateDigest()
+                            interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                        } catch (e: Exception) {
+                            interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
+                                com.kairos.os.domain.models.KairosResponse(
+                                    type = "ERROR",
+                                    text = "Failed to compile local digest: ${e.message}"
+                                )
+                            ))
+                        } finally {
+                            isLoading = false
+                        }
+                    }
+                } else {
+                    coroutineScope.launch {
+                        try {
+                            var activeConvId = currentConversationId
+                            val user = supabaseClient.auth.currentSessionOrNull()?.user
+                            if (activeConvId == null && user != null) {
+                                try {
+                                    val newConv = supabaseClient.postgrest["conversations"].insert(
+                                        mapOf("user_id" to user.id, "title" to "New Conversation")
+                                    ).decodeSingle<com.kairos.os.domain.models.Conversation>()
+                                    activeConvId = newConv.id
+                                    chatViewModel.onPromptResponse(activeConvId)
+                                    val finalConvId = activeConvId
+                                    if (finalConvId != null) {
+                                        launch {
+                                            localTitleGenerator.generateAndSaveTitle(finalConvId, currentIntent)
+                                        }
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("Launcher", "Failed to create conversation locally in Supabase", e)
+                                }
+                            }
+
+                            val resolvedConvId = activeConvId ?: "temp_conv_id"
+                            val userId = user?.id ?: ""
+
+                            val localResponse = localAgentEngine.execute(
+                                prompt = currentIntent,
+                                appTarget = currentTarget,
+                                conversationId = resolvedConvId,
+                                userId = userId
                             )
-                        ))
-                    } finally {
-                        isLoading = false
+
+                            if (localResponse.type == "CLOUD_FALLBACK") {
+                                Log.i("Launcher", "Local agent returned CLOUD_FALLBACK. Routing to Next.js backend...")
+                                val response = apiClient.postPrompt(currentIntent, currentTarget, resolvedConvId, attachmentsPayload)
+                                chatViewModel.onPromptResponse(response.meta?.conversationId)
+                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                            } else {
+                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(localResponse))
+                            }
+                        } catch (e: Exception) {
+                            interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
+                                com.kairos.os.domain.models.KairosResponse(
+                                    type = "ERROR",
+                                    text = "Failed to process query: ${e.message}"
+                                )
+                            ))
+                        } finally {
+                            isLoading = false
+                        }
                     }
                 }
             }
         }
     }
 
-    var textFieldValue by remember {
-        mutableStateOf(TextFieldValue(text = termInput, selection = TextRange(termInput.length)))
-    }
+
 
     LaunchedEffect(termInput) {
         val firstWord = termInput.substringBefore(' ')
@@ -931,6 +1020,18 @@ fun MindfulLauncherScreen(
                     }
                     "scheduled" -> {
                         ScheduledDummyScreen()
+                    }
+                    "notes" -> {
+                        com.kairos.os.ui.screens.LocalNotesScreen(
+                            notesController = localNotesController,
+                            onBack = { activeScreen = "home" }
+                        )
+                    }
+                    "calendar" -> {
+                        com.kairos.os.ui.screens.LocalCalendarScreen(
+                            calendarController = localCalendarController,
+                            onBack = { activeScreen = "home" }
+                        )
                     }
                     else -> { // "home"
                         if (!isChatOpen) {
@@ -1953,7 +2054,8 @@ fun ChatView(
                             isUser = false, 
                             text = interaction.response.text,
                             availableApps = availableApps,
-                            iconCache = iconCache
+                            iconCache = iconCache,
+                            modelName = interaction.response.meta?.model
                         )
                     }
                     if (interaction.response.widget != null) {
@@ -2006,7 +2108,8 @@ fun ChatBubble(
     isUser: Boolean, 
     text: String,
     availableApps: List<AppConnection>,
-    iconCache: Map<String, android.graphics.drawable.Drawable>
+    iconCache: Map<String, android.graphics.drawable.Drawable>,
+    modelName: String? = null
 ) {
     val codeBg = MaterialTheme.colorScheme.surfaceVariant
     val codeText = MaterialTheme.colorScheme.primary
@@ -2145,6 +2248,38 @@ fun ChatBubble(
                     letterSpacing = 0.25.sp
                 )
             )
+        }
+
+        if (!isUser && !modelName.isNullOrBlank()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Surface(
+                color = if (modelName.contains("Local")) Color(0xFF2E7D32).copy(alpha = 0.15f) else Color(0xFF6A1B9A).copy(alpha = 0.15f),
+                shape = RoundedCornerShape(8.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    0.5.dp, 
+                    if (modelName.contains("Local")) Color(0xFF4CAF50) else Color(0xFFAB47BC)
+                ),
+                modifier = Modifier.padding(start = 4.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = if (modelName.contains("Local")) Icons.Default.PhoneAndroid else Icons.Default.Cloud,
+                        contentDescription = null,
+                        tint = if (modelName.contains("Local")) Color(0xFF4CAF50) else Color(0xFFAB47BC),
+                        modifier = Modifier.size(10.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = modelName,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (modelName.contains("Local")) Color(0xFF4CAF50) else Color(0xFFAB47BC)
+                    )
+                }
+            }
         }
     }
 }
