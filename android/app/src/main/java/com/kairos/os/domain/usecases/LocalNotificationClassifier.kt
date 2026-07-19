@@ -19,6 +19,7 @@ class LocalNotificationClassifier @Inject constructor() {
     // Lazy initialization of GenerativeModel client from ML Kit
     private val generativeModel by lazy {
         try {
+            Log.d(TAG, "Initializing ML Kit GenAI client...")
             Generation.getClient()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize ML Kit GenAI client", e)
@@ -50,9 +51,15 @@ class LocalNotificationClassifier @Inject constructor() {
         text: String,
         category: String?
     ): ClassificationTier {
-        Log.d(TAG, "Classifying notification from $packageName (title: $title, category: $category)")
+        Log.d(TAG, "==== Intercepted Notification Details ====")
+        Log.d(TAG, "App Package: $packageName")
+        Log.d(TAG, "Title: $title")
+        Log.d(TAG, "Text: $text")
+        Log.d(TAG, "Category: $category")
+        Log.d(TAG, "==========================================")
 
         // --- Tier 0: Direct Rule Checks (System Bypass) ---
+        Log.d(TAG, "[Tier 0] Checking direct rule bypasses...")
         
         // 1. Check notification category
         if (category == Notification.CATEGORY_CALL ||
@@ -60,7 +67,7 @@ class LocalNotificationClassifier @Inject constructor() {
             category == Notification.CATEGORY_NAVIGATION ||
             category == Notification.CATEGORY_SYSTEM
         ) {
-            Log.d(TAG, "Direct critical match: category = $category")
+            Log.d(TAG, "[Tier 0] CRITICAL match: notification category is system-critical ($category)")
             return ClassificationTier.CRITICAL
         }
 
@@ -70,35 +77,42 @@ class LocalNotificationClassifier @Inject constructor() {
             packageName.contains("deskclock") ||
             packageName.contains("calendar")
         ) {
-            Log.d(TAG, "Direct critical match: package = $packageName")
+            Log.d(TAG, "[Tier 0] CRITICAL match: app package is phone/calendar/clock related ($packageName)")
             return ClassificationTier.CRITICAL
         }
 
         // 3. Known social media apps are categorized as digest by default
         if (digestAppPackages.contains(packageName)) {
+            Log.d(TAG, "[Tier 0] DIGEST match: package $packageName matches a known social app list.")
+            
             // But we will still run regex keyword checking in case it's an urgent DM
             val combinedText = "$title $text".lowercase()
             if (criticalKeywords.any { combinedText.contains(it) }) {
-                Log.d(TAG, "Digest package overridden by critical keyword: $combinedText")
+                Log.d(TAG, "[Tier 0] OVERRIDE: Social app notification matches a critical keyword. Promoting to CRITICAL.")
                 return ClassificationTier.CRITICAL
             }
-            Log.d(TAG, "Direct digest match: social package = $packageName")
+            Log.d(TAG, "[Tier 0] Suppressing and sorting to DIGEST.")
             return ClassificationTier.DIGEST
         }
 
         // --- Tier 1: Regex Keyword Heuristics ---
+        Log.d(TAG, "[Tier 1] Checking keyword heuristics...")
         val combinedText = "$title $text".lowercase()
-        if (criticalKeywords.any { combinedText.contains(it) }) {
-            Log.d(TAG, "Critical keyword match in text: $combinedText")
+        val matchedKeyword = criticalKeywords.firstOrNull { combinedText.contains(it) }
+        if (matchedKeyword != null) {
+            Log.d(TAG, "[Tier 1] CRITICAL match: text contains urgent keyword '$matchedKeyword'")
             return ClassificationTier.CRITICAL
         }
 
         // --- Tier 2: On-Device AI Classification (Gemma-4-e2b via ML Kit GenAI) ---
+        Log.d(TAG, "[Tier 2] Preparing local Gemma-4-e2b model...")
         val model = generativeModel
         if (model != null) {
             try {
                 // Check if the model is available
                 val status = model.checkStatus()
+                Log.d(TAG, "[Tier 2] Local Gemma model status: $status (AVAILABLE = 3, DOWNLOADABLE = 1, DOWNLOADING = 2, UNAVAILABLE = 0)")
+                
                 if (status == FeatureStatus.AVAILABLE) {
                     val prompt = """
                         You are KAIROS OS's notification classifier. Decide if the following notification is CRITICAL (urgent, requires immediate human attention, e.g. direct text messages, work updates, meeting reminders, security alerts, OTPs) or DIGEST (non-urgent, promotional, social media likes/follows, newsletters, group chats).
@@ -111,27 +125,34 @@ class LocalNotificationClassifier @Inject constructor() {
                         Respond with exactly one word: CRITICAL or DIGEST. Do not write any other explanation or text.
                     """.trimIndent()
 
+                    Log.d(TAG, "[Tier 2] Sending prompt to Gemma-4-e2b...")
+                    Log.d(TAG, "[Tier 2] PROMPT:\n$prompt")
+
                     val response = model.generateContent(prompt)
                     val result = response.candidates.firstOrNull()?.text?.trim()?.uppercase()
-                    Log.d(TAG, "Gemma-4-e2b classification result: $result")
+                    Log.d(TAG, "[Tier 2] Gemma-4-e2b response text: $result")
                     
                     if (result == "CRITICAL") {
+                        Log.d(TAG, "[Tier 2] Gemma classified as CRITICAL")
                         return ClassificationTier.CRITICAL
                     } else if (result == "DIGEST") {
+                        Log.d(TAG, "[Tier 2] Gemma classified as DIGEST")
                         return ClassificationTier.DIGEST
+                    } else {
+                        Log.w(TAG, "[Tier 2] Gemma returned unexpected response shape. Defaulting to DIGEST.")
                     }
                 } else {
-                    Log.d(TAG, "Gemma model not ready or downloadable (status: $status). Falling back to rules.")
+                    Log.d(TAG, "[Tier 2] Gemma model not ready or downloadable (status: $status). Falling back to rules.")
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error executing on-device Gemma classification", e)
+                Log.e(TAG, "[Tier 2] Error executing on-device Gemma classification", e)
             }
         } else {
-            Log.d(TAG, "ML Kit GenAI client not available. Falling back to rules.")
+            Log.d(TAG, "[Tier 2] ML Kit GenAI client not available. Falling back to rules.")
         }
 
         // Default to DIGEST if rules/AI don't mark as CRITICAL
-        Log.d(TAG, "Defaulting to DIGEST")
+        Log.d(TAG, "No critical markers found. Defaulting to DIGEST.")
         return ClassificationTier.DIGEST
     }
 }
