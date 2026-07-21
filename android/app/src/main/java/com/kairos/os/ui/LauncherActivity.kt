@@ -813,7 +813,9 @@ fun MindfulLauncherScreen(
                                 try {
                                     val newConv = supabaseClient.postgrest["conversations"].insert(
                                         mapOf("user_id" to user.id, "title" to "New Conversation")
-                                    ).decodeSingle<com.kairos.os.domain.models.Conversation>()
+                                    ) {
+                                        select()
+                                    }.decodeSingle<com.kairos.os.domain.models.Conversation>()
                                     activeConvId = newConv.id
                                     chatViewModel.onPromptResponse(activeConvId)
                                     val finalConvId = activeConvId
