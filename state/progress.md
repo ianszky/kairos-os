@@ -87,7 +87,12 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 **Status:** DONE
 **Summary:** Overhauled `LocalNotesScreen.kt`, `LocalCalendarScreen.kt`, and created `LocalClockScreen.kt`. Unified header navigation in `LauncherActivity.kt` so non-home screens present a clean top back button and title header, while hiding the bottom prompt input box to avoid layout overlap. Built Material 3 search filtering, note editors, agenda cards, alarm managers, and empty state layouts. Verified clean compilation via `gradlew assembleDebug`.
 
+### 18. Intent Layer & Settings Overhaul (On-Device Gemma 4 Reason Validation + App Settings)
+**Status:** DONE
+**Summary:** Implemented the complete Intent Gate system and Settings Overhaul. Added Supabase database tables (`intent_logs`, `user_settings`, and cooling-off extensions to `user_app_configs`) and database helpers. Created Next.js API endpoints (`/api/intent/log`, `/api/settings`, `/api/settings/apps`). Built on-device intent reason validation using Gemma 4 via LiteRT-LM SDK (`OnDeviceIntentValidator.kt`). Added `IntentViewModel.kt` for state management. Wired `LauncherActivity.kt` to intercept `@app` mentions for distracting apps, clear chat input box on distracting mention, present 6 time pills (5m-1hr), 80-character reason limit, live character counter, validation feedback, and budget indicator. Disabled send button and made open app icon button grayed out until time + valid reason are set. Overhauled Settings drawer header to "Settings" and replaced boilerplate toggles with "App Settings" and "System Settings". Built `AppSettingsScreen.kt` with a daily leisure budget slider and per-app distraction toggles with 12-hour cooling-off period protection. Verified builds via Next.js `npm run build` and Android `gradlew assembleDebug`.
+
 ---
 
-None. All scheduled tasks are completed!
+## 🔴 OPEN TASKS
 
+None. All scheduled tasks are completed!
