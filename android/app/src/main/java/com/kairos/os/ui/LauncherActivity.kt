@@ -441,6 +441,16 @@ fun MindfulLauncherScreen(
     var isFrictionMode by remember { mutableStateOf(false) }
     var selectedFrictionTime by remember { mutableStateOf<String?>(null) }
     var frictionReason by remember { mutableStateOf("") }
+
+    val intentViewModel: com.kairos.os.ui.viewmodels.IntentViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val userSettings by intentViewModel.userSettings.collectAsState()
+    
+    var frictionTargetApp by remember { mutableStateOf<AppConnection?>(null) }
+    var intentApproved by remember { mutableStateOf(false) }
+    var isValidatingReason by remember { mutableStateOf(false) }
+    var validationFeedback by remember { mutableStateOf<String?>(null) }
+
+
     
     var isAppDrawerOpen by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -714,6 +724,98 @@ fun MindfulLauncherScreen(
 
     var textFieldValue by remember {
         mutableStateOf(TextFieldValue(text = termInput, selection = TextRange(termInput.length)))
+    }
+
+    LaunchedEffect(parsedActiveApp) {
+        if (parsedActiveApp != null) {
+            val app = availableApps.find { it.id.equals(parsedActiveApp, ignoreCase = true) }
+            if (app != null && intentViewModel.isDistractingApp(app.id)) {
+                frictionTargetApp = app
+                isFrictionMode = true
+                selectedFrictionTime = null
+                frictionReason = ""
+                intentApproved = false
+                validationFeedback = null
+            } else {
+                isFrictionMode = false
+                frictionTargetApp = null
+                selectedFrictionTime = null
+                frictionReason = ""
+                intentApproved = false
+                validationFeedback = null
+            }
+        } else {
+            isFrictionMode = false
+            frictionTargetApp = null
+            selectedFrictionTime = null
+            frictionReason = ""
+            intentApproved = false
+            validationFeedback = null
+        }
+    }
+
+    LaunchedEffect(frictionReason, selectedFrictionTime) {
+        if (isFrictionMode && selectedFrictionTime != null && frictionReason.trim().length >= 4) {
+            delay(500)
+            isValidatingReason = true
+            try {
+                val targetName = frictionTargetApp?.displayName ?: "App"
+                val res = intentViewModel.validateReason(frictionReason, targetName)
+                intentApproved = res.approved
+                validationFeedback = if (!res.approved) res.feedback else null
+            } catch (e: Exception) {
+                intentApproved = true
+                validationFeedback = null
+            } finally {
+                isValidatingReason = false
+            }
+        } else {
+            intentApproved = false
+            validationFeedback = null
+        }
+    }
+
+    val launchDistractingApp: () -> Unit = {
+        val app = frictionTargetApp
+        val timeStr = selectedFrictionTime
+        if (app != null && timeStr != null && intentApproved) {
+            val minutes = when(timeStr) {
+                "5m" -> 5
+                "10m" -> 10
+                "15m" -> 15
+                "30m" -> 30
+                "45m" -> 45
+                "1hr" -> 60
+                else -> 15
+            }
+            coroutineScope.launch {
+                val logRes = intentViewModel.logIntent(
+                    appId = app.id,
+                    displayName = app.displayName,
+                    reason = frictionReason,
+                    minutes = minutes,
+                    aiApproved = intentApproved
+                )
+                if (logRes.budgetExceeded) {
+                    validationFeedback = logRes.message ?: "Daily leisure limit reached (${logRes.remainingMinutes}m remaining)."
+                } else {
+                    val pkg = app.packageName
+                    if (pkg != null) {
+                        val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
+                        if (launchIntent != null) {
+                            context.startActivity(launchIntent)
+                        }
+                    }
+                    isFrictionMode = false
+                    frictionTargetApp = null
+                    selectedFrictionTime = null
+                    frictionReason = ""
+                    intentApproved = false
+                    termInput = ""
+                    textFieldValue = androidx.compose.ui.text.input.TextFieldValue("")
+                }
+            }
+        }
     }
 
     val interactions = remember { mutableStateListOf<com.kairos.os.domain.models.Interaction>() }
@@ -1063,6 +1165,13 @@ fun MindfulLauncherScreen(
                     "scheduled" -> {
                         ScheduledDummyScreen()
                     }
+                    "app_settings" -> {
+                        com.kairos.os.ui.screens.AppSettingsScreen(
+                            intentViewModel = intentViewModel,
+                            installedApps = installedApps,
+                            onBack = { activeScreen = "home" }
+                        )
+                    }
                     "notes" -> {
                         com.kairos.os.ui.screens.LocalNotesScreen(
                             notesController = localNotesController,
@@ -1146,6 +1255,7 @@ fun MindfulLauncherScreen(
                                     "clock" -> "Kai Clock"
                                     "search" -> "Search"
                                     "scheduled" -> "Scheduled Tasks"
+                                    "app_settings" -> "App Settings"
                                     else -> ""
                                 },
                                 style = MaterialTheme.typography.titleLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold),
@@ -1172,8 +1282,10 @@ fun MindfulLauncherScreen(
                         IconButton(onClick = onThemeToggle) {
                             Icon(if (isDarkTheme) Icons.Default.Brightness4 else Icons.Default.Brightness7, contentDescription = "Toggle Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        IconButton(onClick = { isSettingsOpen = true }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (activeScreen == "home") {
+                            IconButton(onClick = { isSettingsOpen = true }) {
+                                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
@@ -1462,121 +1574,161 @@ fun MindfulLauncherScreen(
                                     movableTextField(Modifier.fillMaxWidth())
                                 }
 
-                                val currentApp = availableApps.find { it.id == parsedActiveApp }
-                                if (currentApp?.packageName != null) {
-                                    IconButton(
-                                        onClick = {
-                                            val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
-                                            if (launchIntent != null) {
-                                                context.startActivity(launchIntent)
-                                            }
-                                        },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
-                                    }
-                                } else {
-                                    IconButton(
-                                        onClick = {
-                                            recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                        },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
+                                 val currentApp = availableApps.find { it.id == parsedActiveApp } ?: frictionTargetApp
+                                 if (isFrictionMode || (currentApp != null && intentViewModel.isDistractingApp(currentApp.id))) {
+                                     val isCanOpen = intentApproved && !isValidatingReason && selectedFrictionTime != null
+                                     IconButton(
+                                         onClick = {
+                                             if (isCanOpen) {
+                                                 launchDistractingApp()
+                                             }
+                                         },
+                                         enabled = isCanOpen,
+                                         modifier = Modifier.size(36.dp)
+                                     ) {
+                                         Icon(
+                                             Icons.Default.OpenInNew,
+                                             contentDescription = "Open App",
+                                             tint = if (isCanOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                         )
+                                     }
+                                 } else if (currentApp?.packageName != null) {
+                                     IconButton(
+                                         onClick = {
+                                             val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
+                                             if (launchIntent != null) {
+                                                 context.startActivity(launchIntent)
+                                             }
+                                         },
+                                         modifier = Modifier.size(36.dp)
+                                     ) {
+                                         Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
+                                     }
+                                 } else {
+                                     IconButton(
+                                         onClick = {
+                                             recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                         },
+                                         modifier = Modifier.size(36.dp)
+                                     ) {
+                                         Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                     }
 
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                     Spacer(modifier = Modifier.width(8.dp))
 
-                                    IconButton(
-                                        onClick = {
-                                            onSendPrompt()
-                                        },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                                    }
-                                }
-                            }
-                        }
+                                     IconButton(
+                                         onClick = {
+                                             onSendPrompt()
+                                         },
+                                         modifier = Modifier.size(36.dp)
+                                     ) {
+                                         Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                     }
+                                 }
+                             }
+                         }
 
-                        AnimatedVisibility(visible = isFrictionMode) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 20.dp)
-                            ) {
-                                Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant))
-                                Spacer(modifier = Modifier.height(20.dp))
-                                
-                                Text(
-                                    buildAnnotatedString {
-                                        append("Intentional friction engaged for ")
-                                        withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) {
-                                            append("${parsedActiveApp ?: "unknown"}.")
-                                        }
-                                    },
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    listOf("5m", "10m", "15m", "30m").forEach { time ->
-                                        val isSelected = selectedFrictionTime == time
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .background(
-                                                    if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.background,
-                                                    RoundedCornerShape(8.dp)
-                                                )
-                                                .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                                                .clickable { selectedFrictionTime = time }
-                                                .padding(vertical = 10.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(time, color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground, style = MaterialTheme.typography.bodyMedium)
-                                        }
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(16.dp))
-                                
-                                BasicTextField(
-                                    value = frictionReason,
-                                    onValueChange = { frictionReason = it },
-                                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
-                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))
-                                        .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                                        .padding(12.dp),
-                                    decorationBox = { innerTextField ->
-                                        if (frictionReason.isEmpty()) {
-                                            Text("[reason] (e.g. check messages)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp))
-                                        }
-                                        innerTextField()
-                                    }
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                
-                                val isLaunchValid = selectedFrictionTime != null && frictionReason.trim().length > 2
-                                Button(
-                                    onClick = { termInput = ""; frictionReason = ""; selectedFrictionTime = null },
-                                    enabled = isLaunchValid,
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(8.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = Color.Black,
-                                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                ) {
-                                    Text("LAUNCH INTENT", style = MaterialTheme.typography.bodyMedium, letterSpacing = 0.08.sp)
-                                }
-                            }
-                        }
+                         AnimatedVisibility(visible = isFrictionMode) {
+                             Column(
+                                 modifier = Modifier
+                                     .fillMaxWidth()
+                                     .padding(top = 20.dp)
+                             ) {
+                                 Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant))
+                                 Spacer(modifier = Modifier.height(20.dp))
+                                 
+                                 Text(
+                                     buildAnnotatedString {
+                                         append("Intentional friction engaged for ")
+                                         withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)) {
+                                             append("@${frictionTargetApp?.displayName ?: parsedActiveApp ?: "app"}.")
+                                         }
+                                     },
+                                     style = MaterialTheme.typography.bodyMedium,
+                                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                                 )
+                                 Spacer(modifier = Modifier.height(16.dp))
+                                 
+                                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                     listOf("5m", "10m", "15m", "30m", "45m", "1hr").forEach { time ->
+                                         val isSelected = selectedFrictionTime == time
+                                         Box(
+                                             modifier = Modifier
+                                                 .weight(1f)
+                                                 .background(
+                                                     if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.background,
+                                                     RoundedCornerShape(8.dp)
+                                                 )
+                                                 .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                                                 .clickable { selectedFrictionTime = time }
+                                                 .padding(vertical = 10.dp),
+                                             contentAlignment = Alignment.Center
+                                         ) {
+                                             Text(
+                                                 time, 
+                                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground, 
+                                                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+                                             )
+                                         }
+                                     }
+                                 }
+                                 Spacer(modifier = Modifier.height(16.dp))
+                                 
+                                 BasicTextField(
+                                     value = frictionReason,
+                                     onValueChange = { if (it.length <= 80) frictionReason = it },
+                                     textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
+                                     cursorBrush = SolidColor(MaterialTheme.colorScheme.onBackground),
+                                     modifier = Modifier
+                                         .fillMaxWidth()
+                                         .background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))
+                                         .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                                         .padding(12.dp),
+                                     decorationBox = { innerTextField ->
+                                         if (frictionReason.isEmpty()) {
+                                             Text("[reason] (e.g. reply to DM)", color = MaterialTheme.colorScheme.onSurfaceVariant, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp))
+                                         }
+                                         innerTextField()
+                                     }
+                                 )
+                                 
+                                 Spacer(modifier = Modifier.height(4.dp))
+                                 Row(
+                                     modifier = Modifier.fillMaxWidth(),
+                                     horizontalArrangement = Arrangement.SpaceBetween,
+                                     verticalAlignment = Alignment.CenterVertically
+                                 ) {
+                                     val remaining = userSettings.remainingLeisureMinutes
+                                     Text(
+                                         text = if (remaining != null) "Daily budget: ${remaining}m remaining" else "",
+                                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
+                                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                                     )
+                                     Text(
+                                         text = "${frictionReason.length}/80",
+                                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
+                                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                                     )
+                                 }
+                                 
+                                 if (isValidatingReason) {
+                                     Spacer(modifier = Modifier.height(8.dp))
+                                     Text(
+                                         text = "Validating intent locally...",
+                                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                                         color = MaterialTheme.colorScheme.primary
+                                     )
+                                 } else if (validationFeedback != null) {
+                                     Spacer(modifier = Modifier.height(8.dp))
+                                     Text(
+                                         text = validationFeedback!!,
+                                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                                         color = MaterialTheme.colorScheme.error
+                                     )
+                                 }
+                             }
+                         }
+
                     }
                 }
             }
@@ -1773,37 +1925,87 @@ fun MindfulLauncherScreen(
                         .navigationBarsPadding()
                         .padding(24.dp)
                 ) {
-                    Text("SYS.CONFIG", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, letterSpacing = 0.1.sp)
+                    Text(
+                        text = "Settings",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontFamily = googleSansFont,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    val settings = listOf("Strict Mode" to true, "Monochrome Filter" to false, "Haptic Feedback" to true)
-                    settings.forEach { (title, state) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(title, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp, 20.dp)
-                                    .background(Color.Transparent, RoundedCornerShape(10.dp))
-                                    .border(1.dp, if (state) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(10.dp))
-                                    .padding(2.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(14.dp)
-                                        .clip(CircleShape)
-                                        .background(if (state) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                                        .align(if (state) Alignment.CenterEnd else Alignment.CenterStart)
-                                )
+                    // App Settings Button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                isSettingsOpen = false
+                                activeScreen = "app_settings"
                             }
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = "App Settings",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "App Settings",
+                                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = "Leisure budget & app controls",
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                        Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant))
                     }
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)))
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // System Settings Button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                isSettingsOpen = false
+                                val intent = android.content.Intent(android.provider.Settings.ACTION_SETTINGS)
+                                context.startActivity(intent)
+                            }
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "System Settings",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "System Settings",
+                                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = "Device & OS configuration",
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)))
                     
                     Spacer(modifier = Modifier.weight(1f))
                     

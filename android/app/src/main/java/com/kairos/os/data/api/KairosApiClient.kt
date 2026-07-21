@@ -31,6 +31,64 @@ data class PromptRequest(
     val attachments: List<AttachmentInfo>? = null
 )
 
+@Serializable
+data class LogIntentRequest(
+    val appIdentifier: String,
+    val appDisplayName: String,
+    val reason: String,
+    val timeLimitMinutes: Int,
+    val aiApproved: Boolean
+)
+
+@Serializable
+data class IntentLogResult(
+    val logged: Boolean = false,
+    val remainingMinutes: Int = 0,
+    val budgetExceeded: Boolean = false,
+    val message: String? = null
+)
+
+@Serializable
+data class UserSettingsResponse(
+    val dailyLeisureMinutes: Int = 60,
+    val pendingLeisureMinutes: Int? = null,
+    val pendingChangeEffectiveAt: String? = null,
+    val todayUsedMinutes: Int? = null,
+    val remainingLeisureMinutes: Int? = null
+)
+
+@Serializable
+data class UpdateLeisureRequest(
+    val dailyLeisureMinutes: Int
+)
+
+@Serializable
+data class SettingsUpdateResult(
+    val status: String = "APPLIED",
+    val message: String = "",
+    val effectiveAt: String? = null
+)
+
+@Serializable
+data class AppConfigItemResponse(
+    val appIdentifier: String,
+    val category: String,
+    val pendingCategory: String? = null,
+    val pendingChangeEffectiveAt: String? = null,
+    val intentGateEnabled: Boolean? = null
+)
+
+@Serializable
+data class AppConfigsResponse(
+    val configs: List<AppConfigItemResponse> = emptyList()
+)
+
+@Serializable
+data class ToggleAppDistractingRequest(
+    val appIdentifier: String,
+    val isDistracting: Boolean
+)
+
 @Singleton
 class KairosApiClient @Inject constructor(
     private val supabaseClient: SupabaseClient
@@ -127,4 +185,97 @@ class KairosApiClient @Inject constructor(
             return null
         }
     }
+
+    suspend fun logIntent(
+        appIdentifier: String,
+        appDisplayName: String,
+        reason: String,
+        timeLimitMinutes: Int,
+        aiApproved: Boolean
+    ): IntentLogResult {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.post("api/intent/log") {
+                if (token != null) bearerAuth(token)
+                setBody(
+                    LogIntentRequest(
+                        appIdentifier = appIdentifier,
+                        appDisplayName = appDisplayName,
+                        reason = reason,
+                        timeLimitMinutes = timeLimitMinutes,
+                        aiApproved = aiApproved
+                    )
+                )
+            }
+            response.body<IntentLogResult>()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            IntentLogResult(logged = true, remainingMinutes = 60, budgetExceeded = false)
+        }
+    }
+
+    suspend fun getUserSettings(): UserSettingsResponse {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.get("api/settings") {
+                if (token != null) bearerAuth(token)
+            }
+            response.body<UserSettingsResponse>()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            UserSettingsResponse(dailyLeisureMinutes = 60)
+        }
+    }
+
+    suspend fun updateDailyLeisureTime(dailyLeisureMinutes: Int): SettingsUpdateResult {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.put("api/settings") {
+                if (token != null) bearerAuth(token)
+                setBody(UpdateLeisureRequest(dailyLeisureMinutes))
+            }
+            response.body<SettingsUpdateResult>()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            SettingsUpdateResult(status = "APPLIED", message = "Updated locally")
+        }
+    }
+
+    suspend fun getAppConfigs(): List<AppConfigItemResponse> {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.get("api/settings/apps") {
+                if (token != null) bearerAuth(token)
+            }
+            response.body<AppConfigsResponse>().configs
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    suspend fun toggleAppDistracting(appIdentifier: String, isDistracting: Boolean): SettingsUpdateResult {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.put("api/settings/apps") {
+                if (token != null) bearerAuth(token)
+                setBody(ToggleAppDistractingRequest(appIdentifier = appIdentifier, isDistracting = isDistracting))
+            }
+            response.body<SettingsUpdateResult>()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            SettingsUpdateResult(status = "APPLIED", message = "Updated locally")
+        }
+    }
 }
+

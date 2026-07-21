@@ -116,6 +116,109 @@ export interface Database {
         }
       }
     }
+      user_app_configs: {
+        Row: {
+          id: string
+          user_id: string
+          app_identifier: string
+          category: 'UTILITY' | 'TRAP'
+          intent_gate_enabled: boolean
+          default_time_limit: number | null
+          vip_contact: boolean
+          pending_category: 'UTILITY' | 'TRAP' | null
+          pending_change_effective_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          app_identifier: string
+          category?: 'UTILITY' | 'TRAP'
+          intent_gate_enabled?: boolean
+          default_time_limit?: number | null
+          vip_contact?: boolean
+          pending_category?: 'UTILITY' | 'TRAP' | null
+          pending_change_effective_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          app_identifier?: string
+          category?: 'UTILITY' | 'TRAP'
+          intent_gate_enabled?: boolean
+          default_time_limit?: number | null
+          vip_contact?: boolean
+          pending_category?: 'UTILITY' | 'TRAP' | null
+          pending_change_effective_at?: string | null
+        }
+      }
+      intent_logs: {
+        Row: {
+          id: string
+          user_id: string
+          app_identifier: string
+          app_display_name: string | null
+          reason: string
+          time_limit_minutes: number
+          ai_approved: boolean
+          opened_at: string
+          closed_at: string | null
+          exceeded_time: boolean
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          app_identifier: string
+          app_display_name?: string | null
+          reason: string
+          time_limit_minutes: number
+          ai_approved?: boolean
+          opened_at?: string
+          closed_at?: string | null
+          exceeded_time?: boolean
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          app_identifier?: string
+          app_display_name?: string | null
+          reason?: string
+          time_limit_minutes?: number
+          ai_approved?: boolean
+          opened_at?: string
+          closed_at?: string | null
+          exceeded_time?: boolean
+        }
+      }
+      user_settings: {
+        Row: {
+          id: string
+          user_id: string
+          daily_leisure_minutes: number
+          daily_leisure_minutes_pending: number | null
+          pending_change_effective_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          daily_leisure_minutes?: number
+          daily_leisure_minutes_pending?: number | null
+          pending_change_effective_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          daily_leisure_minutes?: number
+          daily_leisure_minutes_pending?: number | null
+          pending_change_effective_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+    }
     Views: {
       [_ in never]: never
     }
@@ -130,3 +233,4 @@ export interface Database {
     }
   }
 }
+
