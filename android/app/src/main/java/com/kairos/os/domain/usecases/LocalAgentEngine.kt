@@ -416,6 +416,15 @@ class LocalAgentEngine @Inject constructor(
         }
     }
 
+    private fun isValidUuid(uuidStr: String): Boolean {
+        return try {
+            java.util.UUID.fromString(uuidStr)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private suspend fun insertMessage(
         conversationId: String,
         role: String,
@@ -423,6 +432,10 @@ class LocalAgentEngine @Inject constructor(
         appTarget: String?,
         widgetPayload: WidgetPayload? = null
     ) {
+        if (!isValidUuid(conversationId)) {
+            Log.w(TAG, "Skipping Supabase message insert: conversationId '$conversationId' is not a valid UUID.")
+            return
+        }
         withContext(Dispatchers.IO) {
             try {
                 val insertObj = MessageInsert(

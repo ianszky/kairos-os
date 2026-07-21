@@ -828,7 +828,7 @@ fun MindfulLauncherScreen(
                                 }
                             }
 
-                            val resolvedConvId = activeConvId ?: "temp_conv_id"
+                            val resolvedConvId = activeConvId ?: java.util.UUID.randomUUID().toString()
                             val userId = user?.id ?: ""
 
                             val localResponse = localAgentEngine.execute(
