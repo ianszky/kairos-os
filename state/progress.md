@@ -11,6 +11,10 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 **Status:** DONE
 **Summary:** Decoupled local AI conversations from Supabase cloud database, persisting local messages and conversations entirely in an on-device Room database (`LocalConversationEntity`, `LocalMessageEntity`). Updated `ChatViewModel` to unify local Room conversations and cloud Supabase conversations into a single sidebar list sorted chronologically by `updated_at`. Upgraded `LocalTitleGenerator` to perform reliable title generation for both local and cloud conversations with robust fallback capabilities.
 
+### 16. Fix Supabase Realtime WebSocket Ktor OkHttp Engine & Sidebar Sync
+**Status:** DONE
+**Summary:** Replaced `ktor-client-android` with `ktor-client-okhttp:3.4.3` in `android/app/build.gradle.kts` and configured `httpEngine = OkHttp.create()` in `SupabaseModule.kt` and `HttpClient(OkHttp)` in `KairosApiClient.kt`. This resolves `Engine doesn't support WebSocketCapability` and enables Supabase Realtime WebSocket live updates. Added `chatViewModel.onPromptResponse()` triggers post local title generation and execution in `LauncherActivity.kt` to ensure local Gemini conversations reliably sync to the sidebar.
+
 ### 13. Chatbox Interface & Multimodal Integration Overhaul
 **Status:** DONE
 **Summary:** Implemented encircled "+" menu (Add App, Add Files, Add Images), restricted file picker MIME types to Gemini-compatible formats (PDF, TXT, CSV, HTML, RTF), added local attachment caching & background upload to Supabase, implemented native SpeechRecognizer + RMS volume-driven fluid WaveformView replacing text input, supported custom VisualTransformation + OffsetMapping to render app logos on canvas behind `@app` mentions, and upgraded ChatBubble to render inline app logos using Compose `inlineContent`.

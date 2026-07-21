@@ -15,6 +15,7 @@ import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.storage.Storage
 import io.github.jan.supabase.serializer.KotlinXSerializer
+import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.serialization.json.Json
 
 @Module
@@ -27,6 +28,7 @@ object SupabaseModule {
             supabaseUrl = BuildConfig.SUPABASE_URL,
             supabaseKey = BuildConfig.SUPABASE_ANON_KEY
         ) {
+            httpEngine = OkHttp.create()
             install(Auth) {
                 scheme = "kairos"    // deep link scheme
                 host = "login"      // deep link host

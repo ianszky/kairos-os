@@ -17,11 +17,13 @@ import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.realtime
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Job
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
@@ -128,7 +130,9 @@ class ChatViewModel @Inject constructor(
                 }
 
                 // 2. Fetch Local Conversations from Room
-                val localEntities = localConversationDao.getAllConversations()
+                val localEntities = withContext(Dispatchers.IO) {
+                    localConversationDao.getAllConversations()
+                }
                 val localConversations = localEntities.map { entity ->
                     Conversation(
                         id = entity.id,
@@ -158,9 +162,13 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 // Check if conversation exists in local Room DB
-                val localEntity = localConversationDao.getConversationById(conversationId)
+                val localEntity = withContext(Dispatchers.IO) {
+                    localConversationDao.getConversationById(conversationId)
+                }
                 if (localEntity != null) {
-                    val localMessages = localMessageDao.getMessagesForConversation(conversationId)
+                    val localMessages = withContext(Dispatchers.IO) {
+                        localMessageDao.getMessagesForConversation(conversationId)
+                    }
                     val mappedMessages = localMessages.map { entity ->
                         val widgetPayload = entity.widgetPayloadJson?.let { jsonStr ->
                             runCatching {

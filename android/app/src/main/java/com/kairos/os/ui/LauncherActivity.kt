@@ -858,7 +858,6 @@ fun MindfulLauncherScreen(
                                     localTitleGenerator.generateAndSaveTitle(resolvedConvId, currentIntent, isLocal = true)
                                     chatViewModel.onPromptResponse(resolvedConvId)
                                 }
-
                                 interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                 interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(localResponse))
                             }
