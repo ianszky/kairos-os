@@ -85,8 +85,7 @@ Example: REJECTED|Try specifying what exactly you need to do.""".trimIndent()
                     topK = 1,
                     topP = 0.95,
                     temperature = 0.1
-                ),
-                maxOutputToken = 80
+                )
             )
 
             eng.createConversation(conversationConfig).use { conversation ->
