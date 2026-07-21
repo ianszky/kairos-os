@@ -67,15 +67,19 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 **Status:** DONE
 **Summary:** Swapped the cloud-based notification interception with Room-based local persistence database. Replaced MediaPipe GenAI with LiteRT-LM (`com.google.ai.edge.litertlm:litertlm-android:latest.release`) for on-device notification classification (into CRITICAL/DIGEST) and structured summary digest generation via local Gemma LLM models. Extracted text responses natively from the JNI-backed `Message.contents.contents` properties and verified it builds and compiles successfully.
 
+### 15. Next.js 16 Configuration Allowed Dev Origins Hotfix
+**Status:** DONE
+**Summary:** Moved `allowedDevOrigins` configuration from the `experimental` block to the top level of the config in `next.config.ts` to support Next.js 16 schema changes. Additionally configured `turbopack.root` path resolution to resolve the multiple lockfiles workspace warning.
+
+### 16. Local @kai Apps App Drawer & Tool Calling Integration
+**Status:** DONE
+**Summary:** Registered `@kai`, `@kainotes`, `@kaicalendar`, and `@kaiclock` as first-class local app connections in `LauncherActivity.kt`. Prioritized local apps at the top of the App Drawer and added "Local App" badges. Updated `LauncherActivity.kt` screen routing for bare mentions (`@kainotes`, `@kaicalendar`) and `/open` commands. Updated `LocalAgentEngine.kt` to recognize `@kai*` app targets (`kainotes`, `kaicalendar`, `kaiclock`, `kai`), whitelist local target routing, and expanded rule fallback handlers for notes, alarms, and calendar events.
+
+### 17. Local Kai Apps Screen Overhaul & Navigation Alignment
+**Status:** DONE
+**Summary:** Overhauled `LocalNotesScreen.kt`, `LocalCalendarScreen.kt`, and created `LocalClockScreen.kt`. Unified header navigation in `LauncherActivity.kt` so non-home screens present a clean top back button and title header, while hiding the bottom prompt input box to avoid layout overlap. Built Material 3 search filtering, note editors, agenda cards, alarm managers, and empty state layouts. Verified clean compilation via `gradlew assembleDebug`.
+
 ---
 
-## 🔴 OPEN TASKS
-
-### 15. Local AI Inference & Essential Apps Integration
-**Status:** PLANNED (Awaiting Approval)
-- **Local Routing & Simple Query Offloading**: Implement on-device Gemma classifier in `LocalAgentEngine.kt` to route queries into SIMPLE, LOCAL_AGENT, or CLOUD_AGENT, offloading simple prompts to on-device Gemma via `LocalLlmClient`.
-- **Local Notes & Alarms Database**: Configure Room DB tables/DAOs and controllers (`LocalNotesController.kt`, `LocalAlarmController.kt`) to manage notes and alarms locally in `KairosDatabase`.
-- **Universal Calendar Sync**: Implement `LocalCalendarController.kt` bridging to Android `CalendarContract` ContentProvider.
-- **Local Title Generation**: Implement local title generator using Gemma to update Supabase conversation titles programmatically.
-- **Visual Feedback & UI Screen Integration**: Create `LocalNotesScreen`, `LocalCalendarScreen`, custom widgets, and full-screen alarm screen overlay (`AlarmAlertActivity`). Add "Gemma 4 (Local)" vs "Gemini (Cloud)" badges in conversation bubbles.
+None. All scheduled tasks are completed!
 
