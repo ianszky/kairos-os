@@ -28,7 +28,12 @@ object SupabaseModule {
             supabaseUrl = BuildConfig.SUPABASE_URL,
             supabaseKey = BuildConfig.SUPABASE_ANON_KEY
         ) {
-            httpEngine = OkHttp.create()
+            httpEngine = OkHttp.create {
+                config {
+                    pingInterval(20, java.util.concurrent.TimeUnit.SECONDS)
+                    retryOnConnectionFailure(true)
+                }
+            }
             install(Auth) {
                 scheme = "kairos"    // deep link scheme
                 host = "login"      // deep link host
