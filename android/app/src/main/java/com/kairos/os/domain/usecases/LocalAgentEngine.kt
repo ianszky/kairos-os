@@ -92,7 +92,12 @@ class LocalAgentEngine @Inject constructor(
 
     private suspend fun classifyPrompt(prompt: String, appTarget: String?): Classification {
         val lowerPrompt = prompt.lowercase()
-        if (appTarget != null && !listOf("notes", "alarm", "calendar").contains(appTarget.lowercase())) {
+        val localTargets = listOf("kai", "kairos", "kainotes", "notes", "kaicalendar", "calendar", "kaiclock", "clock", "alarm")
+
+        if (appTarget != null && localTargets.contains(appTarget.lowercase())) {
+            return Classification.LOCAL_AGENT
+        }
+        if (appTarget != null && !localTargets.contains(appTarget.lowercase())) {
             return Classification.CLOUD_AGENT
         }
         
@@ -102,6 +107,10 @@ class LocalAgentEngine @Inject constructor(
             prompt.contains("@googledrive")
         ) {
             return Classification.CLOUD_AGENT
+        }
+
+        if (localTargets.any { lowerPrompt.contains("@$it") }) {
+            return Classification.LOCAL_AGENT
         }
 
         val engine = localLlmClient.getEngine() ?: return Classification.CLOUD_AGENT
@@ -133,9 +142,7 @@ class LocalAgentEngine @Inject constructor(
             }
             Log.i(TAG, "Classifier raw output: '$responseText'")
             
-            if (responseText.contains("LOCAL_AGENT") || lowerPrompt.contains("@notes") || 
-                lowerPrompt.contains("@alarm") || lowerPrompt.contains("@calendar")
-            ) {
+            if (responseText.contains("LOCAL_AGENT") || localTargets.any { lowerPrompt.contains("@$it") }) {
                 Classification.LOCAL_AGENT
             } else if (responseText.contains("SIMPLE")) {
                 Classification.SIMPLE
@@ -346,7 +353,7 @@ class LocalAgentEngine @Inject constructor(
     private suspend fun handleLocalRuleFallback(prompt: String): KairosResponse {
         val lower = prompt.lowercase()
         return when {
-            lower.contains("alarm") -> {
+            lower.contains("alarm") || lower.contains("clock") || lower.contains("kaiclock") -> {
                 val regex = Regex("(\\d{1,2})\\s*(am|pm|:(\\d{2}))")
                 val match = regex.find(lower)
                 var hour = 8
@@ -371,9 +378,9 @@ class LocalAgentEngine @Inject constructor(
                     )
                 )
             }
-            lower.contains("note") -> {
-                val content = prompt.substringAfter("note").trim()
-                val note = notesController.createNote("Quick Note", content)
+            lower.contains("note") || lower.contains("kainotes") -> {
+                val content = prompt.substringAfter("kainotes").substringAfter("note").trim()
+                val note = notesController.createNote("Quick Note", if (content.isBlank()) prompt else content)
                 KairosResponse(
                     type = "WIDGET",
                     text = "[Rule Fallback] Saved local note.",
@@ -383,6 +390,25 @@ class LocalAgentEngine @Inject constructor(
                         items = listOf(WidgetItem(id = note.id.toString(), primary = note.title, secondary = note.content, icon = "note"))
                     )
                 )
+            }
+            lower.contains("calendar") || lower.contains("kaicalendar") || lower.contains("event") || lower.contains("meeting") -> {
+                val title = prompt.substringAfter("kaicalendar").substringAfter("calendar").substringAfter("event").substringAfter("meeting").trim().ifEmpty { "New Event" }
+                val calendar = Calendar.getInstance()
+                calendar.add(Calendar.HOUR, 1)
+                val success = calendarController.createEvent(title, "Local Event", calendar.timeInMillis, 60)
+                if (success) {
+                    KairosResponse(
+                        type = "WIDGET",
+                        text = "[Rule Fallback] Scheduled calendar event: '$title'",
+                        widget = WidgetPayload(
+                            widgetType = "CALENDAR_EVENT",
+                            title = "Event Scheduled",
+                            items = listOf(WidgetItem(id = "cal_event", primary = title, secondary = "Scheduled via rule fallback", icon = "calendar"))
+                        )
+                    )
+                } else {
+                    KairosResponse(type = "TEXT", text = "Failed to schedule calendar event due to permission or system error.")
+                }
             }
             else -> {
                 KairosResponse(type = "CLOUD_FALLBACK")

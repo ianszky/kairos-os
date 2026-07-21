@@ -71,6 +71,14 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 **Status:** DONE
 **Summary:** Moved `allowedDevOrigins` configuration from the `experimental` block to the top level of the config in `next.config.ts` to support Next.js 16 schema changes. Additionally configured `turbopack.root` path resolution to resolve the multiple lockfiles workspace warning.
 
+### 16. Local @kai Apps App Drawer & Tool Calling Integration
+**Status:** DONE
+**Summary:** Registered `@kai`, `@kainotes`, `@kaicalendar`, and `@kaiclock` as first-class local app connections in `LauncherActivity.kt`. Prioritized local apps at the top of the App Drawer and added "Local App" badges. Updated `LauncherActivity.kt` screen routing for bare mentions (`@kainotes`, `@kaicalendar`) and `/open` commands. Updated `LocalAgentEngine.kt` to recognize `@kai*` app targets (`kainotes`, `kaicalendar`, `kaiclock`, `kai`), whitelist local target routing, and expanded rule fallback handlers for notes, alarms, and calendar events.
+
+### 17. Local Kai Apps Screen Overhaul & Navigation Alignment
+**Status:** DONE
+**Summary:** Overhauled `LocalNotesScreen.kt`, `LocalCalendarScreen.kt`, and created `LocalClockScreen.kt`. Unified header navigation in `LauncherActivity.kt` so non-home screens present a clean top back button and title header, while hiding the bottom prompt input box to avoid layout overlap. Built Material 3 search filtering, note editors, agenda cards, alarm managers, and empty state layouts. Verified clean compilation via `gradlew assembleDebug`.
+
 ---
 
 ## 🔴 OPEN TASKS

@@ -178,6 +178,9 @@ class LauncherActivity : ComponentActivity() {
     @Inject
     lateinit var localCalendarController: com.kairos.os.domain.tools.LocalCalendarController
 
+    @Inject
+    lateinit var localAlarmController: com.kairos.os.domain.tools.LocalAlarmController
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         supabaseClient.handleDeeplinks(intent)
@@ -205,7 +208,8 @@ class LauncherActivity : ComponentActivity() {
                             localAgentEngine = localAgentEngine,
                             localTitleGenerator = localTitleGenerator,
                             localNotesController = localNotesController,
-                            localCalendarController = localCalendarController
+                            localCalendarController = localCalendarController,
+                            localAlarmController = localAlarmController
                         )
                     } else {
                         var currentAuthScreen by remember { mutableStateOf("login") }
@@ -239,6 +243,13 @@ data class AppConnection(
     val iconDrawable: android.graphics.drawable.Drawable? = null,
     val category: String,
     val packageName: String? = null
+)
+
+val localKaiApps = listOf(
+    AppConnection("kai", "Kai AI Agent", null, null, "local"),
+    AppConnection("kainotes", "Kai Notes", null, null, "local"),
+    AppConnection("kaicalendar", "Kai Calendar", null, null, "local"),
+    AppConnection("kaiclock", "Kai Clock", null, null, "local")
 )
 
 val composioApps = listOf(
@@ -407,7 +418,8 @@ fun MindfulLauncherScreen(
     localAgentEngine: com.kairos.os.domain.usecases.LocalAgentEngine,
     localTitleGenerator: com.kairos.os.domain.usecases.LocalTitleGenerator,
     localNotesController: com.kairos.os.domain.tools.LocalNotesController,
-    localCalendarController: com.kairos.os.domain.tools.LocalCalendarController
+    localCalendarController: com.kairos.os.domain.tools.LocalCalendarController,
+    localAlarmController: com.kairos.os.domain.tools.LocalAlarmController
 ) {
     val chatViewModel: com.kairos.os.ui.viewmodels.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val conversations by chatViewModel.conversations.collectAsState()
@@ -464,7 +476,7 @@ fun MindfulLauncherScreen(
         }.sortedBy { it.displayName }
     }
 
-    val availableApps = remember { (composioApps + installedApps).sortedBy { it.displayName } }
+    val availableApps = remember { (localKaiApps + composioApps + installedApps) }
     
     val selectedAttachments = remember { mutableStateListOf<AttachmentState>() }
     val iconCache = remember { mutableStateMapOf<String, android.graphics.drawable.Drawable>() }
@@ -715,12 +727,16 @@ fun MindfulLauncherScreen(
             // Check for /open commands (Tier 0 direct launcher & local screens)
             if (currentIntent.startsWith("/open ")) {
                 val appToOpen = currentIntent.substringAfter("/open ").trim().lowercase()
-                if (appToOpen == "notes") {
+                if (appToOpen == "notes" || appToOpen == "kainotes") {
                     activeScreen = "notes"
                     termInput = ""
                     textFieldValue = TextFieldValue("")
-                } else if (appToOpen == "calendar") {
+                } else if (appToOpen == "calendar" || appToOpen == "kaicalendar") {
                     activeScreen = "calendar"
+                    termInput = ""
+                    textFieldValue = TextFieldValue("")
+                } else if (appToOpen == "clock" || appToOpen == "kaiclock" || appToOpen == "alarm") {
+                    activeScreen = "clock"
                     termInput = ""
                     textFieldValue = TextFieldValue("")
                 } else {
@@ -738,6 +754,18 @@ fun MindfulLauncherScreen(
                     termInput = ""
                     textFieldValue = TextFieldValue("")
                 }
+            } else if (currentIntent == "@notes" || currentIntent == "@kainotes") {
+                activeScreen = "notes"
+                termInput = ""
+                textFieldValue = TextFieldValue("")
+            } else if (currentIntent == "@calendar" || currentIntent == "@kaicalendar") {
+                activeScreen = "calendar"
+                termInput = ""
+                textFieldValue = TextFieldValue("")
+            } else if (currentIntent == "@clock" || currentIntent == "@kaiclock" || currentIntent == "@alarm") {
+                activeScreen = "clock"
+                termInput = ""
+                textFieldValue = TextFieldValue("")
             } else if (currentIntent != "@$parsedActiveApp") {
                 val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
                     attachment.uploadedPath?.let { path ->
@@ -1033,6 +1061,12 @@ fun MindfulLauncherScreen(
                             onBack = { activeScreen = "home" }
                         )
                     }
+                    "clock" -> {
+                        com.kairos.os.ui.screens.LocalClockScreen(
+                            alarmController = localAlarmController,
+                            onBack = { activeScreen = "home" }
+                        )
+                    }
                     else -> { // "home"
                         if (!isChatOpen) {
                             Box(
@@ -1083,17 +1117,40 @@ fun MindfulLauncherScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        IconButton(onClick = { isSidebarOpen = true }) {
-                            Icon(Icons.Default.Menu, contentDescription = "System Logs", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (activeScreen != "home") {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            IconButton(onClick = { activeScreen = "home" }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back to Home", tint = MaterialTheme.colorScheme.onSurface)
+                            }
+                            Text(
+                                text = when (activeScreen) {
+                                    "notes" -> "Kai Notes"
+                                    "calendar" -> "Kai Calendar"
+                                    "clock" -> "Kai Clock"
+                                    "search" -> "Search"
+                                    "scheduled" -> "Scheduled Tasks"
+                                    else -> ""
+                                },
+                                style = MaterialTheme.typography.titleLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
                         }
-                        if (isChatOpen) {
-                            IconButton(onClick = { 
-                                isChatOpen = false 
-                                chatViewModel.startNewConversation()
-                                interactions.clear()
-                            }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                            IconButton(onClick = { isSidebarOpen = true }) {
+                                Icon(Icons.Default.Menu, contentDescription = "System Logs", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            if (isChatOpen) {
+                                IconButton(onClick = { 
+                                    isChatOpen = false 
+                                    chatViewModel.startNewConversation()
+                                    interactions.clear()
+                                }) {
+                                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                         }
                     }
@@ -1109,7 +1166,8 @@ fun MindfulLauncherScreen(
             }
 
             // Input box column (Aligned to BottomCenter, fading bottom gradient background)
-            Column(
+            if (activeScreen == "home") {
+                Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
@@ -1160,7 +1218,7 @@ fun MindfulLauncherScreen(
                                     Column {
                                         Text(app.displayName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
                                         Text("@${app.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(if (app.packageName != null) "App" else "Integration", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                        Text(if (app.packageName != null) "App" else if (app.category == "local") "Local App" else "Integration", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                             }
@@ -1508,6 +1566,7 @@ fun MindfulLauncherScreen(
                     }
                 }
             }
+        }
         }
 
         if (isSidebarOpen || isSettingsOpen) {

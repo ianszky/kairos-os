@@ -7,13 +7,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -22,7 +22,6 @@ import com.kairos.os.data.db.LocalNote
 import com.kairos.os.domain.tools.LocalNotesController
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LocalNotesScreen(
     notesController: LocalNotesController,
@@ -30,82 +29,141 @@ fun LocalNotesScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     var notes by remember { mutableStateOf<List<LocalNote>>(emptyList()) }
+    var searchQuery by remember { mutableStateOf("") }
     var selectedNote by remember { mutableStateOf<LocalNote?>(null) }
     var isEditing by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        notes = notesController.getAllNotes()
+    fun refreshNotes() {
+        coroutineScope.launch {
+            notes = if (searchQuery.isBlank()) {
+                notesController.getAllNotes()
+            } else {
+                notesController.searchNotes(searchQuery)
+            }
+        }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Local Notes", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = {
-                        if (isEditing) {
-                            isEditing = false
-                            selectedNote = null
-                        } else {
-                            onBack()
-                        }
-                    }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    if (!isEditing) {
-                        IconButton(onClick = {
-                            selectedNote = null
-                            isEditing = true
-                        }) {
-                            Icon(Icons.Default.Add, contentDescription = "Add Note")
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    titleContentColor = MaterialTheme.colorScheme.onBackground
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+    LaunchedEffect(searchQuery) {
+        refreshNotes()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 80.dp)
+            .padding(horizontal = 24.dp)
+    ) {
         if (isEditing) {
             NoteEditor(
                 note = selectedNote,
                 onSave = { title, content ->
                     coroutineScope.launch {
                         notesController.createNote(title, content)
-                        notes = notesController.getAllNotes()
+                        refreshNotes()
                         isEditing = false
                         selectedNote = null
                     }
                 },
-                modifier = Modifier.padding(paddingValues)
+                onCancel = {
+                    isEditing = false
+                    selectedNote = null
+                }
             )
         } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(notes) { note ->
-                    NoteCard(
-                        note = note,
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Notes & Thoughts (${notes.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Button(
                         onClick = {
-                            selectedNote = note
+                            selectedNote = null
                             isEditing = true
                         },
-                        onDelete = {
-                            coroutineScope.launch {
-                                notesController.deleteNote(note.id)
-                                notes = notesController.getAllNotes()
-                            }
-                        }
+                        shape = RoundedCornerShape(20.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Add Note", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search notes...") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
                     )
+                )
+
+                if (notes.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.EditNote,
+                                contentDescription = "No Notes",
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = if (searchQuery.isBlank()) "No Local Notes" else "No Notes Found",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = if (searchQuery.isBlank()) "Tap '+ Add Note' above or prompt @kainotes in chat." else "Try a different search query.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 32.dp)
+                    ) {
+                        items(notes, key = { it.id }) { note ->
+                            NoteCard(
+                                note = note,
+                                onClick = {
+                                    selectedNote = note
+                                    isEditing = true
+                                },
+                                onDelete = {
+                                    coroutineScope.launch {
+                                        notesController.deleteNote(note.id)
+                                        refreshNotes()
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -124,7 +182,7 @@ fun NoteCard(
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)
         )
     ) {
         Row(
@@ -137,7 +195,7 @@ fun NoteCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = note.title.ifBlank { "Untitled Note" },
-                    fontSize = 18.sp,
+                    fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -146,7 +204,7 @@ fun NoteCard(
                     text = note.content,
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2
+                    maxLines = 3
                 )
             }
             IconButton(onClick = onDelete) {
@@ -164,6 +222,7 @@ fun NoteCard(
 fun NoteEditor(
     note: LocalNote?,
     onSave: (String, String) -> Unit,
+    onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var title by remember { mutableStateOf(note?.title ?: "") }
@@ -172,7 +231,7 @@ fun NoteEditor(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
         Column(
@@ -182,35 +241,46 @@ fun NoteEditor(
             OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Title") },
+                label = { Text("Note Title") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp)
             )
             OutlinedTextField(
                 value = content,
                 onValueChange = { content = it },
-                label = { Text("Note content") },
+                label = { Text("Note Content") },
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
                 shape = RoundedCornerShape(12.dp)
             )
         }
-        
+
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
-            onClick = { onSave(title, content) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(25.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = Color.White
-            )
-        ) {
-            Text("Save Note", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
+                shape = RoundedCornerShape(25.dp)
+            ) {
+                Text("Cancel")
+            }
+            Button(
+                onClick = { onSave(title, content) },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(50.dp),
+                shape = RoundedCornerShape(25.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                )
+            ) {
+                Text("Save Note", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

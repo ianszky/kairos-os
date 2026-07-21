@@ -1,13 +1,15 @@
 package com.kairos.os.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,39 +19,27 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kairos.os.domain.tools.CalendarEvent
-import com.kairos.os.domain.tools.LocalCalendarController
+import com.kairos.os.data.db.LocalAlarm
+import com.kairos.os.domain.tools.LocalAlarmController
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.*
 
 @Composable
-fun LocalCalendarScreen(
-    calendarController: LocalCalendarController,
+fun LocalClockScreen(
+    alarmController: LocalAlarmController,
     onBack: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
-    var events by remember { mutableStateOf<List<CalendarEvent>>(emptyList()) }
+    var alarms by remember { mutableStateOf<List<LocalAlarm>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
 
-    fun refreshEvents() {
-        val startOfDay = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-        }.timeInMillis
-        val endOfSevenDays = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_YEAR, 7)
-            set(Calendar.HOUR_OF_DAY, 23)
-            set(Calendar.MINUTE, 59)
-            set(Calendar.SECOND, 59)
-        }.timeInMillis
-
-        events = calendarController.listEvents(startOfDay, endOfSevenDays)
+    fun refreshAlarms() {
+        coroutineScope.launch {
+            alarms = alarmController.getAllAlarms()
+        }
     }
 
     LaunchedEffect(Unit) {
-        refreshEvents()
+        refreshAlarms()
     }
 
     Box(
@@ -67,7 +57,7 @@ fun LocalCalendarScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Upcoming Agenda (${events.size})",
+                    text = "Scheduled Alarms (${alarms.size})",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -80,11 +70,11 @@ fun LocalCalendarScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Add Event", style = MaterialTheme.typography.labelLarge)
+                    Text("Add Alarm", style = MaterialTheme.typography.labelLarge)
                 }
             }
 
-            if (events.isEmpty()) {
+            if (alarms.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -93,20 +83,20 @@ fun LocalCalendarScreen(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            imageVector = Icons.Default.Event,
-                            contentDescription = "No Events",
+                            imageVector = Icons.Default.Alarm,
+                            contentDescription = "No Alarms",
                             tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                             modifier = Modifier.size(64.dp)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "No Upcoming Events",
+                            text = "No Alarms Scheduled",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Tap '+ Add Event' above or prompt @kaicalendar in chat.",
+                            text = "Tap '+ Add Alarm' above or prompt @kaiclock in chat.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -118,21 +108,28 @@ fun LocalCalendarScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(bottom = 32.dp)
                 ) {
-                    items(events, key = { it.id }) { event ->
-                        CalendarEventCard(event = event)
+                    items(alarms, key = { it.id }) { alarm ->
+                        AlarmCard(
+                            alarm = alarm,
+                            onDelete = {
+                                coroutineScope.launch {
+                                    alarmController.cancelAlarm(alarm.id)
+                                    refreshAlarms()
+                                }
+                            }
+                        )
                     }
                 }
             }
         }
 
         if (showAddDialog) {
-            AddCalendarEventDialog(
+            AddAlarmDialog(
                 onDismiss = { showAddDialog = false },
-                onAdd = { title, description, duration ->
+                onAdd = { hour, minute, label ->
                     coroutineScope.launch {
-                        val startMillis = Calendar.getInstance().timeInMillis + (30 * 60 * 1000)
-                        calendarController.createEvent(title, description, startMillis, duration)
-                        refreshEvents()
+                        alarmController.setAlarm(hour, minute, label)
+                        refreshAlarms()
                         showAddDialog = false
                     }
                 }
@@ -142,11 +139,17 @@ fun LocalCalendarScreen(
 }
 
 @Composable
-fun CalendarEventCard(event: CalendarEvent) {
-    val dateFormat = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
-    val startStr = dateFormat.format(Date(event.startMillis))
-    val endFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
-    val endStr = endFormat.format(Date(event.endMillis))
+fun AlarmCard(
+    alarm: LocalAlarm,
+    onDelete: () -> Unit
+) {
+    val amPm = if (alarm.hour >= 12) "PM" else "AM"
+    val displayHour = when {
+        alarm.hour == 0 -> 12
+        alarm.hour > 12 -> alarm.hour - 12
+        else -> alarm.hour
+    }
+    val displayTime = String.format("%02d:%02d", displayHour, alarm.minute)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -158,76 +161,80 @@ fun CalendarEventCard(event: CalendarEvent) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height(48.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.primary)
-            )
-            Spacer(modifier = Modifier.width(14.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = event.title,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$startStr - $endStr",
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
-                )
-                if (event.description.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+            Column {
+                Row(verticalAlignment = Alignment.Bottom) {
                     Text(
-                        text = event.description,
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = displayTime,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = amPm,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 4.dp)
                     )
                 }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = alarm.label.ifBlank { "Alarm" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete Alarm",
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
 }
 
 @Composable
-fun AddCalendarEventDialog(
+fun AddAlarmDialog(
     onDismiss: () -> Unit,
-    onAdd: (String, String, Int) -> Unit
+    onAdd: (Int, Int, String) -> Unit
 ) {
-    var titleText by remember { mutableStateOf("") }
-    var descText by remember { mutableStateOf("") }
-    var durationText by remember { mutableStateOf("60") }
+    var hourText by remember { mutableStateOf("8") }
+    var minuteText by remember { mutableStateOf("00") }
+    var labelText by remember { mutableStateOf("Morning Alarm") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Schedule New Event", style = MaterialTheme.typography.titleLarge) },
+        title = { Text("Set New Alarm", style = MaterialTheme.typography.titleLarge) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value = hourText,
+                        onValueChange = { hourText = it },
+                        label = { Text("Hour (0-23)") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    OutlinedTextField(
+                        value = minuteText,
+                        onValueChange = { minuteText = it },
+                        label = { Text("Minute (0-59)") },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
                 OutlinedTextField(
-                    value = titleText,
-                    onValueChange = { titleText = it },
-                    label = { Text("Event Title") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = descText,
-                    onValueChange = { descText = it },
-                    label = { Text("Description") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp)
-                )
-                OutlinedTextField(
-                    value = durationText,
-                    onValueChange = { durationText = it },
-                    label = { Text("Duration (minutes)") },
+                    value = labelText,
+                    onValueChange = { labelText = it },
+                    label = { Text("Alarm Label") },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -236,14 +243,13 @@ fun AddCalendarEventDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (titleText.isNotBlank()) {
-                        val duration = durationText.toIntOrNull() ?: 60
-                        onAdd(titleText, descText, duration)
-                    }
+                    val hour = hourText.toIntOrNull()?.coerceIn(0, 23) ?: 8
+                    val minute = minuteText.toIntOrNull()?.coerceIn(0, 59) ?: 0
+                    onAdd(hour, minute, labelText)
                 },
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Schedule")
+                Text("Set Alarm")
             }
         },
         dismissButton = {
