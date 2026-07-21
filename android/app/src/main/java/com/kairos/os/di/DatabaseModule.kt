@@ -6,6 +6,8 @@ import com.kairos.os.data.db.KairosDatabase
 import com.kairos.os.data.db.LocalNotificationDao
 import com.kairos.os.data.db.LocalNoteDao
 import com.kairos.os.data.db.LocalAlarmDao
+import com.kairos.os.data.db.LocalConversationDao
+import com.kairos.os.data.db.LocalMessageDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -42,5 +44,15 @@ object DatabaseModule {
     @Provides
     fun provideLocalAlarmDao(db: KairosDatabase): LocalAlarmDao {
         return db.localAlarmDao()
+    }
+
+    @Provides
+    fun provideLocalConversationDao(db: KairosDatabase): LocalConversationDao {
+        return db.localConversationDao()
+    }
+
+    @Provides
+    fun provideLocalMessageDao(db: KairosDatabase): LocalMessageDao {
+        return db.localMessageDao()
     }
 }

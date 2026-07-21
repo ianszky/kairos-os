@@ -10,5 +10,6 @@ data class Conversation(
     val title: String? = null,
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String,
-    @SerialName("is_active") val isActive: Boolean = true
+    @SerialName("is_active") val isActive: Boolean = true,
+    val isLocal: Boolean = false
 )

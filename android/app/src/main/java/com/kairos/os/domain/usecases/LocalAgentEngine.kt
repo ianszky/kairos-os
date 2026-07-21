@@ -9,27 +9,17 @@ import com.kairos.os.domain.models.ResponseMeta
 import com.kairos.os.domain.tools.LocalAlarmController
 import com.kairos.os.domain.tools.LocalCalendarController
 import com.kairos.os.domain.tools.LocalNotesController
-import io.github.jan.supabase.SupabaseClient
-import io.github.jan.supabase.postgrest.postgrest
+import com.kairos.os.data.db.LocalConversationDao
+import com.kairos.os.data.db.LocalConversationEntity
+import com.kairos.os.data.db.LocalMessageDao
+import com.kairos.os.data.db.LocalMessageEntity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.*
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
-
-@Serializable
-data class MessageInsert(
-    @SerialName("conversation_id") val conversationId: String,
-    val role: String,
-    val content: String,
-    @SerialName("app_target") val appTarget: String?,
-    @SerialName("model_tier") val modelTier: String?,
-    @SerialName("widget_payload") val widgetPayload: WidgetPayload?
-)
 
 @Singleton
 class LocalAgentEngine @Inject constructor(
@@ -37,7 +27,8 @@ class LocalAgentEngine @Inject constructor(
     private val notesController: LocalNotesController,
     private val alarmController: LocalAlarmController,
     private val calendarController: LocalCalendarController,
-    private val supabaseClient: SupabaseClient
+    private val localConversationDao: LocalConversationDao,
+    private val localMessageDao: LocalMessageDao
 ) {
     private val TAG = "LocalAgentEngine"
 
@@ -63,8 +54,29 @@ class LocalAgentEngine @Inject constructor(
             return KairosResponse(type = "CLOUD_FALLBACK")
         }
 
-        // 2. Insert User Message to Supabase
-        insertMessage(conversationId, "user", prompt, appTarget)
+        val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(Date())
+
+        // 2. Ensure Local Conversation Entity exists in Room DB
+        withContext(Dispatchers.IO) {
+            val existing = localConversationDao.getConversationById(conversationId)
+            if (existing == null) {
+                localConversationDao.insertOrUpdate(
+                    LocalConversationEntity(
+                        id = conversationId,
+                        userId = userId,
+                        title = "New Conversation",
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        isActive = true
+                    )
+                )
+            } else {
+                localConversationDao.insertOrUpdate(existing.copy(updatedAt = nowIso))
+            }
+        }
+
+        // 3. Save User Message locally to Room DB
+        insertLocalMessage(conversationId, "user", prompt, appTarget)
 
         val response = when (classification) {
             Classification.SIMPLE -> handleSimplePrompt(prompt)
@@ -72,8 +84,8 @@ class LocalAgentEngine @Inject constructor(
             else -> KairosResponse(type = "ERROR", text = "Unknown classification")
         }
 
-        // 3. Insert Assistant Response to Supabase
-        insertMessage(
+        // 4. Save Assistant Message locally to Room DB
+        insertLocalMessage(
             conversationId = conversationId,
             role = "assistant",
             content = response.text ?: "",
@@ -84,7 +96,7 @@ class LocalAgentEngine @Inject constructor(
         return response.copy(
             meta = ResponseMeta(
                 conversationId = conversationId,
-                timestamp = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(Date()),
+                timestamp = nowIso,
                 model = "Gemma 4 (Local)"
             )
         )
@@ -416,27 +428,33 @@ class LocalAgentEngine @Inject constructor(
         }
     }
 
-    private suspend fun insertMessage(
+    private suspend fun insertLocalMessage(
         conversationId: String,
         role: String,
         content: String,
         appTarget: String?,
         widgetPayload: WidgetPayload? = null
     ) {
+        val nowIso = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).format(Date())
+        val widgetJson = widgetPayload?.let {
+            Json.encodeToString(WidgetPayload.serializer(), it)
+        }
+        val entity = LocalMessageEntity(
+            id = UUID.randomUUID().toString(),
+            conversationId = conversationId,
+            role = role,
+            content = content,
+            appTarget = appTarget,
+            modelTier = "gemma-local",
+            widgetPayloadJson = widgetJson,
+            createdAt = nowIso
+        )
         withContext(Dispatchers.IO) {
             try {
-                val insertObj = MessageInsert(
-                    conversationId = conversationId,
-                    role = role,
-                    content = content,
-                    appTarget = appTarget,
-                    modelTier = "gemma-local",
-                    widgetPayload = widgetPayload
-                )
-                supabaseClient.postgrest["messages"].insert(insertObj)
-                Log.d(TAG, "Saved $role message locally to Supabase database.")
+                localMessageDao.insertMessage(entity)
+                Log.d(TAG, "Saved $role message locally into Room database.")
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to insert $role message into Supabase database", e)
+                Log.e(TAG, "Failed to insert $role message into Room database", e)
             }
         }
     }

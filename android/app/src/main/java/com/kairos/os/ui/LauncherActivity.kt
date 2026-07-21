@@ -809,26 +809,12 @@ fun MindfulLauncherScreen(
                         try {
                             var activeConvId = currentConversationId
                             val user = supabaseClient.auth.currentSessionOrNull()?.user
-                            if (activeConvId == null && user != null) {
-                                try {
-                                    val newConv = supabaseClient.postgrest["conversations"].insert(
-                                        mapOf("user_id" to user.id, "title" to "New Conversation")
-                                    ).decodeSingle<com.kairos.os.domain.models.Conversation>()
-                                    activeConvId = newConv.id
-                                    chatViewModel.onPromptResponse(activeConvId)
-                                    val finalConvId = activeConvId
-                                    if (finalConvId != null) {
-                                        launch {
-                                            localTitleGenerator.generateAndSaveTitle(finalConvId, currentIntent)
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    Log.e("Launcher", "Failed to create conversation locally in Supabase", e)
-                                }
-                            }
+                            val userId = user?.id ?: "local_user"
 
-                            val resolvedConvId = activeConvId ?: "temp_conv_id"
-                            val userId = user?.id ?: ""
+                            if (activeConvId == null) {
+                                activeConvId = java.util.UUID.randomUUID().toString()
+                            }
+                            val resolvedConvId = activeConvId
 
                             val localResponse = localAgentEngine.execute(
                                 prompt = currentIntent,
@@ -839,11 +825,40 @@ fun MindfulLauncherScreen(
 
                             if (localResponse.type == "CLOUD_FALLBACK") {
                                 Log.i("Launcher", "Local agent returned CLOUD_FALLBACK. Routing to Next.js backend...")
-                                val response = apiClient.postPrompt(currentIntent, currentTarget, resolvedConvId, attachmentsPayload)
-                                chatViewModel.onPromptResponse(response.meta?.conversationId)
+
+                                var cloudConvId: String? = currentConversationId
+                                if (cloudConvId == null && user != null) {
+                                    try {
+                                        val newConv = supabaseClient.postgrest["conversations"].insert(
+                                            mapOf("user_id" to user.id, "title" to "New Conversation")
+                                        ) {
+                                            select()
+                                        }.decodeSingle<com.kairos.os.domain.models.Conversation>()
+                                        cloudConvId = newConv.id
+                                    } catch (e: Exception) {
+                                        Log.e("Launcher", "Failed to create cloud conversation in Supabase", e)
+                                    }
+                                }
+
+                                val response = apiClient.postPrompt(currentIntent, currentTarget, cloudConvId ?: resolvedConvId, attachmentsPayload)
+                                val finalCloudConvId = response.meta?.conversationId ?: cloudConvId ?: resolvedConvId
+                                chatViewModel.onPromptResponse(finalCloudConvId)
+
+                                launch {
+                                    localTitleGenerator.generateAndSaveTitle(finalCloudConvId, currentIntent, isLocal = false)
+                                    chatViewModel.onPromptResponse(finalCloudConvId)
+                                }
+
                                 interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                 interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
                             } else {
+                                chatViewModel.onPromptResponse(resolvedConvId)
+
+                                launch {
+                                    localTitleGenerator.generateAndSaveTitle(resolvedConvId, currentIntent, isLocal = true)
+                                    chatViewModel.onPromptResponse(resolvedConvId)
+                                }
+
                                 interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                 interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(localResponse))
                             }
