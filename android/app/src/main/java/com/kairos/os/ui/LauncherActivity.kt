@@ -684,18 +684,73 @@ fun MindfulLauncherScreen(
         } else null
     }
 
+
+    val imageLoader = remember {
+        ImageLoader.Builder(context)
+            .components {
+                add(SvgDecoder.Factory())
+            }
+            .build()
+    }
+
+    LaunchedEffect(availableApps) {
+        availableApps.forEach { app ->
+            if (app.iconUrl != null && !iconCache.containsKey(app.id)) {
+                val request = coil.request.ImageRequest.Builder(context)
+                    .data(app.iconUrl)
+                    .target { drawable ->
+                        iconCache[app.id] = drawable
+                    }
+                    .build()
+                imageLoader.enqueue(request)
+            }
+        }
+    }
+
+    LaunchedEffect(termInput) {
+        val atIndex = termInput.lastIndexOf('@')
+        if (atIndex != -1) {
+            val query = termInput.substring(atIndex + 1)
+            if (!query.contains(" ")) {
+                isAppDrawerOpen = true
+                searchQuery = query.lowercase()
+            } else {
+                isAppDrawerOpen = false
+            }
+        } else {
+            isAppDrawerOpen = false
+        }
+    }
+
+    var textFieldValue by remember {
+        mutableStateOf(TextFieldValue(text = termInput, selection = TextRange(termInput.length)))
+    }
+
     LaunchedEffect(parsedActiveApp) {
         if (parsedActiveApp != null) {
             val app = availableApps.find { it.id.equals(parsedActiveApp, ignoreCase = true) }
             if (app != null && intentViewModel.isDistractingApp(app.id)) {
                 frictionTargetApp = app
                 isFrictionMode = true
-                termInput = ""
+                selectedFrictionTime = null
+                frictionReason = ""
+                intentApproved = false
+                validationFeedback = null
+            } else {
+                isFrictionMode = false
+                frictionTargetApp = null
                 selectedFrictionTime = null
                 frictionReason = ""
                 intentApproved = false
                 validationFeedback = null
             }
+        } else {
+            isFrictionMode = false
+            frictionTargetApp = null
+            selectedFrictionTime = null
+            frictionReason = ""
+            intentApproved = false
+            validationFeedback = null
         }
     }
 
@@ -756,52 +811,11 @@ fun MindfulLauncherScreen(
                     selectedFrictionTime = null
                     frictionReason = ""
                     intentApproved = false
+                    termInput = ""
+                    textFieldValue = androidx.compose.ui.text.input.TextFieldValue("")
                 }
             }
         }
-    }
-
-
-
-    val imageLoader = remember {
-        ImageLoader.Builder(context)
-            .components {
-                add(SvgDecoder.Factory())
-            }
-            .build()
-    }
-
-    LaunchedEffect(availableApps) {
-        availableApps.forEach { app ->
-            if (app.iconUrl != null && !iconCache.containsKey(app.id)) {
-                val request = coil.request.ImageRequest.Builder(context)
-                    .data(app.iconUrl)
-                    .target { drawable ->
-                        iconCache[app.id] = drawable
-                    }
-                    .build()
-                imageLoader.enqueue(request)
-            }
-        }
-    }
-
-    LaunchedEffect(termInput) {
-        val atIndex = termInput.lastIndexOf('@')
-        if (atIndex != -1) {
-            val query = termInput.substring(atIndex + 1)
-            if (!query.contains(" ")) {
-                isAppDrawerOpen = true
-                searchQuery = query.lowercase()
-            } else {
-                isAppDrawerOpen = false
-            }
-        } else {
-            isAppDrawerOpen = false
-        }
-    }
-
-    var textFieldValue by remember {
-        mutableStateOf(TextFieldValue(text = termInput, selection = TextRange(termInput.length)))
     }
 
     val interactions = remember { mutableStateListOf<com.kairos.os.domain.models.Interaction>() }
@@ -1154,7 +1168,7 @@ fun MindfulLauncherScreen(
                     "app_settings" -> {
                         com.kairos.os.ui.screens.AppSettingsScreen(
                             intentViewModel = intentViewModel,
-                            installedApps = availableApps,
+                            installedApps = installedApps,
                             onBack = { activeScreen = "home" }
                         )
                     }
@@ -1241,6 +1255,7 @@ fun MindfulLauncherScreen(
                                     "clock" -> "Kai Clock"
                                     "search" -> "Search"
                                     "scheduled" -> "Scheduled Tasks"
+                                    "app_settings" -> "App Settings"
                                     else -> ""
                                 },
                                 style = MaterialTheme.typography.titleLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold),
@@ -1267,8 +1282,10 @@ fun MindfulLauncherScreen(
                         IconButton(onClick = onThemeToggle) {
                             Icon(if (isDarkTheme) Icons.Default.Brightness4 else Icons.Default.Brightness7, contentDescription = "Toggle Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        IconButton(onClick = { isSettingsOpen = true }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (activeScreen == "home") {
+                            IconButton(onClick = { isSettingsOpen = true }) {
+                                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }

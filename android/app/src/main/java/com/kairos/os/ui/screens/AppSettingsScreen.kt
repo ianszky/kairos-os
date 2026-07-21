@@ -55,41 +55,14 @@ fun AppSettingsScreen(
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "App Settings",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontFamily = googleSansFont,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp
-                        )
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background
-    ) { innerPadding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 80.dp)
+            .padding(horizontal = 24.dp)
+    ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 24.dp)
+            modifier = Modifier.fillMaxSize()
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -235,20 +208,11 @@ fun AppSettingsScreen(
                                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (app.iconUrl != null) {
+                                if (app.iconDrawable != null || app.iconUrl != null) {
                                     AsyncImage(
-                                        model = app.iconUrl,
+                                        model = app.iconDrawable ?: app.iconUrl,
                                         contentDescription = app.displayName,
                                         modifier = Modifier.size(24.dp)
-                                    )
-                                } else if (app.iconDrawable != null) {
-                                    Text(
-                                        text = app.displayName.take(1).uppercase(),
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontFamily = googleSansFont,
-                                            fontWeight = FontWeight.Bold
-                                        ),
-                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 } else {
                                     Text(
