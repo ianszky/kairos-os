@@ -3,7 +3,7 @@ package com.kairos.os.data.api
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.auth
 import io.ktor.client.*
-import io.ktor.client.engine.android.*
+import io.ktor.client.engine.okhttp.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
@@ -35,7 +35,7 @@ data class PromptRequest(
 class KairosApiClient @Inject constructor(
     private val supabaseClient: SupabaseClient
 ) {
-    private val client = HttpClient(Android) {
+    private val client = HttpClient(OkHttp) {
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true

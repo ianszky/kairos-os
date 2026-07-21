@@ -820,6 +820,7 @@ fun MindfulLauncherScreen(
                                     if (finalConvId != null) {
                                         launch {
                                             localTitleGenerator.generateAndSaveTitle(finalConvId, currentIntent)
+                                            chatViewModel.onPromptResponse(finalConvId)
                                         }
                                     }
                                 } catch (e: Exception) {
@@ -844,6 +845,7 @@ fun MindfulLauncherScreen(
                                 interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                 interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
                             } else {
+                                chatViewModel.onPromptResponse(resolvedConvId)
                                 interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                 interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(localResponse))
                             }
