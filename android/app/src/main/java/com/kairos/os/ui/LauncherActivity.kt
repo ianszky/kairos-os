@@ -438,6 +438,10 @@ fun MindfulLauncherScreen(
     
     var termInput by remember { mutableStateOf("") }
     
+    var isFrictionMode by remember { mutableStateOf(false) }
+    var selectedFrictionTime by remember { mutableStateOf<String?>(null) }
+    var frictionReason by remember { mutableStateOf("") }
+
     val intentViewModel: com.kairos.os.ui.viewmodels.IntentViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val userSettings by intentViewModel.userSettings.collectAsState()
     
@@ -446,82 +450,6 @@ fun MindfulLauncherScreen(
     var isValidatingReason by remember { mutableStateOf(false) }
     var validationFeedback by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(parsedActiveApp) {
-        if (parsedActiveApp != null) {
-            val app = availableApps.find { it.id.equals(parsedActiveApp, ignoreCase = true) }
-            if (app != null && intentViewModel.isDistractingApp(app.id)) {
-                frictionTargetApp = app
-                isFrictionMode = true
-                termInput = ""
-                selectedFrictionTime = null
-                frictionReason = ""
-                intentApproved = false
-                validationFeedback = null
-            }
-        }
-    }
-
-    LaunchedEffect(frictionReason, selectedFrictionTime) {
-        if (isFrictionMode && selectedFrictionTime != null && frictionReason.trim().length >= 4) {
-            delay(500)
-            isValidatingReason = true
-            try {
-                val targetName = frictionTargetApp?.displayName ?: "App"
-                val res = intentViewModel.validateReason(frictionReason, targetName)
-                intentApproved = res.approved
-                validationFeedback = if (!res.approved) res.feedback else null
-            } catch (e: Exception) {
-                intentApproved = true
-                validationFeedback = null
-            } finally {
-                isValidatingReason = false
-            }
-        } else {
-            intentApproved = false
-            validationFeedback = null
-        }
-    }
-
-    val launchDistractingApp = {
-        val app = frictionTargetApp
-        val timeStr = selectedFrictionTime
-        if (app != null && timeStr != null && intentApproved) {
-            val minutes = when(timeStr) {
-                "5m" -> 5
-                "10m" -> 10
-                "15m" -> 15
-                "30m" -> 30
-                "45m" -> 45
-                "1hr" -> 60
-                else -> 15
-            }
-            coroutineScope.launch {
-                val logRes = intentViewModel.logIntent(
-                    appId = app.id,
-                    displayName = app.displayName,
-                    reason = frictionReason,
-                    minutes = minutes,
-                    aiApproved = intentApproved
-                )
-                if (logRes.budgetExceeded) {
-                    validationFeedback = logRes.message ?: "Daily leisure limit reached (${logRes.remainingMinutes}m remaining)."
-                } else {
-                    val pkg = app.packageName
-                    if (pkg != null) {
-                        val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
-                        if (launchIntent != null) {
-                            context.startActivity(launchIntent)
-                        }
-                    }
-                    isFrictionMode = false
-                    frictionTargetApp = null
-                    selectedFrictionTime = null
-                    frictionReason = ""
-                    intentApproved = false
-                }
-            }
-        }
-    }
 
     
     var isAppDrawerOpen by remember { mutableStateOf(false) }
@@ -755,6 +683,84 @@ fun MindfulLauncherScreen(
             if (availableApps.any { it.id.equals(slug, ignoreCase = true) }) slug.lowercase() else null
         } else null
     }
+
+    LaunchedEffect(parsedActiveApp) {
+        if (parsedActiveApp != null) {
+            val app = availableApps.find { it.id.equals(parsedActiveApp, ignoreCase = true) }
+            if (app != null && intentViewModel.isDistractingApp(app.id)) {
+                frictionTargetApp = app
+                isFrictionMode = true
+                termInput = ""
+                selectedFrictionTime = null
+                frictionReason = ""
+                intentApproved = false
+                validationFeedback = null
+            }
+        }
+    }
+
+    LaunchedEffect(frictionReason, selectedFrictionTime) {
+        if (isFrictionMode && selectedFrictionTime != null && frictionReason.trim().length >= 4) {
+            delay(500)
+            isValidatingReason = true
+            try {
+                val targetName = frictionTargetApp?.displayName ?: "App"
+                val res = intentViewModel.validateReason(frictionReason, targetName)
+                intentApproved = res.approved
+                validationFeedback = if (!res.approved) res.feedback else null
+            } catch (e: Exception) {
+                intentApproved = true
+                validationFeedback = null
+            } finally {
+                isValidatingReason = false
+            }
+        } else {
+            intentApproved = false
+            validationFeedback = null
+        }
+    }
+
+    val launchDistractingApp: () -> Unit = {
+        val app = frictionTargetApp
+        val timeStr = selectedFrictionTime
+        if (app != null && timeStr != null && intentApproved) {
+            val minutes = when(timeStr) {
+                "5m" -> 5
+                "10m" -> 10
+                "15m" -> 15
+                "30m" -> 30
+                "45m" -> 45
+                "1hr" -> 60
+                else -> 15
+            }
+            coroutineScope.launch {
+                val logRes = intentViewModel.logIntent(
+                    appId = app.id,
+                    displayName = app.displayName,
+                    reason = frictionReason,
+                    minutes = minutes,
+                    aiApproved = intentApproved
+                )
+                if (logRes.budgetExceeded) {
+                    validationFeedback = logRes.message ?: "Daily leisure limit reached (${logRes.remainingMinutes}m remaining)."
+                } else {
+                    val pkg = app.packageName
+                    if (pkg != null) {
+                        val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
+                        if (launchIntent != null) {
+                            context.startActivity(launchIntent)
+                        }
+                    }
+                    isFrictionMode = false
+                    frictionTargetApp = null
+                    selectedFrictionTime = null
+                    frictionReason = ""
+                    intentApproved = false
+                }
+            }
+        }
+    }
+
 
 
     val imageLoader = remember {
@@ -1551,7 +1557,7 @@ fun MindfulLauncherScreen(
                                     movableTextField(Modifier.fillMaxWidth())
                                 }
 
-                                 val currentApp = availableApps.find { it.id == parsedActiveApp } || frictionTargetApp
+                                 val currentApp = availableApps.find { it.id == parsedActiveApp } ?: frictionTargetApp
                                  if (isFrictionMode || (currentApp != null && intentViewModel.isDistractingApp(currentApp.id))) {
                                      val isCanOpen = intentApproved && !isValidatingReason && selectedFrictionTime != null
                                      IconButton(
