@@ -13,9 +13,11 @@
     - Cleaned up agent replies layout (removed orange border and start-padding offset, aligning text naturally on the left).
     - Added markdown rendering support (bold, italic, inline code, headings, bullet lists, code blocks) in agent replies.
     - Removed the orange border container on the typing loading indicator and added a staggered vertical bounce animation to the three dots.
-    - Converted the main layout container of MindfulLauncherScreen to a Box layout to layer components, preventing cutoff in content when scrolling.
-    - Applied a fading vertical gradient opacity background to the header.
-    - Made the input box translucent with a 0.65f alpha background, applied a native BlurEffect (RenderEffect) background layer to solidify the frosted glassmorphism, added a translucent border, and left surroundings transparent to let the orange gradient shine through fully.
+    - Built premium Compose screens (`LocalNotesScreen`, `LocalCalendarScreen`, `LocalClockScreen`) and prioritized `@kainotes`, `@kaiclock`, and `@kaicalendar` in the App Drawer list.
+    - Implemented direct screen opening when selecting local apps in the App Drawer or submitting bare mentions, alongside on-device Gemma 4 tool execution for tagged prompts.
+    - Implemented `AlarmReceiver` and fullscreen overlay activity `AlarmAlertActivity` to handle exact alarm wakeup over lockscreens.
+    - Integrated on-device conversation summary/title generator (`LocalTitleGenerator`) using Gemma 4, saving to Supabase.
+    - Added visually matching badge chips indicating if the assistant's response was powered by Gemma 4 offline (NPU) or Gemini (Cloud).
 
 ## Next Steps
 - Implement end-to-end testing between the Android Auth flow, proxy server, and Supabase cloud.
