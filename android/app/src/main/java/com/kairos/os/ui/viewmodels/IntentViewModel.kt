@@ -37,6 +37,21 @@ class IntentViewModel @Inject constructor(
         "youtube", "facebook", "instagram", "twitter", "tiktok", "reddit", "discord"
     )
 
+    // Core essential system apps default to ALLOWED on initial launch
+    private val defaultAllowedPackages = setOf(
+        "com.google.android.dialer",
+        "com.android.dialer",
+        "com.samsung.android.dialer",
+        "com.google.android.apps.messaging",
+        "com.android.mms",
+        "com.samsung.android.messaging",
+        "com.google.android.deskclock",
+        "com.android.deskclock",
+        "com.sec.android.app.clockpackage",
+        "com.google.android.calendar",
+        "com.android.calendar"
+    )
+
     private val _distractingAppIds = MutableStateFlow<Set<String>>(emptySet())
     val distractingAppIds: StateFlow<Set<String>> = _distractingAppIds.asStateFlow()
 
@@ -54,6 +69,7 @@ class IntentViewModel @Inject constructor(
 
     init {
         loadLocalDistractingApps()
+        seedDefaultNotificationRules()
         loadData()
         observeNotificationRules()
     }
@@ -65,6 +81,23 @@ class IntentViewModel @Inject constructor(
             prefs.edit().putStringSet("distracting_app_ids", defaultDistractingApps).apply()
         } else {
             _distractingAppIds.value = savedSet.toSet()
+        }
+    }
+
+    private fun seedDefaultNotificationRules() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val isSeeded = prefs.getBoolean("notification_rules_seeded_v1", false)
+            if (!isSeeded) {
+                defaultAllowedPackages.forEach { pkg ->
+                    val existing = appNotificationRuleDao.getRuleForPackage(pkg)
+                    if (existing == null) {
+                        appNotificationRuleDao.insertOrUpdate(
+                            AppNotificationRuleEntity(packageName = pkg, rule = NotificationAppRule.ALLOWED.name)
+                        )
+                    }
+                }
+                prefs.edit().putBoolean("notification_rules_seeded_v1", true).apply()
+            }
         }
     }
 
