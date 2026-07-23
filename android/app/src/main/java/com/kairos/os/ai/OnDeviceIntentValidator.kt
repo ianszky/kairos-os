@@ -128,7 +128,7 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
         if (vagueKeywords.contains(lowerReason) || (words.size == 1 && vagueKeywords.contains(words[0]))) {
             return IntentValidationResult(
                 approved = false,
-                feedback = "Please specify a clear, deliberate task (e.g. 'watch tutorial on guitar' or 'reply to DM from Alex')."
+                feedback = "Please specify a clear, deliberate task."
             )
         }
 
@@ -146,7 +146,7 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
         if (words.size < 3 && !hasActionVerb) {
             return IntentValidationResult(
                 approved = false,
-                feedback = "Please specify a concrete task or goal (e.g. 'watch tutorial on guitar' or 'reply to DM from Alex')."
+                feedback = "Please specify a concrete task or goal."
             )
         }
 
