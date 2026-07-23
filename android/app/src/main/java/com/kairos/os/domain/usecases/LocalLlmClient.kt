@@ -15,9 +15,9 @@ class LocalLlmClient @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val TAG = "LocalLlmClient"
-    private val MODEL_PATH = "/data/local/tmp/llm/gemma.litertlm"
     
     private var engine: Engine? = null
+    private var isCpuFallbackActive = false
 
     @Synchronized
     fun getEngine(): Engine? {
@@ -38,25 +38,9 @@ class LocalLlmClient @Inject constructor(
                 val modelPath = modelFile.absolutePath
                 Log.i(TAG, "🔍 Gemma On-Device model detected at: $modelPath")
                 
-                // 1. Try GPU backend first
+                // Use CPU backend by default to ensure universal device & emulator compatibility without missing OpenCL driver issues
                 try {
-                    Log.i(TAG, "Initializing LiteRT-LM Engine with GPU backend...")
-                    val gpuConfig = EngineConfig(
-                        modelPath = modelPath,
-                        backend = Backend.GPU(),
-                        cacheDir = context.cacheDir.path
-                    )
-                    val newEngine = Engine(gpuConfig)
-                    newEngine.initialize()
-                    Log.i(TAG, "✅ LiteRT-LM Engine initialized with GPU backend.")
-                    engine = newEngine
-                    return engine
-                } catch (gpuError: Exception) {
-                    Log.w(TAG, "⚠️ LiteRT-LM GPU backend initialization failed (${gpuError.message}). Falling back to CPU backend...")
-                }
-
-                // 2. Fallback to CPU backend
-                try {
+                    Log.i(TAG, "Initializing LiteRT-LM Engine with CPU backend...")
                     val cpuConfig = EngineConfig(
                         modelPath = modelPath,
                         backend = Backend.CPU(),
@@ -64,7 +48,7 @@ class LocalLlmClient @Inject constructor(
                     )
                     val newEngine = Engine(cpuConfig)
                     newEngine.initialize()
-                    Log.i(TAG, "✅ LiteRT-LM Engine initialized with CPU backend.")
+                    Log.i(TAG, "✅ LiteRT-LM Engine initialized successfully with CPU backend.")
                     engine = newEngine
                     return engine
                 } catch (cpuError: Exception) {
@@ -75,5 +59,15 @@ class LocalLlmClient @Inject constructor(
             }
         }
         return engine
+    }
+
+    @Synchronized
+    fun resetEngine() {
+        try {
+            engine?.close()
+        } catch (e: Exception) {
+            Log.w(TAG, "Error closing engine during reset: ${e.message}")
+        }
+        engine = null
     }
 }
