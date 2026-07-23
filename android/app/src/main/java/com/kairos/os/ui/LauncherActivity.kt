@@ -458,6 +458,9 @@ fun MindfulLauncherScreen(
     val focusRequester = remember { FocusRequester() }
     var isTerminalFocused by remember { mutableStateOf(false) }
     var activeScreen by remember { mutableStateOf("home") }
+    var noteIsEditing by remember { mutableStateOf(false) }
+    var noteSaveState by remember { mutableStateOf(com.kairos.os.ui.screens.NoteSaveState.GRAY_CHECK) }
+    var noteSaveAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     val deletedConversationIds = remember { mutableStateListOf<String>() }
     val hazeState = remember { HazeState() }
     var textLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
@@ -1175,7 +1178,12 @@ fun MindfulLauncherScreen(
                     "notes" -> {
                         com.kairos.os.ui.screens.LocalNotesScreen(
                             notesController = localNotesController,
-                            onBack = { activeScreen = "home" }
+                            onBack = { activeScreen = "home" },
+                            onNoteEditorStateChanged = { isEditing, saveState, onSave ->
+                                noteIsEditing = isEditing
+                                noteSaveState = saveState
+                                noteSaveAction = onSave
+                            }
                         )
                     }
                     "calendar" -> {
@@ -1279,6 +1287,39 @@ fun MindfulLauncherScreen(
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        if (activeScreen == "notes" && noteIsEditing) {
+                            IconButton(
+                                onClick = {
+                                    if (noteSaveState == com.kairos.os.ui.screens.NoteSaveState.ORANGE_SAVE) {
+                                        noteSaveAction?.invoke()
+                                    }
+                                }
+                            ) {
+                                when (noteSaveState) {
+                                    com.kairos.os.ui.screens.NoteSaveState.GRAY_CHECK -> {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Unmodified Note",
+                                            tint = Color(0xFF888888)
+                                        )
+                                    }
+                                    com.kairos.os.ui.screens.NoteSaveState.ORANGE_SAVE -> {
+                                        Icon(
+                                            imageVector = Icons.Default.Save,
+                                            contentDescription = "Save Note",
+                                            tint = Color(0xFFFF6B00)
+                                        )
+                                    }
+                                    com.kairos.os.ui.screens.NoteSaveState.ORANGE_CHECK -> {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Note Saved",
+                                            tint = Color(0xFFFF6B00)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         IconButton(onClick = onThemeToggle) {
                             Icon(if (isDarkTheme) Icons.Default.Brightness4 else Icons.Default.Brightness7, contentDescription = "Toggle Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                         }

@@ -12,14 +12,45 @@ import javax.inject.Singleton
 class LocalCalendarController @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
+    private fun getPrimaryCalendarId(): Long {
+        val projection = arrayOf(
+            CalendarContract.Calendars._ID,
+            CalendarContract.Calendars.IS_PRIMARY
+        )
+        try {
+            context.contentResolver.query(
+                CalendarContract.Calendars.CONTENT_URI,
+                projection,
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                val idCol = cursor.getColumnIndex(CalendarContract.Calendars._ID)
+                val primaryCol = cursor.getColumnIndex(CalendarContract.Calendars.IS_PRIMARY)
+                while (cursor.moveToNext()) {
+                    if (primaryCol != -1 && cursor.getInt(primaryCol) == 1) {
+                        return cursor.getLong(idCol)
+                    }
+                }
+                if (cursor.moveToFirst()) {
+                    return cursor.getLong(idCol)
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return 1L
+    }
+
     fun createEvent(title: String, description: String, startMillis: Long, durationMinutes: Int): Boolean {
         return try {
+            val calendarId = getPrimaryCalendarId()
             val values = ContentValues().apply {
                 put(CalendarContract.Events.DTSTART, startMillis)
                 put(CalendarContract.Events.DTEND, startMillis + (durationMinutes * 60 * 1000))
                 put(CalendarContract.Events.TITLE, title)
                 put(CalendarContract.Events.DESCRIPTION, description)
-                put(CalendarContract.Events.CALENDAR_ID, 1) // Using 1 as default local calendar ID
+                put(CalendarContract.Events.CALENDAR_ID, calendarId)
                 put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
             }
             val uri = context.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values)
