@@ -6,6 +6,7 @@ import com.google.ai.edge.litertlm.*
 import com.kairos.os.domain.usecases.LocalLlmClient
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,6 +22,7 @@ class OnDeviceIntentValidator @Inject constructor(
     private val localLlmClient: LocalLlmClient
 ) {
     private val TAG = "OnDeviceIntentValidator"
+    private val validationMutex = Mutex()
 
     suspend fun validateReason(reason: String, appName: String): IntentValidationResult = withContext(Dispatchers.IO) {
         val trimmedReason = reason.trim()
@@ -37,9 +39,13 @@ class OnDeviceIntentValidator @Inject constructor(
             return@withContext ruleResult
         }
 
-        // 2. Run Gemma on-device model inference on Dispatchers.IO
+        // 2. Run Gemma on-device model inference safely without thread collision
         val engine = localLlmClient.getEngine()
         if (engine != null) {
+            if (!validationMutex.tryLock()) {
+                Log.w(TAG, "LiteRT inference already active for previous keystroke. Using rule-based validation result.")
+                return@withContext ruleResult
+            }
             try {
                 Log.i(TAG, "Running Gemma on-device intent validation for reason: '$trimmedReason'")
                 val conversationConfig = ConversationConfig(
@@ -96,6 +102,8 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Gemma model inference error, using rule-based result", e)
+            } finally {
+                validationMutex.unlock()
             }
         }
 

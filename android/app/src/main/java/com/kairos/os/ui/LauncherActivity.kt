@@ -756,7 +756,7 @@ fun MindfulLauncherScreen(
 
     LaunchedEffect(frictionReason, selectedFrictionTime) {
         if (isFrictionMode && selectedFrictionTime != null && frictionReason.trim().length >= 4) {
-            delay(500)
+            delay(800)
             isValidatingReason = true
             try {
                 val targetName = frictionTargetApp?.displayName ?: "App"
