@@ -2,6 +2,7 @@ package com.kairos.os.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,6 +39,7 @@ fun LocalClockScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var alarms by remember { mutableStateOf<List<LocalAlarm>>(emptyList()) }
     var showAddAlarmDialog by remember { mutableStateOf(false) }
+    var alarmToDelete by remember { mutableStateOf<LocalAlarm?>(null) }
 
     val timerRemaining by alarmController.timerRemaining.collectAsState()
     val timerDuration by alarmController.timerDuration.collectAsState()
@@ -134,16 +136,13 @@ fun LocalClockScreen(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp)
+                        contentPadding = PaddingValues(bottom = 120.dp)
                     ) {
                         items(alarms, key = { it.id }) { alarm ->
                             AlarmCard(
                                 alarm = alarm,
                                 onDelete = {
-                                    coroutineScope.launch {
-                                        alarmController.cancelAlarm(alarm.id)
-                                        refreshAlarms()
-                                    }
+                                    alarmToDelete = alarm
                                 }
                             )
                         }
@@ -187,7 +186,7 @@ fun LocalClockScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         val totalDurationMs = ((selectedHours * 3600) + (selectedMinutes * 60) + selectedSeconds) * 1000L
 
@@ -315,13 +314,13 @@ fun LocalClockScreen(
             }
         }
 
-        // Floating Circular '+' Button at Bottom Right with sufficient margins (Only visible in Alarms tab)
+        // Floating Circular '+' Button at Bottom Right with increased bottom margin (Only visible in Alarms tab)
         if (selectedTab == 0) {
             FloatingActionButton(
                 onClick = { showAddAlarmDialog = true },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(bottom = 24.dp, end = 8.dp),
+                    .padding(bottom = 40.dp, end = 12.dp),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.Black,
                 shape = CircleShape
@@ -332,6 +331,35 @@ fun LocalClockScreen(
                     modifier = Modifier.size(28.dp)
                 )
             }
+        }
+
+        // Alarm Delete Confirmation Dialog
+        alarmToDelete?.let { alarm ->
+            AlertDialog(
+                onDismissRequest = { alarmToDelete = null },
+                title = { Text("Delete Alarm", style = MaterialTheme.typography.titleMedium.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold)) },
+                text = { Text("Are you sure you want to delete this item?", style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont)) },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                alarmController.cancelAlarm(alarm.id)
+                                refreshAlarms()
+                                alarmToDelete = null
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = Color.White),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Delete", fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { alarmToDelete = null }) {
+                        Text("Cancel", fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
         }
 
         if (showAddAlarmDialog) {
@@ -413,32 +441,29 @@ fun SingleUnitWheel(
     val itemHeight = 50.dp
     val visibleHeight = 150.dp
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = (value - range.first).coerceAtLeast(0))
+    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
 
     LaunchedEffect(listState.firstVisibleItemIndex) {
-        val centerValue = (listState.firstVisibleItemIndex + range.first).coerceIn(range.first, range.last)
+        val selectedIndex = listState.firstVisibleItemIndex
+        val centerValue = (selectedIndex + range.first).coerceIn(range.first, range.last)
         if (centerValue != value) {
             onValueChanged(centerValue)
         }
     }
 
+    val coroutineScope = rememberCoroutineScope()
+
     Box(
         modifier = modifier
             .height(visibleHeight)
-            .clip(RectangleShape), // Clip container edges so scrolling items cut off cleanly at borders
+            .clip(RectangleShape), // Clean clipping at container borders without background pill
         contentAlignment = Alignment.Center
     ) {
-        // Selection highlight bar in center
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(itemHeight)
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-        )
-
         LazyColumn(
             state = listState,
+            flingBehavior = flingBehavior,
             horizontalAlignment = Alignment.CenterHorizontally,
-            contentPadding = PaddingValues(vertical = 50.dp), // Pads top/bottom so top item aligns perfectly in center
+            contentPadding = PaddingValues(vertical = 50.dp), // Vertical padding so center element aligns perfectly
             modifier = Modifier.fillMaxSize()
         ) {
             items(range.last - range.first + 1) { idx ->
@@ -450,14 +475,19 @@ fun SingleUnitWheel(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(itemHeight)
-                        .clickable { onValueChanged(currentVal) }
+                        .clickable {
+                            onValueChanged(currentVal)
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(idx)
+                            }
+                        }
                 ) {
                     Text(
                         text = String.format("%02d", currentVal),
                         fontSize = if (isSelected) 32.sp else 20.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         fontFamily = googleSansFont,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.width(2.dp))
@@ -465,7 +495,7 @@ fun SingleUnitWheel(
                         text = label,
                         fontSize = 14.sp,
                         fontFamily = googleSansFont,
-                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     )
                 }
             }

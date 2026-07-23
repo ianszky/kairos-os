@@ -18,6 +18,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,6 +46,7 @@ fun LocalNotesScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedNote by remember { mutableStateOf<LocalNote?>(null) }
     var isEditing by remember { mutableStateOf(false) }
+    var noteToDelete by remember { mutableStateOf<LocalNote?>(null) }
 
     fun refreshNotes() {
         coroutineScope.launch {
@@ -74,9 +77,14 @@ fun LocalNotesScreen(
         if (isEditing) {
             NoteEditor(
                 note = selectedNote,
-                onSave = { title, content ->
+                onSave = { updatedNote ->
                     coroutineScope.launch {
-                        notesController.createNote(title, content)
+                        if (updatedNote.id != 0) {
+                            notesController.updateNote(updatedNote.id, updatedNote.title, updatedNote.content)
+                        } else {
+                            val newNote = notesController.createNote(updatedNote.title, updatedNote.content)
+                            selectedNote = newNote
+                        }
                         refreshNotes()
                     }
                 },
@@ -137,7 +145,7 @@ fun LocalNotesScreen(
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(bottom = 100.dp)
+                        contentPadding = PaddingValues(bottom = 120.dp)
                     ) {
                         items(notes, key = { it.id }) { note ->
                             NoteCard(
@@ -147,10 +155,7 @@ fun LocalNotesScreen(
                                     isEditing = true
                                 },
                                 onDelete = {
-                                    coroutineScope.launch {
-                                        notesController.deleteNote(note.id)
-                                        refreshNotes()
-                                    }
+                                    noteToDelete = note
                                 }
                             )
                         }
@@ -158,7 +163,7 @@ fun LocalNotesScreen(
                 }
             }
 
-            // Floating Circular '+' Button at Bottom Right with sufficient margins
+            // Floating Circular '+' Button at Bottom Right with increased bottom margin
             FloatingActionButton(
                 onClick = {
                     selectedNote = null
@@ -166,7 +171,7 @@ fun LocalNotesScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(bottom = 24.dp, end = 8.dp),
+                    .padding(bottom = 40.dp, end = 12.dp),
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.Black,
                 shape = CircleShape
@@ -177,6 +182,35 @@ fun LocalNotesScreen(
                     modifier = Modifier.size(28.dp)
                 )
             }
+        }
+
+        // Delete Confirmation Dialog
+        noteToDelete?.let { note ->
+            AlertDialog(
+                onDismissRequest = { noteToDelete = null },
+                title = { Text("Delete Note", style = MaterialTheme.typography.titleMedium.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold)) },
+                text = { Text("Are you sure you want to delete this item?", style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont)) },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                notesController.deleteNote(note.id)
+                                refreshNotes()
+                                noteToDelete = null
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = Color.White),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Delete", fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { noteToDelete = null }) {
+                        Text("Cancel", fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
         }
     }
 }
@@ -237,17 +271,20 @@ fun NoteCard(
 @Composable
 fun NoteEditor(
     note: LocalNote?,
-    onSave: (String, String) -> Unit,
+    onSave: (LocalNote) -> Unit,
     onStateChange: (NoteSaveState, (() -> Unit)?) -> Unit
 ) {
     var title by remember(note) { mutableStateOf(note?.title ?: "") }
     var content by remember(note) { mutableStateOf(note?.content ?: "") }
 
-    val initialTitle = remember(note) { note?.title ?: "" }
-    val initialContent = remember(note) { note?.content ?: "" }
+    var initialTitle by remember(note) { mutableStateOf(note?.title ?: "") }
+    var initialContent by remember(note) { mutableStateOf(note?.content ?: "") }
 
     var isContentEditing by remember { mutableStateOf(false) }
     var isSaved by remember { mutableStateOf(false) }
+
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val hasChanges = title != initialTitle || content != initialContent
 
@@ -259,7 +296,15 @@ fun NoteEditor(
 
     val executeSave = {
         if (hasChanges) {
-            onSave(title, content)
+            // Dismiss keyboard and clear focus
+            focusManager.clearFocus()
+            keyboardController?.hide()
+            isContentEditing = false
+
+            val currentId = note?.id ?: 0
+            onSave(LocalNote(id = currentId, title = title, content = content))
+            initialTitle = title
+            initialContent = content
             isSaved = true
         }
     }
@@ -276,7 +321,7 @@ fun NoteEditor(
             .fillMaxSize()
             .padding(bottom = 24.dp)
     ) {
-        // Borderless Title with 24.sp bold and ONLY a bottom border line (no full box outline)
+        // Borderless Title with 24.sp bold and ONLY a bottom border line
         TextField(
             value = title,
             onValueChange = {

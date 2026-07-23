@@ -17,6 +17,12 @@ class LocalNotesController @Inject constructor(
         note.copy(id = id.toInt())
     }
 
+    suspend fun updateNote(id: Int, title: String, content: String): LocalNote = withContext(Dispatchers.IO) {
+        val note = LocalNote(id = id, title = title, content = content)
+        localNoteDao.insert(note)
+        note
+    }
+
     suspend fun getAllNotes(): List<LocalNote> = withContext(Dispatchers.IO) {
         localNoteDao.getAllNotes()
     }

@@ -121,7 +121,7 @@ fun LocalCalendarScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 100.dp)
+                    contentPadding = PaddingValues(bottom = 120.dp)
                 ) {
                     items(events, key = { it.id }) { event ->
                         CalendarEventCard(event = event)
@@ -130,12 +130,12 @@ fun LocalCalendarScreen(
             }
         }
 
-        // Floating Circular '+' Button at Bottom Right with sufficient margins
+        // Floating Circular '+' Button at Bottom Right with increased bottom margin
         FloatingActionButton(
             onClick = { showAddDialog = true },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 24.dp, end = 8.dp),
+                .padding(bottom = 40.dp, end = 12.dp),
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = Color.Black,
             shape = CircleShape
