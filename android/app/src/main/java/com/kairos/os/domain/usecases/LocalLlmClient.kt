@@ -22,31 +22,56 @@ class LocalLlmClient @Inject constructor(
     @Synchronized
     fun getEngine(): Engine? {
         if (engine == null) {
-            try {
-                // Check sandbox directory first, then fallback to public /data/local/tmp/
-                var modelFile = File(context.filesDir, "gemma.litertlm")
-                if (!modelFile.exists() || !modelFile.canRead()) {
-                    modelFile = File("/data/local/tmp/llm/gemma.litertlm")
+            val candidatePaths = listOf(
+                File(context.filesDir, "gemma.litertlm"),
+                File(context.filesDir, "gemma-4-e2b.litertlm"),
+                File(context.filesDir, "models/gemma-4-e2b.litertlm"),
+                File(context.filesDir, "models/gemma.litertlm"),
+                File("/data/local/tmp/llm/gemma.litertlm"),
+                File("/data/local/tmp/llm/gemma-4-e2b.litertlm"),
+                File("/data/local/tmp/gemma.litertlm")
+            )
+
+            val modelFile = candidatePaths.firstOrNull { it.exists() && it.canRead() }
+
+            if (modelFile != null) {
+                val modelPath = modelFile.absolutePath
+                Log.i(TAG, "🔍 Gemma On-Device model detected at: $modelPath")
+                
+                // 1. Try GPU backend first
+                try {
+                    Log.i(TAG, "Initializing LiteRT-LM Engine with GPU backend...")
+                    val gpuConfig = EngineConfig(
+                        modelPath = modelPath,
+                        backend = Backend.GPU(),
+                        cacheDir = context.cacheDir.path
+                    )
+                    val newEngine = Engine(gpuConfig)
+                    newEngine.initialize()
+                    Log.i(TAG, "✅ LiteRT-LM Engine initialized with GPU backend.")
+                    engine = newEngine
+                    return engine
+                } catch (gpuError: Exception) {
+                    Log.w(TAG, "⚠️ LiteRT-LM GPU backend initialization failed (${gpuError.message}). Falling back to CPU backend...")
                 }
 
-                if (modelFile.exists() && modelFile.canRead()) {
-                    val modelPath = modelFile.absolutePath
-                    Log.i(TAG, "🔍 Gemma On-Device model detected at: $modelPath")
-                    Log.i(TAG, "Initializing LiteRT-LM Engine...")
-                    val config = EngineConfig(
+                // 2. Fallback to CPU backend
+                try {
+                    val cpuConfig = EngineConfig(
                         modelPath = modelPath,
                         backend = Backend.CPU(),
                         cacheDir = context.cacheDir.path
                     )
-                    val newEngine = Engine(config)
+                    val newEngine = Engine(cpuConfig)
                     newEngine.initialize()
-                    Log.i(TAG, "✅ LiteRT-LM Engine successfully initialized with Gemma model.")
+                    Log.i(TAG, "✅ LiteRT-LM Engine initialized with CPU backend.")
                     engine = newEngine
-                } else {
-                    Log.w(TAG, "❌ Gemma model file NOT found or unreadable at expected paths (/data/data/com.kairos.os/files/gemma.litertlm or /data/local/tmp/llm/gemma.litertlm). Local AI features will run in fallback rule-based mode.")
+                    return engine
+                } catch (cpuError: Exception) {
+                    Log.e(TAG, "❌ LiteRT-LM CPU backend initialization failed", cpuError)
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to initialize LiteRT-LM Engine", e)
+            } else {
+                Log.w(TAG, "❌ Gemma model file NOT found or unreadable at expected paths. Intent gate will use rule-based intent evaluation.")
             }
         }
         return engine
