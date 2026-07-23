@@ -75,11 +75,9 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
 
                 val conversation = engine.createConversation(conversationConfig)
                 try {
-                    val chunks = mutableListOf<String>()
-                    conversation.sendMessageAsync("App: $appName. User's intent reason: \"$trimmedReason\"")
-                        .collect { chunks.add(it.toString()) }
-
-                    val response = chunks.joinToString("").trim()
+                    // Use synchronous sendMessage() to bypass Coroutine SendChannel binary mismatch
+                    val genResult = conversation.sendMessage("App: $appName. User's intent reason: \"$trimmedReason\"")
+                    val response = genResult.toString().trim()
                     Log.i(TAG, "Gemma response: '$response'")
 
                     if (response.contains("APPROVED", ignoreCase = true) && !response.contains("REJECTED", ignoreCase = true)) {
@@ -96,12 +94,12 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
                 } finally {
                     try {
                         conversation.close()
-                    } catch (closeEx: Exception) {
+                    } catch (closeEx: Throwable) {
                         Log.w(TAG, "Ignored error closing LiteRT-LM conversation: ${closeEx.message}")
                     }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Gemma model inference error, using rule-based result", e)
+            } catch (e: Throwable) {
+                Log.e(TAG, "Gemma model inference error, using rule-based result: ${e.message}", e)
             } finally {
                 validationMutex.unlock()
             }
@@ -130,7 +128,7 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
         if (vagueKeywords.contains(lowerReason) || (words.size == 1 && vagueKeywords.contains(words[0]))) {
             return IntentValidationResult(
                 approved = false,
-                feedback = "Please specify a clear, deliberate task (e.g. 'watch tutorial on guitar' or 'reply to DM from Alex')."
+                feedback = "Please specify a clear, deliberate task."
             )
         }
 
@@ -148,7 +146,7 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
         if (words.size < 3 && !hasActionVerb) {
             return IntentValidationResult(
                 approved = false,
-                feedback = "Please specify a concrete task or goal (e.g. 'watch tutorial on guitar' or 'reply to DM from Alex')."
+                feedback = "Please specify a concrete task or goal."
             )
         }
 
