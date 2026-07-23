@@ -1169,8 +1169,15 @@ fun MindfulLauncherScreen(
                     "scheduled" -> {
                         ScheduledDummyScreen()
                     }
-                    "app_settings" -> {
-                        com.kairos.os.ui.screens.AppSettingsScreen(
+                    "distracting_apps" -> {
+                        com.kairos.os.ui.screens.DistractingAppsScreen(
+                            intentViewModel = intentViewModel,
+                            installedApps = installedApps,
+                            onBack = { activeScreen = "home" }
+                        )
+                    }
+                    "notification_rules" -> {
+                        com.kairos.os.ui.screens.NotificationRulesScreen(
                             intentViewModel = intentViewModel,
                             installedApps = installedApps,
                             onBack = { activeScreen = "home" }
@@ -1271,7 +1278,8 @@ fun MindfulLauncherScreen(
                                     "clock" -> "Kai Clock"
                                     "search" -> "Search"
                                     "scheduled" -> "Scheduled Tasks"
-                                    "app_settings" -> "App Settings"
+                                    "distracting_apps" -> "Distracting Apps"
+                                    "notification_rules" -> "Notification Rules"
                                     else -> ""
                                 },
                                 style = MaterialTheme.typography.titleLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold),
@@ -1985,14 +1993,14 @@ fun MindfulLauncherScreen(
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // App Settings Button
+                    // Distracting Apps Button
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 isSettingsOpen = false
-                                activeScreen = "app_settings"
+                                activeScreen = "distracting_apps"
                             }
                             .padding(vertical = 12.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -2000,18 +2008,54 @@ fun MindfulLauncherScreen(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Tune,
-                            contentDescription = "App Settings",
+                            contentDescription = "Distracting Apps",
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "App Settings",
+                                text = "Distracting Apps",
                                 style = MaterialTheme.typography.bodyLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.SemiBold),
                                 color = MaterialTheme.colorScheme.onBackground
                             )
                             Text(
-                                text = "Leisure budget & app controls",
+                                text = "Leisure budget & friction gates",
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)))
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Notification Rules Button
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                isSettingsOpen = false
+                                activeScreen = "notification_rules"
+                            }
+                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notifications,
+                            contentDescription = "Notification Rules",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Notification Rules",
+                                style = MaterialTheme.typography.bodyLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Text(
+                                text = "App notification filtering rules",
                                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

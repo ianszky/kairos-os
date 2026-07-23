@@ -6,8 +6,8 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.kairos.os.data.db.LocalNotification
 import com.kairos.os.data.db.LocalNotificationDao
-import com.kairos.os.domain.usecases.LocalNotificationClassifier
 import com.kairos.os.domain.usecases.ClassificationTier
+import com.kairos.os.domain.usecases.LocalNotificationClassifier
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.*
 import javax.inject.Inject
@@ -28,19 +28,20 @@ class KairosNotificationListener : NotificationListenerService() {
 
     override fun onListenerConnected() {
         super.onListenerConnected()
-        Log.i(TAG, "Notification listener connected successfully")
+        Log.i(TAG, "🔔 KairosNotificationListener: Notification listener connected successfully to Android System Service.")
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         super.onNotificationPosted(sbn)
 
-        // Ignore notifications from KAIROS OS itself to prevent infinite loops
+        // 1. Ignore notifications from KAIROS OS itself to prevent infinite feedback loops
         if (sbn.packageName == packageName) {
             return
         }
 
-        // Ignore notifications that cannot be cleared (e.g. system foreground services)
-        if (!sbn.isClearable) {
+        // 2. Ignore non-clearable or ongoing system notifications (e.g. active call, media player, navigation, foreground service)
+        if (!sbn.isClearable || sbn.isOngoing || (sbn.notification.flags and Notification.FLAG_ONGOING_EVENT) != 0) {
+            Log.d(TAG, "⏩ Skipping non-clearable / ongoing notification from ${sbn.packageName}")
             return
         }
 
@@ -49,7 +50,7 @@ class KairosNotificationListener : NotificationListenerService() {
         var text = notification.extras.getString(Notification.EXTRA_TEXT) ?: ""
         val category = notification.category
 
-        // If it's a MessagingStyle notification (e.g. WhatsApp, Messages), extract all message parts
+        // Extract full MessagingStyle chat text (WhatsApp, Google Messages, Signal, etc.)
         val messagingStyle = androidx.core.app.NotificationCompat.MessagingStyle
             .extractMessagingStyleFromNotification(notification)
         if (messagingStyle != null) {
@@ -71,28 +72,35 @@ class KairosNotificationListener : NotificationListenerService() {
                     category = category
                 )
 
-                Log.i(TAG, "🔔 Intercepted notification from ${sbn.packageName} classified as: $tier")
+                when (tier) {
+                    ClassificationTier.CRITICAL -> {
+                        Log.i(TAG, "✅ PASS-THROUGH: Notification from ${sbn.packageName} classified as CRITICAL. Allowed on device.")
+                    }
 
-                if (tier == ClassificationTier.DIGEST) {
-                    // Suppress: Dismiss the notification so it doesn't alert the user
-                    cancelNotification(sbn.key)
-                    Log.i(TAG, "🔕 Suppressed and dismissed notification from ${sbn.packageName}")
+                    ClassificationTier.BLOCKED -> {
+                        // Suppress: Dismiss notification and drop silently (do NOT save to Room DB)
+                        cancelNotification(sbn.key)
+                        Log.i(TAG, "🚫 BLACKLISTED (BLOCKED): Dismissed notification from ${sbn.packageName} without saving to digest DB.")
+                    }
 
-                    // Store it in the local Room database
-                    Log.i(TAG, "💾 Saving suppressed notification to local Room database...")
-                    
-                    val localNotif = LocalNotification(
-                        packageName = sbn.packageName,
-                        title = title.ifBlank { "Notification" },
-                        text = text.ifBlank { "No content" },
-                        timestamp = sbn.postTime
-                    )
+                    ClassificationTier.DIGEST -> {
+                        // Suppress: Dismiss notification so it doesn't alert the user, and store in Room DB
+                        cancelNotification(sbn.key)
+                        Log.i(TAG, "🔕 DIGEST: Dismissed notification from ${sbn.packageName}. Saving to local Room DB...")
 
-                    localNotificationDao.insert(localNotif)
-                    Log.i(TAG, "✅ Successfully saved notification to local database.")
+                        val localNotif = LocalNotification(
+                            packageName = sbn.packageName,
+                            title = title.ifBlank { "Notification" },
+                            text = text.ifBlank { "No content" },
+                            timestamp = sbn.postTime
+                        )
+
+                        localNotificationDao.insert(localNotif)
+                        Log.i(TAG, "💾 Saved digest notification from ${sbn.packageName} into local Room DB.")
+                    }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "❌ Error handling notification in interceptor", e)
+                Log.e(TAG, "❌ Error handling notification in interceptor listener", e)
             }
         }
     }

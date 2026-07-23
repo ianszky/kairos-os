@@ -55,4 +55,9 @@ object DatabaseModule {
     fun provideLocalMessageDao(db: KairosDatabase): LocalMessageDao {
         return db.localMessageDao()
     }
+
+    @Provides
+    fun provideAppNotificationRuleDao(db: KairosDatabase): com.kairos.os.data.db.AppNotificationRuleDao {
+        return db.appNotificationRuleDao()
+    }
 }

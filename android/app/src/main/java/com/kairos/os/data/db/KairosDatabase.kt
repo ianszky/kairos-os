@@ -9,9 +9,10 @@ import androidx.room.RoomDatabase
         LocalNote::class,
         LocalAlarm::class,
         LocalConversationEntity::class,
-        LocalMessageEntity::class
+        LocalMessageEntity::class,
+        AppNotificationRuleEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class KairosDatabase : RoomDatabase() {
@@ -20,4 +21,5 @@ abstract class KairosDatabase : RoomDatabase() {
     abstract fun localAlarmDao(): LocalAlarmDao
     abstract fun localConversationDao(): LocalConversationDao
     abstract fun localMessageDao(): LocalMessageDao
+    abstract fun appNotificationRuleDao(): AppNotificationRuleDao
 }
