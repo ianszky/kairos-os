@@ -17,8 +17,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -44,7 +44,9 @@ fun LocalClockScreen(
     val timerRunning by alarmController.timerRunning.collectAsState()
     val timerPaused by alarmController.timerPaused.collectAsState()
 
-    var selectedTimerMinutes by remember { mutableIntStateOf(5) }
+    var selectedHours by remember { mutableIntStateOf(0) }
+    var selectedMinutes by remember { mutableIntStateOf(5) }
+    var selectedSeconds by remember { mutableIntStateOf(0) }
 
     fun refreshAlarms() {
         coroutineScope.launch {
@@ -56,14 +58,12 @@ fun LocalClockScreen(
         refreshAlarms()
     }
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 80.dp)
             .padding(horizontal = 24.dp)
     ) {
-        val fabOffset = maxHeight * 0.60f
-
         Column(modifier = Modifier.fillMaxSize()) {
             // Tab Header (ALARMS / TIMER)
             TabRow(
@@ -154,15 +154,16 @@ fun LocalClockScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(vertical = 16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.SpaceBetween
+                        .padding(top = 8.dp, bottom = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     if (!timerRunning && !timerPaused) {
-                        // Idle Timer Setup View with Vertical Slider
+                        // Idle Timer Setup View with HH:MM:SS Scrollers
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
@@ -173,19 +174,30 @@ fun LocalClockScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             )
-                            Spacer(modifier = Modifier.height(24.dp))
+                            Spacer(modifier = Modifier.height(20.dp))
 
-                            VerticalTimerSlider(
-                                selectedMinutes = selectedTimerMinutes,
-                                onMinutesChanged = { selectedTimerMinutes = it },
+                            HmsTimerPicker(
+                                hours = selectedHours,
+                                minutes = selectedMinutes,
+                                seconds = selectedSeconds,
+                                onHoursChanged = { selectedHours = it },
+                                onMinutesChanged = { selectedMinutes = it },
+                                onSecondsChanged = { selectedSeconds = it },
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
 
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        val totalDurationMs = ((selectedHours * 3600) + (selectedMinutes * 60) + selectedSeconds) * 1000L
+
                         Button(
                             onClick = {
-                                alarmController.startTimer(selectedTimerMinutes * 60 * 1000L, "Timer")
+                                if (totalDurationMs > 0) {
+                                    alarmController.startTimer(totalDurationMs, "Timer")
+                                }
                             },
+                            enabled = totalDurationMs > 0,
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(52.dp),
@@ -206,9 +218,14 @@ fun LocalClockScreen(
                     } else {
                         // Active Timer Countdown View
                         val remainingSec = (timerRemaining / 1000).toInt()
-                        val minutes = remainingSec / 60
-                        val seconds = remainingSec % 60
-                        val displayTime = String.format("%02d:%02d", minutes, seconds)
+                        val hrs = remainingSec / 3600
+                        val mins = (remainingSec % 3600) / 60
+                        val secs = remainingSec % 60
+                        val displayTime = if (hrs > 0) {
+                            String.format("%02d:%02d:%02d", hrs, mins, secs)
+                        } else {
+                            String.format("%02d:%02d", mins, secs)
+                        }
                         val progress = if (timerDuration > 0) timerRemaining.toFloat() / timerDuration.toFloat() else 0f
 
                         Column(
@@ -230,7 +247,7 @@ fun LocalClockScreen(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = displayTime,
-                                        fontSize = 48.sp,
+                                        fontSize = if (hrs > 0) 36.sp else 48.sp,
                                         fontWeight = FontWeight.Bold,
                                         fontFamily = dotoFont,
                                         color = MaterialTheme.colorScheme.onBackground
@@ -298,22 +315,20 @@ fun LocalClockScreen(
             }
         }
 
-        // Floating Circular '+' Button at 60% height (Only visible in Alarms tab)
+        // Floating Circular '+' Button at Bottom Right with sufficient margins (Only visible in Alarms tab)
         if (selectedTab == 0) {
-            Box(
+            FloatingActionButton(
+                onClick = { showAddAlarmDialog = true },
                 modifier = Modifier
-                    .offset(y = fabOffset)
-                    .align(Alignment.TopCenter)
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-                    .clickable { showAddAlarmDialog = true },
-                contentAlignment = Alignment.Center
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 24.dp, end = 8.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.Black,
+                shape = CircleShape
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Alarm",
-                    tint = Color.Black,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -335,75 +350,126 @@ fun LocalClockScreen(
 }
 
 @Composable
-fun VerticalTimerSlider(
-    selectedMinutes: Int,
+fun HmsTimerPicker(
+    hours: Int,
+    minutes: Int,
+    seconds: Int,
+    onHoursChanged: (Int) -> Unit,
     onMinutesChanged: (Int) -> Unit,
+    onSecondsChanged: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val listState = rememberLazyListState(initialFirstVisibleItemIndex = (selectedMinutes - 1).coerceAtLeast(0))
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SingleUnitWheel(
+            value = hours,
+            range = 0..23,
+            label = "h",
+            onValueChanged = onHoursChanged,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = ":",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+        SingleUnitWheel(
+            value = minutes,
+            range = 0..59,
+            label = "m",
+            onValueChanged = onMinutesChanged,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = ":",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+        SingleUnitWheel(
+            value = seconds,
+            range = 0..59,
+            label = "s",
+            onValueChanged = onSecondsChanged,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun SingleUnitWheel(
+    value: Int,
+    range: IntRange,
+    label: String,
+    onValueChanged: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val itemHeight = 50.dp
+    val visibleHeight = 150.dp
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = (value - range.first).coerceAtLeast(0))
 
     LaunchedEffect(listState.firstVisibleItemIndex) {
-        val centerIndex = listState.firstVisibleItemIndex + 2
-        val clampedMinute = (centerIndex + 1).coerceIn(1, 120)
-        onMinutesChanged(clampedMinute)
+        val centerValue = (listState.firstVisibleItemIndex + range.first).coerceIn(range.first, range.last)
+        if (centerValue != value) {
+            onValueChanged(centerValue)
+        }
     }
 
-    Box(modifier = modifier.height(250.dp)) {
+    Box(
+        modifier = modifier
+            .height(visibleHeight)
+            .clip(RectangleShape), // Clip container edges so scrolling items cut off cleanly at borders
+        contentAlignment = Alignment.Center
+    ) {
+        // Selection highlight bar in center
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(itemHeight)
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+        )
+
         LazyColumn(
             state = listState,
             horizontalAlignment = Alignment.CenterHorizontally,
-            contentPadding = PaddingValues(vertical = 100.dp),
+            contentPadding = PaddingValues(vertical = 50.dp), // Pads top/bottom so top item aligns perfectly in center
             modifier = Modifier.fillMaxSize()
         ) {
-            items(120) { index ->
-                val minute = index + 1
-                val isSelected = minute == selectedMinutes
-                Text(
-                    text = "$minute min",
-                    fontSize = if (isSelected) 36.sp else 22.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    fontFamily = googleSansFont,
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            items(range.last - range.first + 1) { idx ->
+                val currentVal = range.first + idx
+                val isSelected = currentVal == value
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(50.dp)
-                        .clickable { onMinutesChanged(minute) },
-                    textAlign = TextAlign.Center
-                )
+                        .height(itemHeight)
+                        .clickable { onValueChanged(currentVal) }
+                ) {
+                    Text(
+                        text = String.format("%02d", currentVal),
+                        fontSize = if (isSelected) 32.sp else 20.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        fontFamily = googleSansFont,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = label,
+                        fontSize = 14.sp,
+                        fontFamily = googleSansFont,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    )
+                }
             }
         }
-
-        // Top Fading Overlay
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(90.dp)
-                .align(Alignment.TopCenter)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.background.copy(alpha = 0f)
-                        )
-                    )
-                )
-        )
-
-        // Bottom Fading Overlay
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(90.dp)
-                .align(Alignment.BottomCenter)
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background.copy(alpha = 0f),
-                            MaterialTheme.colorScheme.background
-                        )
-                    )
-                )
-        )
     }
 }
 

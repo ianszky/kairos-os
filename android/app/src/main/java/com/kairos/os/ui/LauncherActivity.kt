@@ -461,6 +461,7 @@ fun MindfulLauncherScreen(
     var noteIsEditing by remember { mutableStateOf(false) }
     var noteSaveState by remember { mutableStateOf(com.kairos.os.ui.screens.NoteSaveState.GRAY_CHECK) }
     var noteSaveAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var noteCancelAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     val deletedConversationIds = remember { mutableStateListOf<String>() }
     val hazeState = remember { HazeState() }
     var textLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
@@ -1179,10 +1180,11 @@ fun MindfulLauncherScreen(
                         com.kairos.os.ui.screens.LocalNotesScreen(
                             notesController = localNotesController,
                             onBack = { activeScreen = "home" },
-                            onNoteEditorStateChanged = { isEditing, saveState, onSave ->
+                            onNoteEditorStateChanged = { isEditing, saveState, onSave, onCancel ->
                                 noteIsEditing = isEditing
                                 noteSaveState = saveState
                                 noteSaveAction = onSave
+                                noteCancelAction = onCancel
                             }
                         )
                     }
@@ -1253,8 +1255,14 @@ fun MindfulLauncherScreen(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            IconButton(onClick = { activeScreen = "home" }) {
-                                Icon(Icons.Default.ArrowBack, contentDescription = "Back to Home", tint = MaterialTheme.colorScheme.onSurface)
+                            IconButton(onClick = {
+                                if (activeScreen == "notes" && noteIsEditing) {
+                                    noteCancelAction?.invoke()
+                                } else {
+                                    activeScreen = "home"
+                                }
+                            }) {
+                                Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
                             }
                             Text(
                                 text = when (activeScreen) {

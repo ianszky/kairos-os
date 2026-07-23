@@ -17,7 +17,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,7 +37,7 @@ enum class NoteSaveState {
 fun LocalNotesScreen(
     notesController: LocalNotesController,
     onBack: () -> Unit,
-    onNoteEditorStateChanged: (isEditing: Boolean, saveState: NoteSaveState, onSave: (() -> Unit)?) -> Unit = { _, _, _ -> }
+    onNoteEditorStateChanged: (isEditing: Boolean, saveState: NoteSaveState, onSave: (() -> Unit)?, onCancelEdit: (() -> Unit)?) -> Unit = { _, _, _, _ -> }
 ) {
     val coroutineScope = rememberCoroutineScope()
     var notes by remember { mutableStateOf<List<LocalNote>>(emptyList()) }
@@ -62,18 +61,16 @@ fun LocalNotesScreen(
 
     LaunchedEffect(isEditing) {
         if (!isEditing) {
-            onNoteEditorStateChanged(false, NoteSaveState.GRAY_CHECK, null)
+            onNoteEditorStateChanged(false, NoteSaveState.GRAY_CHECK, null, null)
         }
     }
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 80.dp)
             .padding(horizontal = 24.dp)
     ) {
-        val fabOffset = maxHeight * 0.60f
-
         if (isEditing) {
             NoteEditor(
                 note = selectedNote,
@@ -84,7 +81,10 @@ fun LocalNotesScreen(
                     }
                 },
                 onStateChange = { saveState, onSaveAction ->
-                    onNoteEditorStateChanged(true, saveState, onSaveAction)
+                    onNoteEditorStateChanged(true, saveState, onSaveAction, {
+                        isEditing = false
+                        selectedNote = null
+                    })
                 }
             )
         } else {
@@ -158,24 +158,22 @@ fun LocalNotesScreen(
                 }
             }
 
-            // Floating Circular '+' Button at 60% height
-            Box(
+            // Floating Circular '+' Button at Bottom Right with sufficient margins
+            FloatingActionButton(
+                onClick = {
+                    selectedNote = null
+                    isEditing = true
+                },
                 modifier = Modifier
-                    .offset(y = fabOffset)
-                    .align(Alignment.TopCenter)
-                    .size(56.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-                    .clickable {
-                        selectedNote = null
-                        isEditing = true
-                    },
-                contentAlignment = Alignment.Center
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 24.dp, end = 8.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.Black,
+                shape = CircleShape
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Add Note",
-                    tint = Color.Black,
                     modifier = Modifier.size(28.dp)
                 )
             }
@@ -242,8 +240,8 @@ fun NoteEditor(
     onSave: (String, String) -> Unit,
     onStateChange: (NoteSaveState, (() -> Unit)?) -> Unit
 ) {
-    var title by remember { mutableStateOf(note?.title ?: "") }
-    var content by remember { mutableStateOf(note?.content ?: "") }
+    var title by remember(note) { mutableStateOf(note?.title ?: "") }
+    var content by remember(note) { mutableStateOf(note?.content ?: "") }
 
     val initialTitle = remember(note) { note?.title ?: "" }
     val initialContent = remember(note) { note?.content ?: "" }
@@ -278,8 +276,8 @@ fun NoteEditor(
             .fillMaxSize()
             .padding(bottom = 24.dp)
     ) {
-        // Borderless Title with 24.sp bold and low-opacity bottom indicator line
-        OutlinedTextField(
+        // Borderless Title with 24.sp bold and ONLY a bottom border line (no full box outline)
+        TextField(
             value = title,
             onValueChange = {
                 title = it
@@ -301,13 +299,13 @@ fun NoteEditor(
                 color = MaterialTheme.colorScheme.onBackground
             ),
             modifier = Modifier.fillMaxWidth(),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                unfocusedBorderColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-                disabledBorderColor = Color.Transparent,
-                errorBorderColor = Color.Transparent,
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.Transparent,
-                unfocusedContainerColor = Color.Transparent
+                unfocusedContainerColor = Color.Transparent,
+                disabledContainerColor = Color.Transparent,
+                focusedIndicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
             )
         )
 
@@ -344,30 +342,25 @@ fun NoteEditor(
                     }
                 }
             } else {
-                OutlinedTextField(
+                TextField(
                     value = content,
                     onValueChange = {
                         content = it
                         isSaved = false
                     },
                     placeholder = { Text("Note Content (Markdown supported)...", fontFamily = googleSansFont) },
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .onFocusChanged { focusState ->
-                            if (!focusState.isFocused && content.isNotBlank()) {
-                                isContentEditing = false
-                            }
-                        },
+                    modifier = Modifier.fillMaxSize(),
                     textStyle = LocalTextStyle.current.copy(
                         fontSize = 16.sp,
                         fontFamily = googleSansFont,
                         color = MaterialTheme.colorScheme.onBackground
                     ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
+                    colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
                     )
                 )
             }

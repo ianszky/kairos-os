@@ -82,14 +82,12 @@ fun LocalCalendarScreen(
         }
     }
 
-    BoxWithConstraints(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 80.dp)
             .padding(horizontal = 24.dp)
     ) {
-        val fabOffset = maxHeight * 0.60f
-
         Column(modifier = Modifier.fillMaxSize()) {
             if (events.isEmpty()) {
                 Box(
@@ -132,21 +130,19 @@ fun LocalCalendarScreen(
             }
         }
 
-        // Floating Circular '+' Button at 60% height
-        Box(
+        // Floating Circular '+' Button at Bottom Right with sufficient margins
+        FloatingActionButton(
+            onClick = { showAddDialog = true },
             modifier = Modifier
-                .offset(y = fabOffset)
-                .align(Alignment.TopCenter)
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary)
-                .clickable { showAddDialog = true },
-            contentAlignment = Alignment.Center
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 24.dp, end = 8.dp),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = Color.Black,
+            shape = CircleShape
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
                 contentDescription = "Add Event",
-                tint = Color.Black,
                 modifier = Modifier.size(28.dp)
             )
         }
