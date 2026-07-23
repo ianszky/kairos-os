@@ -96,12 +96,12 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
                 } finally {
                     try {
                         conversation.close()
-                    } catch (closeEx: Exception) {
+                    } catch (closeEx: Throwable) {
                         Log.w(TAG, "Ignored error closing LiteRT-LM conversation: ${closeEx.message}")
                     }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Gemma model inference error, using rule-based result", e)
+            } catch (e: Throwable) {
+                Log.e(TAG, "Gemma model inference error, using rule-based result: ${e.message}", e)
             } finally {
                 validationMutex.unlock()
             }
