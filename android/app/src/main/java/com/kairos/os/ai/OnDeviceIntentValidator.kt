@@ -5,6 +5,8 @@ import android.util.Log
 import com.google.ai.edge.litertlm.*
 import com.kairos.os.domain.usecases.LocalLlmClient
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,17 +22,23 @@ class OnDeviceIntentValidator @Inject constructor(
 ) {
     private val TAG = "OnDeviceIntentValidator"
 
-    suspend fun validateReason(reason: String, appName: String): IntentValidationResult {
+    suspend fun validateReason(reason: String, appName: String): IntentValidationResult = withContext(Dispatchers.IO) {
         val trimmedReason = reason.trim()
         if (trimmedReason.length < 3) {
-            return IntentValidationResult(
+            return@withContext IntentValidationResult(
                 approved = false,
                 feedback = "Please provide a specific, intentional reason."
             )
         }
 
-        val engine = localLlmClient.getEngine()
+        // 1. Fast rule-based validation (< 1ms). Immediately rejects known vague phrases without main-thread lag
+        val ruleResult = evaluateRuleBasedIntent(trimmedReason, appName)
+        if (!ruleResult.approved) {
+            return@withContext ruleResult
+        }
 
+        // 2. Run Gemma on-device model inference on Dispatchers.IO
+        val engine = localLlmClient.getEngine()
         if (engine != null) {
             try {
                 Log.i(TAG, "Running Gemma on-device intent validation for reason: '$trimmedReason'")
@@ -59,7 +67,8 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
                     )
                 )
 
-                engine.createConversation(conversationConfig).use { conversation ->
+                val conversation = engine.createConversation(conversationConfig)
+                try {
                     val chunks = mutableListOf<String>()
                     conversation.sendMessageAsync("App: $appName. User's intent reason: \"$trimmedReason\"")
                         .collect { chunks.add(it.toString()) }
@@ -68,7 +77,7 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
                     Log.i(TAG, "Gemma response: '$response'")
 
                     if (response.contains("APPROVED", ignoreCase = true) && !response.contains("REJECTED", ignoreCase = true)) {
-                        return IntentValidationResult(approved = true)
+                        return@withContext IntentValidationResult(approved = true)
                     } else {
                         val rawFeedback = if (response.contains("|")) {
                             response.substringAfter("|").trim()
@@ -76,16 +85,21 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
                             response.replace("REJECTED", "", ignoreCase = true).trim()
                         }
                         val feedback = rawFeedback.ifEmpty { "Please specify a clear, deliberate task or goal." }
-                        return IntentValidationResult(approved = false, feedback = feedback)
+                        return@withContext IntentValidationResult(approved = false, feedback = feedback)
+                    }
+                } finally {
+                    try {
+                        conversation.close()
+                    } catch (closeEx: Exception) {
+                        Log.w(TAG, "Ignored error closing LiteRT-LM conversation: ${closeEx.message}")
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Gemma model inference error, falling back to rule-based intent evaluation", e)
+                Log.e(TAG, "Gemma model inference error, using rule-based result", e)
             }
         }
 
-        // Fallback or model-absent intelligent intent evaluation
-        return evaluateRuleBasedIntent(trimmedReason, appName)
+        return@withContext ruleResult
     }
 
     private fun evaluateRuleBasedIntent(reason: String, appName: String): IntentValidationResult {
