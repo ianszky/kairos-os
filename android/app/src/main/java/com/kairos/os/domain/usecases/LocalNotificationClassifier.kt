@@ -29,16 +29,12 @@ class LocalNotificationClassifier @Inject constructor(
         "incoming call", "call from"
     )
 
-    private val criticalCategories = setOf(
+    // Only essential OS system categories for hardware/life-critical features (calls, alarms, navigation turn-by-turn)
+    private val osSystemCriticalCategories = setOf(
         Notification.CATEGORY_CALL,
         Notification.CATEGORY_ALARM,
         Notification.CATEGORY_NAVIGATION,
-        Notification.CATEGORY_SYSTEM,
-        Notification.CATEGORY_EVENT,
-        Notification.CATEGORY_MESSAGE,
-        Notification.CATEGORY_TRANSPORT,
-        Notification.CATEGORY_SERVICE,
-        Notification.CATEGORY_REMINDER
+        Notification.CATEGORY_SYSTEM
     )
 
     suspend fun classify(
@@ -55,52 +51,49 @@ class LocalNotificationClassifier @Inject constructor(
         Log.i(TAG, "🔍 Category   : $category")
         Log.i(TAG, "🔍 ========================================================")
 
-        // --- STEP 1: Check Explicit User Per-App Notification Rules (Room DB) ---
+        // --- STEP 1: Check Explicit User Per-App Notification Rules (Room DB / App Settings) ---
         try {
             val userRuleEntity = appNotificationRuleDao.getRuleForPackage(packageName)
             if (userRuleEntity != null) {
                 when (userRuleEntity.rule) {
                     NotificationAppRule.ALLOWED.name -> {
-                        Log.i(TAG, "✅ [User Rule] App $packageName is explicitly WHITELISTED (ALLOWED). Delivering directly on-device.")
+                        Log.i(TAG, "✅ [User Settings Whitelist] App $packageName is explicitly set to ALLOWED. Delivering directly on-device.")
                         return ClassificationTier.CRITICAL
                     }
                     NotificationAppRule.BLOCKED.name -> {
-                        Log.i(TAG, "🚫 [User Rule] App $packageName is explicitly BLACKLISTED (BLOCKED). Suppressing without storing.")
+                        Log.i(TAG, "🚫 [User Settings Blacklist] App $packageName is explicitly set to BLOCKED. Suppressing without storing.")
                         return ClassificationTier.BLOCKED
                     }
                     NotificationAppRule.KAI_DECIDES.name -> {
-                        Log.i(TAG, "🤖 [User Rule] App $packageName is set to KAI_DECIDES. Proceeding to smart classifier.")
+                        Log.i(TAG, "🤖 [User Settings] App $packageName is set to KAI_DECIDES. Proceeding to smart classifier.")
                     }
                 }
             } else {
-                Log.i(TAG, "ℹ️ [User Rule] No explicit user rule set for $packageName (Defaulting to Kai Decides).")
+                Log.i(TAG, "ℹ️ [User Settings] No explicit rule set for $packageName (Defaulting to KAI_DECIDES).")
             }
         } catch (e: Exception) {
             Log.e(TAG, "⚠️ Failed to query user app notification rule, falling back to smart classification", e)
         }
 
-        // --- STEP 2: Tier 0 System Bypass Rules ---
-        Log.i(TAG, "[Tier 0] Checking System Bypass & Critical Categories...")
-
-        if (category != null && criticalCategories.contains(category)) {
-            Log.i(TAG, "✅ [Tier 0] CRITICAL category match ($category). Delivering directly on-device.")
-            return ClassificationTier.CRITICAL
-        }
-
+        // --- STEP 2: Strict OS Hardware / Telephony Bypass (Only core OS calls/alarms) ---
         val lowerPackage = packageName.lowercase()
         if (lowerPackage.contains("dialer") ||
             lowerPackage.contains("telecom") ||
             lowerPackage.contains("deskclock") ||
             lowerPackage.contains("clock") ||
-            lowerPackage.contains("calendar") ||
             lowerPackage.contains("incallui")
         ) {
-            Log.i(TAG, "✅ [Tier 0] CRITICAL core system package ($packageName). Delivering directly on-device.")
+            Log.i(TAG, "✅ [OS System Bypass] Core phone dialer/alarm package ($packageName). Delivering directly on-device.")
             return ClassificationTier.CRITICAL
         }
 
-        // --- STEP 3: Tier 1 Keyword Heuristics ---
-        Log.i(TAG, "[Tier 1] Checking urgent keyword heuristics...")
+        if (category != null && osSystemCriticalCategories.contains(category)) {
+            Log.i(TAG, "✅ [OS Category Bypass] System critical category match ($category). Delivering directly on-device.")
+            return ClassificationTier.CRITICAL
+        }
+
+        // --- STEP 3: Tier 1 Keyword Heuristics (Kai Decides Analysis) ---
+        Log.i(TAG, "[Tier 1] Checking urgent keyword heuristics for $packageName...")
         val combinedText = "$title $text".lowercase()
         val matchedKeyword = criticalKeywords.firstOrNull { combinedText.contains(it) }
         if (matchedKeyword != null) {
@@ -115,7 +108,7 @@ class LocalNotificationClassifier @Inject constructor(
             Log.i(TAG, "⚡ [Tier 2] Local LiteRT-LM Engine IS ACTIVE! Running Gemma model inference for $packageName...")
             try {
                 val prompt = """
-                    You are KAIROS OS's notification classifier. Decide if the following notification is CRITICAL (urgent, requires immediate human attention, e.g. direct text messages, work updates, meeting reminders, security alerts, OTPs) or DIGEST (non-urgent, promotional, social media likes/follows, newsletters, group chats).
+                    You are KAIROS OS's notification classifier. Decide if the following notification is CRITICAL (urgent, requires immediate human attention, e.g. direct text messages, work updates, meeting reminders, security alerts, OTPs) or DIGEST (non-urgent, casual chat, social media likes/follows, newsletters, group chats).
                     
                     Notification details:
                     App Package: $packageName
@@ -155,7 +148,7 @@ class LocalNotificationClassifier @Inject constructor(
         }
 
         // --- STEP 5: Safe Fallback ---
-        // For general apps without critical markers, route to DIGEST
+        // For general apps without critical markers when in Kai Decides mode, route to DIGEST
         Log.i(TAG, "🔕 [Fallback] No critical markers detected. Routing notification to DIGEST.")
         return ClassificationTier.DIGEST
     }
