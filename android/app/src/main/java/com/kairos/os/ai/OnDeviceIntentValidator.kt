@@ -75,11 +75,8 @@ REJECTED|<brief actionable suggestion for a specific reason>""".trimIndent()
 
                 val conversation = engine.createConversation(conversationConfig)
                 try {
-                    val chunks = mutableListOf<String>()
-                    conversation.sendMessageAsync("App: $appName. User's intent reason: \"$trimmedReason\"")
-                        .collect { chunks.add(it.toString()) }
-
-                    val response = chunks.joinToString("").trim()
+                    // Use synchronous sendMessage() instead of sendMessageAsync() to bypass Coroutine SendChannel binary mismatch
+                    val response = conversation.sendMessage("App: $appName. User's intent reason: \"$trimmedReason\"").trim()
                     Log.i(TAG, "Gemma response: '$response'")
 
                     if (response.contains("APPROVED", ignoreCase = true) && !response.contains("REJECTED", ignoreCase = true)) {
