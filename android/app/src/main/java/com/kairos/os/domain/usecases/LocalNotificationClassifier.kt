@@ -3,38 +3,42 @@ package com.kairos.os.domain.usecases
 import android.app.Notification
 import android.util.Log
 import com.google.ai.edge.litertlm.Content
+import com.kairos.os.data.db.AppNotificationRuleDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 enum class ClassificationTier {
-    CRITICAL,
-    DIGEST
+    CRITICAL,   // Deliver on-device instantly
+    DIGEST,     // Intercept & save to local Room database for periodic digest summary
+    BLOCKED     // Intercept & silently dismiss without saving to database
 }
 
 @Singleton
 class LocalNotificationClassifier @Inject constructor(
-    private val localLlmClient: LocalLlmClient
+    private val localLlmClient: LocalLlmClient,
+    private val appNotificationRuleDao: AppNotificationRuleDao
 ) {
-    private val TAG = "LocalNotificationClassifier"
+    private val TAG = "KairosNotificationClassifier"
 
     private val criticalKeywords = listOf(
         "urgent", "emergency", "asap", "hospital", "doctor",
         "accident", "police", "help", "otp", "verification",
-        "code", "alert", "security", "warning", "meeting"
+        "code", "alert", "security", "warning", "meeting",
+        "incoming call", "call from"
     )
 
-    private val digestAppPackages = listOf(
-        "com.instagram.android",
-        "com.twitter.android",
-        "com.facebook.katana",
-        "com.facebook.orca",
-        "com.pinterest",
-        "com.reddit.frontpage",
-        "com.snapchat.android",
-        "com.tiktok.android",
-        "com.zhiliaoapp.musically"
+    private val criticalCategories = setOf(
+        Notification.CATEGORY_CALL,
+        Notification.CATEGORY_ALARM,
+        Notification.CATEGORY_NAVIGATION,
+        Notification.CATEGORY_SYSTEM,
+        Notification.CATEGORY_EVENT,
+        Notification.CATEGORY_MESSAGE,
+        Notification.CATEGORY_TRANSPORT,
+        Notification.CATEGORY_SERVICE,
+        Notification.CATEGORY_REMINDER
     )
 
     suspend fun classify(
@@ -43,58 +47,72 @@ class LocalNotificationClassifier @Inject constructor(
         text: String,
         category: String?
     ): ClassificationTier {
-        Log.i(TAG, "==== Intercepted Notification Details ====")
-        Log.i(TAG, "App Package: $packageName")
-        Log.i(TAG, "Title: $title")
-        Log.i(TAG, "Text: $text")
-        Log.i(TAG, "Category: $category")
-        Log.i(TAG, "==========================================")
+        Log.i(TAG, "🔍 ========================================================")
+        Log.i(TAG, "🔍 INTERCEPTOR TRIGGERED: Evaluating notification...")
+        Log.i(TAG, "🔍 App Package: $packageName")
+        Log.i(TAG, "🔍 Title      : $title")
+        Log.i(TAG, "🔍 Text       : $text")
+        Log.i(TAG, "🔍 Category   : $category")
+        Log.i(TAG, "🔍 ========================================================")
 
-        // --- Tier 0: Direct Rule Checks (System Bypass) ---
-        Log.i(TAG, "[Tier 0] Checking direct rule bypasses...")
-        
-        if (category == Notification.CATEGORY_CALL ||
-            category == Notification.CATEGORY_ALARM ||
-            category == Notification.CATEGORY_NAVIGATION ||
-            category == Notification.CATEGORY_SYSTEM
-        ) {
-            Log.i(TAG, "[Tier 0] CRITICAL match: notification category is system-critical ($category)")
-            return ClassificationTier.CRITICAL
-        }
-
-        if (packageName.contains("dialer") ||
-            packageName.contains("telecom") ||
-            packageName.contains("deskclock") ||
-            packageName.contains("calendar")
-        ) {
-            Log.i(TAG, "[Tier 0] CRITICAL match: app package is phone/calendar/clock related ($packageName)")
-            return ClassificationTier.CRITICAL
-        }
-
-        if (digestAppPackages.contains(packageName)) {
-            Log.i(TAG, "[Tier 0] DIGEST match: package $packageName matches a known social app list.")
-            val combinedText = "$title $text".lowercase()
-            if (criticalKeywords.any { combinedText.contains(it) }) {
-                Log.i(TAG, "[Tier 0] OVERRIDE: Social app notification matches a critical keyword. Promoting to CRITICAL.")
-                return ClassificationTier.CRITICAL
+        // --- STEP 1: Check Explicit User Per-App Notification Rules (Room DB) ---
+        try {
+            val userRuleEntity = appNotificationRuleDao.getRuleForPackage(packageName)
+            if (userRuleEntity != null) {
+                when (userRuleEntity.rule) {
+                    NotificationAppRule.ALLOWED.name -> {
+                        Log.i(TAG, "✅ [User Rule] App $packageName is explicitly WHITELISTED (ALLOWED). Delivering directly on-device.")
+                        return ClassificationTier.CRITICAL
+                    }
+                    NotificationAppRule.BLOCKED.name -> {
+                        Log.i(TAG, "🚫 [User Rule] App $packageName is explicitly BLACKLISTED (BLOCKED). Suppressing without storing.")
+                        return ClassificationTier.BLOCKED
+                    }
+                    NotificationAppRule.KAI_DECIDES.name -> {
+                        Log.i(TAG, "🤖 [User Rule] App $packageName is set to KAI_DECIDES. Proceeding to smart classifier.")
+                    }
+                }
+            } else {
+                Log.i(TAG, "ℹ️ [User Rule] No explicit user rule set for $packageName (Defaulting to Kai Decides).")
             }
-            Log.i(TAG, "[Tier 0] Suppressing and sorting to DIGEST.")
-            return ClassificationTier.DIGEST
+        } catch (e: Exception) {
+            Log.e(TAG, "⚠️ Failed to query user app notification rule, falling back to smart classification", e)
         }
 
-        // --- Tier 1: Regex Keyword Heuristics ---
-        Log.i(TAG, "[Tier 1] Checking keyword heuristics...")
+        // --- STEP 2: Tier 0 System Bypass Rules ---
+        Log.i(TAG, "[Tier 0] Checking System Bypass & Critical Categories...")
+
+        if (category != null && criticalCategories.contains(category)) {
+            Log.i(TAG, "✅ [Tier 0] CRITICAL category match ($category). Delivering directly on-device.")
+            return ClassificationTier.CRITICAL
+        }
+
+        val lowerPackage = packageName.lowercase()
+        if (lowerPackage.contains("dialer") ||
+            lowerPackage.contains("telecom") ||
+            lowerPackage.contains("deskclock") ||
+            lowerPackage.contains("clock") ||
+            lowerPackage.contains("calendar") ||
+            lowerPackage.contains("incallui")
+        ) {
+            Log.i(TAG, "✅ [Tier 0] CRITICAL core system package ($packageName). Delivering directly on-device.")
+            return ClassificationTier.CRITICAL
+        }
+
+        // --- STEP 3: Tier 1 Keyword Heuristics ---
+        Log.i(TAG, "[Tier 1] Checking urgent keyword heuristics...")
         val combinedText = "$title $text".lowercase()
         val matchedKeyword = criticalKeywords.firstOrNull { combinedText.contains(it) }
         if (matchedKeyword != null) {
-            Log.i(TAG, "[Tier 1] CRITICAL match: text contains urgent keyword '$matchedKeyword'")
+            Log.i(TAG, "✅ [Tier 1] CRITICAL keyword match ('$matchedKeyword'). Delivering directly on-device.")
             return ClassificationTier.CRITICAL
         }
 
-        // --- Tier 2: On-Device AI Classification (Gemma via LiteRT-LM) ---
-        Log.i(TAG, "[Tier 2] Requesting Gemma classification via LiteRT-LM...")
+        // --- STEP 4: Tier 2 On-Device AI Classification (Gemma via LiteRT-LM) ---
+        Log.i(TAG, "[Tier 2] Checking On-Device LiteRT-LM (Gemma Model) Status...")
         val engine = localLlmClient.getEngine()
         if (engine != null) {
+            Log.i(TAG, "⚡ [Tier 2] Local LiteRT-LM Engine IS ACTIVE! Running Gemma model inference for $packageName...")
             try {
                 val prompt = """
                     You are KAIROS OS's notification classifier. Decide if the following notification is CRITICAL (urgent, requires immediate human attention, e.g. direct text messages, work updates, meeting reminders, security alerts, OTPs) or DIGEST (non-urgent, promotional, social media likes/follows, newsletters, group chats).
@@ -107,7 +125,7 @@ class LocalNotificationClassifier @Inject constructor(
                     Respond with exactly one word: CRITICAL or DIGEST. Do not write any other explanation or text.
                 """.trimIndent()
 
-                Log.i(TAG, "[Tier 2] Sending prompt to Gemma model...")
+                Log.i(TAG, "🤖 [Tier 2] Prompt sent to Gemma model: App=$packageName | Title=$title")
                 val result = withContext(Dispatchers.IO) {
                     val conversation = engine.createConversation()
                     try {
@@ -120,23 +138,25 @@ class LocalNotificationClassifier @Inject constructor(
                         conversation.close()
                     }
                 }
-                Log.i(TAG, "[Tier 2] Gemma raw response: '$result'")
-                
+                Log.i(TAG, "🤖 [Tier 2] Gemma raw response: '$result'")
+
                 if (result.contains("CRITICAL")) {
-                    Log.i(TAG, "[Tier 2] Classified notification as CRITICAL")
+                    Log.i(TAG, "✅ [Tier 2] Gemma classified notification as CRITICAL")
                     return ClassificationTier.CRITICAL
                 } else if (result.contains("DIGEST")) {
-                    Log.i(TAG, "[Tier 2] Classified notification as DIGEST")
+                    Log.i(TAG, "🔕 [Tier 2] Gemma classified notification as DIGEST")
                     return ClassificationTier.DIGEST
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "[Tier 2] Error executing on-device LiteRT-LM classification", e)
+                Log.e(TAG, "❌ [Tier 2] Error executing on-device Gemma LiteRT-LM classification", e)
             }
         } else {
-            Log.i(TAG, "[Tier 2] LiteRT-LM Engine not initialized (Gemma model missing). Skipping on-device AI.")
+            Log.w(TAG, "⚠️ [Tier 2] Local LiteRT-LM Engine is NOT initialized (Gemma model binary missing or unreadable on device). Skipping AI tier.")
         }
 
-        Log.d(TAG, "No critical markers found. Defaulting to DIGEST.")
+        // --- STEP 5: Safe Fallback ---
+        // For general apps without critical markers, route to DIGEST
+        Log.i(TAG, "🔕 [Fallback] No critical markers detected. Routing notification to DIGEST.")
         return ClassificationTier.DIGEST
     }
 }

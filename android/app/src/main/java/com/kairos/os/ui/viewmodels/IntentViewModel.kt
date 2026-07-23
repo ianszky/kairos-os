@@ -8,6 +8,9 @@ import com.kairos.os.data.api.AppConfigItemResponse
 import com.kairos.os.data.api.IntentLogResult
 import com.kairos.os.data.api.KairosApiClient
 import com.kairos.os.data.api.UserSettingsResponse
+import com.kairos.os.data.db.AppNotificationRuleDao
+import com.kairos.os.data.db.AppNotificationRuleEntity
+import com.kairos.os.domain.usecases.NotificationAppRule
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,7 +21,8 @@ import javax.inject.Inject
 @HiltViewModel
 class IntentViewModel @Inject constructor(
     private val apiClient: KairosApiClient,
-    private val validator: OnDeviceIntentValidator
+    private val validator: OnDeviceIntentValidator,
+    private val appNotificationRuleDao: AppNotificationRuleDao
 ) : ViewModel() {
 
     // Default built-in distracting app slugs as initial fallback
@@ -35,11 +39,42 @@ class IntentViewModel @Inject constructor(
     private val _appConfigsMap = MutableStateFlow<Map<String, AppConfigItemResponse>>(emptyMap())
     val appConfigsMap: StateFlow<Map<String, AppConfigItemResponse>> = _appConfigsMap.asStateFlow()
 
+    private val _appNotificationRules = MutableStateFlow<Map<String, NotificationAppRule>>(emptyMap())
+    val appNotificationRules: StateFlow<Map<String, NotificationAppRule>> = _appNotificationRules.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     init {
         loadData()
+        observeNotificationRules()
+    }
+
+    private fun observeNotificationRules() {
+        viewModelScope.launch {
+            appNotificationRuleDao.getAllRulesFlow().collect { rulesList ->
+                val map = rulesList.associate { 
+                    it.packageName to (runCatching { NotificationAppRule.valueOf(it.rule) }.getOrDefault(NotificationAppRule.KAI_DECIDES))
+                }
+                _appNotificationRules.value = map
+            }
+        }
+    }
+
+    fun setAppNotificationRule(packageName: String, rule: NotificationAppRule) {
+        viewModelScope.launch {
+            try {
+                if (rule == NotificationAppRule.KAI_DECIDES) {
+                    appNotificationRuleDao.deleteRule(packageName)
+                } else {
+                    appNotificationRuleDao.insertOrUpdate(
+                        AppNotificationRuleEntity(packageName = packageName, rule = rule.name)
+                    )
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     fun loadData() {
