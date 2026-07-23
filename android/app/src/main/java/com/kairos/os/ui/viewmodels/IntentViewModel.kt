@@ -1,5 +1,7 @@
 package com.kairos.os.ui.viewmodels
 
+import android.content.Context
+import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.os.ai.IntentValidationResult
@@ -12,6 +14,8 @@ import com.kairos.os.data.db.AppNotificationRuleDao
 import com.kairos.os.data.db.AppNotificationRuleEntity
 import com.kairos.os.domain.usecases.NotificationAppRule
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,15 +26,33 @@ import javax.inject.Inject
 class IntentViewModel @Inject constructor(
     private val apiClient: KairosApiClient,
     private val validator: OnDeviceIntentValidator,
-    private val appNotificationRuleDao: AppNotificationRuleDao
+    private val appNotificationRuleDao: AppNotificationRuleDao,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    private val prefs: SharedPreferences = context.getSharedPreferences("kairos_app_settings", Context.MODE_PRIVATE)
 
     // Default built-in distracting app slugs as initial fallback
     private val defaultDistractingApps = setOf(
         "youtube", "facebook", "instagram", "twitter", "tiktok", "reddit", "discord"
     )
 
-    private val _distractingAppIds = MutableStateFlow<Set<String>>(defaultDistractingApps)
+    // Core essential system apps default to ALLOWED on initial launch
+    private val defaultAllowedPackages = setOf(
+        "com.google.android.dialer",
+        "com.android.dialer",
+        "com.samsung.android.dialer",
+        "com.google.android.apps.messaging",
+        "com.android.mms",
+        "com.samsung.android.messaging",
+        "com.google.android.deskclock",
+        "com.android.deskclock",
+        "com.sec.android.app.clockpackage",
+        "com.google.android.calendar",
+        "com.android.calendar"
+    )
+
+    private val _distractingAppIds = MutableStateFlow<Set<String>>(emptySet())
     val distractingAppIds: StateFlow<Set<String>> = _distractingAppIds.asStateFlow()
 
     private val _userSettings = MutableStateFlow(UserSettingsResponse())
@@ -46,8 +68,37 @@ class IntentViewModel @Inject constructor(
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     init {
+        loadLocalDistractingApps()
+        seedDefaultNotificationRules()
         loadData()
         observeNotificationRules()
+    }
+
+    private fun loadLocalDistractingApps() {
+        val savedSet = prefs.getStringSet("distracting_app_ids", null)
+        if (savedSet == null) {
+            _distractingAppIds.value = defaultDistractingApps
+            prefs.edit().putStringSet("distracting_app_ids", defaultDistractingApps).apply()
+        } else {
+            _distractingAppIds.value = savedSet.toSet()
+        }
+    }
+
+    private fun seedDefaultNotificationRules() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val isSeeded = prefs.getBoolean("notification_rules_seeded_v1", false)
+            if (!isSeeded) {
+                defaultAllowedPackages.forEach { pkg ->
+                    val existing = appNotificationRuleDao.getRuleForPackage(pkg)
+                    if (existing == null) {
+                        appNotificationRuleDao.insertOrUpdate(
+                            AppNotificationRuleEntity(packageName = pkg, rule = NotificationAppRule.ALLOWED.name)
+                        )
+                    }
+                }
+                prefs.edit().putBoolean("notification_rules_seeded_v1", true).apply()
+            }
+        }
     }
 
     private fun observeNotificationRules() {
@@ -62,7 +113,8 @@ class IntentViewModel @Inject constructor(
     }
 
     fun setAppNotificationRule(packageName: String, rule: NotificationAppRule) {
-        viewModelScope.launch {
+        // Immediate local state update via Room on IO thread for instant 0ms response
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 if (rule == NotificationAppRule.KAI_DECIDES) {
                     appNotificationRuleDao.deleteRule(packageName)
@@ -85,22 +137,24 @@ class IntentViewModel @Inject constructor(
                 val settings = apiClient.getUserSettings()
                 _userSettings.value = settings
 
-                // Fetch app configs
+                // Fetch app configs if remote endpoint is reachable
                 val configs = apiClient.getAppConfigs()
-                val map = configs.associateBy { it.appIdentifier.lowercase() }
-                _appConfigsMap.value = map
+                if (configs.isNotEmpty()) {
+                    val map = configs.associateBy { it.appIdentifier.lowercase() }
+                    _appConfigsMap.value = map
 
-                // Compute active distracting set
-                val distractingSet = defaultDistractingApps.toMutableSet()
-                configs.forEach { item ->
-                    val id = item.appIdentifier.lowercase()
-                    if (item.category == "TRAP") {
-                        distractingSet.add(id)
-                    } else if (item.category == "UTILITY") {
-                        distractingSet.remove(id)
+                    val distractingSet = _distractingAppIds.value.toMutableSet()
+                    configs.forEach { item ->
+                        val id = item.appIdentifier.lowercase()
+                        if (item.category == "TRAP") {
+                            distractingSet.add(id)
+                        } else if (item.category == "UTILITY") {
+                            distractingSet.remove(id)
+                        }
                     }
+                    _distractingAppIds.value = distractingSet.toSet()
+                    prefs.edit().putStringSet("distracting_app_ids", distractingSet).apply()
                 }
-                _distractingAppIds.value = distractingSet
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -137,26 +191,39 @@ class IntentViewModel @Inject constructor(
     }
 
     fun updateDailyLeisureTime(newMinutes: Int, onResult: (String) -> Unit) {
+        // Update local settings state immediately
+        _userSettings.value = _userSettings.value.copy(dailyLeisureMinutes = newMinutes)
+        onResult("Leisure limit set to ${newMinutes}m")
+
         viewModelScope.launch {
             try {
-                val res = apiClient.updateDailyLeisureTime(newMinutes)
-                loadData()
-                onResult(res.message)
+                apiClient.updateDailyLeisureTime(newMinutes)
             } catch (e: Exception) {
-                onResult("Failed to update daily leisure time: ${e.message}")
+                // Ignore background sync failure as local is authoritative
             }
         }
     }
 
     fun toggleAppDistracting(appId: String, isDistracting: Boolean, onResult: (String) -> Unit) {
+        val cleanId = appId.lowercase()
+        val currentSet = _distractingAppIds.value.toMutableSet()
+        if (isDistracting) {
+            currentSet.add(cleanId)
+        } else {
+            currentSet.remove(cleanId)
+        }
+        _distractingAppIds.value = currentSet.toSet()
+        prefs.edit().putStringSet("distracting_app_ids", currentSet).apply()
+
+        // Background sync attempt if backend available, without blocking UI or reverting local state on error
         viewModelScope.launch {
             try {
-                val res = apiClient.toggleAppDistracting(appId, isDistracting)
-                loadData()
-                onResult(res.message)
-            } catch (e: Exception) {
-                onResult("Failed to update app setting: ${e.message}")
+                apiClient.toggleAppDistracting(cleanId, isDistracting)
+            } catch (_: Exception) {
+                // Ignore background sync errors as local storage is authoritative
             }
         }
+
+        onResult(if (isDistracting) "App set as distracting" else "App set as utility")
     }
 }
