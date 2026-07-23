@@ -7,93 +7,20 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
-### 17. Local Conversation Persistence in Room & Unified Sidebar Overhaul
+### 21. Notification Interceptor Audit, Logcat Diagnostics, 0ms Instant Settings & Per-App Rules Overhaul
 **Status:** DONE
-**Summary:** Decoupled local AI conversations from Supabase cloud database, persisting local messages and conversations entirely in an on-device Room database (`LocalConversationEntity`, `LocalMessageEntity`). Updated `ChatViewModel` to unify local Room conversations and cloud Supabase conversations into a single sidebar list sorted chronologically by `updated_at`. Upgraded `LocalTitleGenerator` to perform reliable title generation for both local and cloud conversations with robust fallback capabilities.
-
-### 16. Fix Supabase Realtime WebSocket Ktor OkHttp Engine & Sidebar Sync
-**Status:** DONE
-**Summary:** Replaced `ktor-client-android` with `ktor-client-okhttp:3.4.3` in `android/app/build.gradle.kts` and configured `httpEngine = OkHttp.create()` in `SupabaseModule.kt` and `HttpClient(OkHttp)` in `KairosApiClient.kt`. This resolves `Engine doesn't support WebSocketCapability` and enables Supabase Realtime WebSocket live updates. Added `chatViewModel.onPromptResponse()` triggers post local title generation and execution in `LauncherActivity.kt` to ensure local Gemini conversations reliably sync to the sidebar.
-
-### 13. Chatbox Interface & Multimodal Integration Overhaul
-**Status:** DONE
-**Summary:** Implemented encircled "+" menu (Add App, Add Files, Add Images), restricted file picker MIME types to Gemini-compatible formats (PDF, TXT, CSV, HTML, RTF), added local attachment caching & background upload to Supabase, implemented native SpeechRecognizer + RMS volume-driven fluid WaveformView replacing text input, supported custom VisualTransformation + OffsetMapping to render app logos on canvas behind `@app` mentions, and upgraded ChatBubble to render inline app logos using Compose `inlineContent`.
-
-### 10. Optimize Prompt-Response Pipeline
-**Status:** DONE
-**Summary:** Merged Response Builder LLM call into Tool Executor, migrated all cloud inference to stable Gemini 2.5 series, added COMPOSIO_ACTION_MAP for 13 toolkits to avoid schema bloat, added tool validation gate & retry loop, and updated test suite.
-
-### 9. Fix Composio Auth Config Mismatch for other integrations
-**Status:** DONE
-**Summary:** Fixed the auth configuration lookup in connection-manager.ts to ensure microsoftteams/slackbot and other integrations do not mismatch or redirect to GitHub.
-
-### 8. Implement Dynamic Composio Authentication & Hyphen Bug Fix
-**Status:** DONE
-**Summary:** Fixed the authentication layer for all Composio toolkits to generate connection prompts dynamically post-intent classification, and resolved the user ID identity split bug (retained hyphens across all tool executions).
-
-### 7. Fix Conversation Persistence & Session Continuity
-**Status:** DONE
-**Summary:** Fixed three bugs causing every message to create a new conversation. Send button now passes conversationId, back button uses startNewConversation(), and sidebar refreshes after every response via onPromptResponse().
-
-### 6. Implement Chat History Management
-**Status:** DONE
-**Summary:** Replaced placeholder logs with Supabase-backed conversation tracking. Next.js creates conversations and generates titles, and the Android client uses ChatViewModel to render histories in the sidebar.
-
-### 5. Translate Main Design Prototype to Compose Components
-**Status:** DONE
-**Summary:** Implemented Jetpack Compose components for standard widgets (EmailListWidget, etc.) and domain models.
-
-### 4. Redesign Android Home Screen to match mockup
-**Status:** DONE
-**Summary:** Redesigned LauncherActivity.kt layout to match the blinking cursor minimal mockup.
-
-### 3. Setup Next.js Intent Router Endpoint (`/api/prompt/route.ts`)
-**Status:** DONE
-**Summary:** Implemented dynamic auth checks, integrated intent classification, and routed complex intents to Composio tool execution. Fully tested and verified.
-
-### 2. Implement Android Home Screen (Blinking Cursor UI)
-**Status:** DONE
-**Summary:** Scaffolded LauncherActivity.kt with Jetpack Compose blank screen and text field capturing user intents.
-
-### 1. Setup project repositories (Android + Next.js)
-**Status:** DONE
-**Summary:** Kotlin 2.4.0 / Compose BOM 2026.06.00 frontend and Next.js 16.2.9 backend scaffolded and verified by the evaluator.
-
-### 11. Complete Composio Action Map
-**Status:** DONE
-**Summary:** Mapped all remaining 34 Composio integrations present in the Android app drawer into COMPOSIO_ACTION_MAP on the backend, using verified tool names from the Composio SDK to prevent hallucinations.
-
-### 12. Mobile UI/UX Adjustments & Animations
-**Status:** DONE
-**Summary:** Replaced Doto font with Google Sans for the majority of the app (retaining Doto for homepage clock/date and labels), toned down and bottom-aligned the radial orange gradient, removed orange border and offset on agent replies, and implemented custom markdown rendering support. Also removed orange border on typing loading indicator, added a staggered vertical bounce animation to the three dots, converted the main layout container of MindfulLauncherScreen to a Box to layer components (preventing scroll cutoffs), and applied fading top gradient to the header. Made the input box translucent with a 0.65f alpha background, applied a native BlurEffect (RenderEffect) background layer to solidify the glassmorphism look, added a translucent border, and left the margins transparent to let the orange gradient bleed through.
-
-### 13. Mobile Conversation UI/UX Adjustments (Spacing, Bubble Widths & Typography)
-**Status:** DONE
-**Summary:** Restricted user typed prompt chat bubble width to a maximum of 60% of the screen width (retaining content wrap below that width). Increased default bodyLarge, bodyMedium, and bodySmall line heights and letter spacing globally. Upgraded message body font in chat bubbles to bodyLarge with a generous line spacing (24.sp) and padding. Increased vertical layout margins between consecutive interactions and widgets for a spacious, modern, and breathing layout.
-
-### 14. Local Notification Interception & On-Device Digest (LiteRT-LM Migration)
-**Status:** DONE
-**Summary:** Swapped the cloud-based notification interception with Room-based local persistence database. Replaced MediaPipe GenAI with LiteRT-LM (`com.google.ai.edge.litertlm:litertlm-android:latest.release`) for on-device notification classification (into CRITICAL/DIGEST) and structured summary digest generation via local Gemma LLM models. Extracted text responses natively from the JNI-backed `Message.contents.contents` properties and verified it builds and compiles successfully.
-
-### 15. Next.js 16 Configuration Allowed Dev Origins Hotfix
-**Status:** DONE
-**Summary:** Moved `allowedDevOrigins` configuration from the `experimental` block to the top level of the config in `next.config.ts` to support Next.js 16 schema changes. Additionally configured `turbopack.root` path resolution to resolve the multiple lockfiles workspace warning.
-
-### 16. Local @kai Apps App Drawer & Tool Calling Integration
-**Status:** DONE
-**Summary:** Registered `@kai`, `@kainotes`, `@kaicalendar`, and `@kaiclock` as first-class local app connections in `LauncherActivity.kt`. Prioritized local apps at the top of the App Drawer and added "Local App" badges. Updated `LauncherActivity.kt` screen routing for bare mentions (`@kainotes`, `@kaicalendar`) and `/open` commands. Updated `LocalAgentEngine.kt` to recognize `@kai*` app targets (`kainotes`, `kaicalendar`, `kaiclock`, `kai`), whitelist local target routing, and expanded rule fallback handlers for notes, alarms, and calendar events.
-
-### 17. Local Kai Apps Screen Overhaul & Navigation Alignment
-**Status:** DONE
-**Summary:** Overhauled `LocalNotesScreen.kt`, `LocalCalendarScreen.kt`, and created `LocalClockScreen.kt`. Unified header navigation in `LauncherActivity.kt` so non-home screens present a clean top back button and title header, while hiding the bottom prompt input box to avoid layout overlap. Built Material 3 search filtering, note editors, agenda cards, alarm managers, and empty state layouts. Verified clean compilation via `gradlew assembleDebug`.
-
-### 18. Intent Layer & Settings Overhaul (On-Device Gemma 4 Reason Validation + App Settings)
-**Status:** DONE
-**Summary:** Implemented the complete Intent Gate system and Settings Overhaul. Added Supabase database tables (`intent_logs`, `user_settings`, and cooling-off extensions to `user_app_configs`) and database helpers. Created Next.js API endpoints (`/api/intent/log`, `/api/settings`, `/api/settings/apps`). Built on-device intent reason validation using Gemma 4 via LiteRT-LM SDK (`OnDeviceIntentValidator.kt`). Added `IntentViewModel.kt` for state management. Wired `LauncherActivity.kt` to intercept `@app` mentions for distracting apps, clear chat input box on distracting mention, present 6 time pills (5m-1hr), 80-character reason limit, live character counter, validation feedback, and budget indicator. Disabled send button and made open app icon button grayed out until time + valid reason are set. Overhauled Settings drawer header to "Settings" and replaced boilerplate toggles with "App Settings" and "System Settings". Built `AppSettingsScreen.kt` with a daily leisure budget slider and per-app distraction toggles with 12-hour cooling-off period protection. Verified builds via Next.js `npm run build` and Android `gradlew assembleDebug`.
+**Branch:** `main`
+**Summary:** Overhauled the Notification Interceptor and Settings architecture:
+- **Logcat Diagnostic Logs**: Added explicit `KairosNotificationListener` & `KairosNotificationClassifier` Logcat output indicating LiteRT-LM (Gemma) model status, prompt inputs, and raw Gemma output.
+- **Removed Hardcoded Tier 0 System Bypasses**: Removed system-level blanket overrides (`CATEGORY_MESSAGE`, package name checks for dialer/messaging) in favor of pure settings-driven policy & AI/heuristic message content evaluation.
+- **Settings-Level Default Whitelisting**: Essential core native apps (Dialer, SMS, Clock, Calendar) automatically seed into Room DB as **Allowed (Whitelisted)** on initial launch.
+- **Per-App Notification Rules Screen (`NotificationRulesScreen.kt`)**: Implemented a dedicated screen with search filtering and 3-way segmented toggles (**Allowed**, **Blocked**, **Kai Decides**), persisted in Room DB (`AppNotificationRuleEntity`, `AppNotificationRuleDao`).
+- **0ms Instant Local-First Toggles**: App distraction toggles, leisure sliders, and notification rules update local `SharedPreferences` and Room DB immediately for 0ms UI latency, with background non-blocking cloud synchronization.
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL.
 
 ### 20. Kai Local Apps UI Refinements, Markdown Editor & Header Save Status, Vertical Timer Slider, and Google Sans Typography
 **Status:** DONE
-**Branch:** `feature/kai-apps-ui-refinements`
+**Branch:** `main`
 **Summary:** Executed requested visual and functional refinements across Kai Notes, Kai Calendar, and Kai Clock/Alarm:
 - **Kai Notes Main View:** Removed "Notes & Thoughts" header line. Made search bar full-width. Replaced top add button with a floating circular `+` button positioned at ~60% height from top of screen.
 - **Kai Notes Editor:** Removed bottom `EDIT`, `PREVIEW`, `CANCEL`, `SAVE NOTE` buttons and `EDIT NOTE` text. Default view opens in Markdown Preview Mode; tapping/clicking content seamlessly switches into Edit Mode. Borderless title with 24.sp bold and low-opacity bottom indicator line.
@@ -102,6 +29,10 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 - **Kai Calendar:** Removed "Upcoming Agenda" header text. Replaced add event button with floating `+` circle button at ~60% height. Updated `LocalCalendarController.kt` to query system primary calendar ID (`CalendarContract.Calendars.CONTENT_URI`) for native Android calendar event sync.
 - **Typography:** Changed action button fonts across all 3 apps to `googleSansFont`.
 - **Verification:** `./gradlew assembleDebug` — BUILD SUCCESSFUL.
+
+### 18. Intent Layer & Settings Overhaul (On-Device Gemma 4 Reason Validation + App Settings)
+**Status:** DONE
+**Summary:** Implemented the complete Intent Gate system and Settings Overhaul. Added Supabase database tables (`intent_logs`, `user_settings`, and cooling-off extensions to `user_app_configs`) and database helpers. Created Next.js API endpoints (`/api/intent/log`, `/api/settings`, `/api/settings/apps`). Built on-device intent reason validation using Gemma 4 via LiteRT-LM SDK (`OnDeviceIntentValidator.kt`). Added `IntentViewModel.kt` for state management. Wired `LauncherActivity.kt` to intercept `@app` mentions for distracting apps, clear chat input box on distracting mention, present 6 time pills (5m-1hr), 80-character reason limit, live character counter, validation feedback, and budget indicator. Disabled send button and made open app icon button grayed out until time + valid reason are set. Overhauled Settings drawer header to "Settings" and replaced boilerplate toggles with "App Settings" and "System Settings". Built `AppSettingsScreen.kt` with a daily leisure budget slider and per-app distraction toggles with 12-hour cooling-off period protection. Verified builds via Next.js `npm run build` and Android `gradlew assembleDebug`.
 
 ---
 
