@@ -1,9 +1,15 @@
 package com.kairos.os.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -14,11 +20,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.kairos.os.domain.tools.CalendarEvent
 import com.kairos.os.domain.tools.LocalCalendarController
+import com.kairos.os.ui.googleSansFont
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -28,6 +37,7 @@ fun LocalCalendarScreen(
     calendarController: LocalCalendarController,
     onBack: () -> Unit
 ) {
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var events by remember { mutableStateOf<List<CalendarEvent>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
@@ -48,8 +58,28 @@ fun LocalCalendarScreen(
         events = calendarController.listEvents(startOfDay, endOfSevenDays)
     }
 
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.READ_CALENDAR] == true &&
+            permissions[Manifest.permission.WRITE_CALENDAR] == true) {
+            refreshEvents()
+        }
+    }
+
     LaunchedEffect(Unit) {
-        refreshEvents()
+        val hasRead = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+        val hasWrite = ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
+        if (!hasRead || !hasWrite) {
+            permissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.READ_CALENDAR,
+                    Manifest.permission.WRITE_CALENDAR
+                )
+            )
+        } else {
+            refreshEvents()
+        }
     }
 
     Box(
@@ -59,31 +89,6 @@ fun LocalCalendarScreen(
             .padding(horizontal = 24.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Upcoming Agenda (${events.size})",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Button(
-                    onClick = { showAddDialog = true },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Add Event", style = MaterialTheme.typography.labelLarge)
-                }
-            }
-
             if (events.isEmpty()) {
                 Box(
                     modifier = Modifier
@@ -101,13 +106,13 @@ fun LocalCalendarScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = "No Upcoming Events",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium.copy(fontFamily = googleSansFont),
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Tap '+ Add Event' above or prompt @kaicalendar in chat.",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "Tap '+' floating button or prompt @kaicalendar in chat.",
+                            style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -116,13 +121,30 @@ fun LocalCalendarScreen(
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                    contentPadding = PaddingValues(bottom = 120.dp)
                 ) {
                     items(events, key = { it.id }) { event ->
                         CalendarEventCard(event = event)
                     }
                 }
             }
+        }
+
+        // Floating Circular '+' Button at Bottom Right with increased bottom margin
+        FloatingActionButton(
+            onClick = { showAddDialog = true },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 40.dp, end = 12.dp),
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = Color.Black,
+            shape = CircleShape
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add Event",
+                modifier = Modifier.size(28.dp)
+            )
         }
 
         if (showAddDialog) {
@@ -174,6 +196,7 @@ fun CalendarEventCard(event: CalendarEvent) {
                     text = event.title,
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
+                    fontFamily = googleSansFont,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -181,14 +204,16 @@ fun CalendarEventCard(event: CalendarEvent) {
                     text = "$startStr - $endStr",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium
+                    fontWeight = FontWeight.Medium,
+                    fontFamily = googleSansFont
                 )
                 if (event.description.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = event.description,
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontFamily = googleSansFont
                     )
                 }
             }
@@ -207,27 +232,27 @@ fun AddCalendarEventDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Schedule New Event", style = MaterialTheme.typography.titleLarge) },
+        title = { Text("Schedule New Event", style = MaterialTheme.typography.titleLarge.copy(fontFamily = googleSansFont)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = titleText,
                     onValueChange = { titleText = it },
-                    label = { Text("Event Title") },
+                    label = { Text("Event Title", fontFamily = googleSansFont) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
                     value = descText,
                     onValueChange = { descText = it },
-                    label = { Text("Description") },
+                    label = { Text("Description", fontFamily = googleSansFont) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
                 OutlinedTextField(
                     value = durationText,
                     onValueChange = { durationText = it },
-                    label = { Text("Duration (minutes)") },
+                    label = { Text("Duration (minutes)", fontFamily = googleSansFont) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -241,14 +266,18 @@ fun AddCalendarEventDialog(
                         onAdd(titleText, descText, duration)
                     }
                 },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.Black
+                )
             ) {
-                Text("Schedule")
+                Text("SCHEDULE", style = MaterialTheme.typography.labelLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("CANCEL", style = MaterialTheme.typography.labelLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold))
             }
         }
     )

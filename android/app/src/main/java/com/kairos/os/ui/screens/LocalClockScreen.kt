@@ -1,10 +1,13 @@
 package com.kairos.os.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -16,11 +19,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kairos.os.data.db.LocalAlarm
 import com.kairos.os.domain.tools.LocalAlarmController
+import com.kairos.os.ui.dotoFont
+import com.kairos.os.ui.googleSansFont
 import kotlinx.coroutines.launch
 
 @Composable
@@ -29,8 +36,19 @@ fun LocalClockScreen(
     onBack: () -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
+    var selectedTab by remember { mutableIntStateOf(0) }
     var alarms by remember { mutableStateOf<List<LocalAlarm>>(emptyList()) }
-    var showAddDialog by remember { mutableStateOf(false) }
+    var showAddAlarmDialog by remember { mutableStateOf(false) }
+    var alarmToDelete by remember { mutableStateOf<LocalAlarm?>(null) }
+
+    val timerRemaining by alarmController.timerRemaining.collectAsState()
+    val timerDuration by alarmController.timerDuration.collectAsState()
+    val timerRunning by alarmController.timerRunning.collectAsState()
+    val timerPaused by alarmController.timerPaused.collectAsState()
+
+    var selectedHours by remember { mutableIntStateOf(0) }
+    var selectedMinutes by remember { mutableIntStateOf(5) }
+    var selectedSeconds by remember { mutableIntStateOf(0) }
 
     fun refreshAlarms() {
         coroutineScope.launch {
@@ -49,91 +67,438 @@ fun LocalClockScreen(
             .padding(horizontal = 24.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+            // Tab Header (ALARMS / TIMER)
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = Color.Transparent,
+                contentColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(bottom = 16.dp)
             ) {
-                Text(
-                    text = "Scheduled Alarms (${alarms.size})",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = {
+                        Text(
+                            text = "ALARMS",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontFamily = googleSansFont,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
                 )
-                Button(
-                    onClick = { showAddDialog = true },
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Add Alarm", style = MaterialTheme.typography.labelLarge)
-                }
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = {
+                        Text(
+                            text = "TIMER",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontFamily = googleSansFont,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
+                )
             }
 
-            if (alarms.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Alarm,
-                            contentDescription = "No Alarms",
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                            modifier = Modifier.size(64.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "No Alarms Scheduled",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Tap '+ Add Alarm' above or prompt @kaiclock in chat.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+            if (selectedTab == 0) {
+                // Alarms Tab Content
+                if (alarms.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Alarm,
+                                contentDescription = "No Alarms",
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No Alarms Scheduled",
+                                style = MaterialTheme.typography.titleMedium.copy(fontFamily = googleSansFont),
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Tap '+' floating button or prompt @kaiclock in chat.",
+                                style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 120.dp)
+                    ) {
+                        items(alarms, key = { it.id }) { alarm ->
+                            AlarmCard(
+                                alarm = alarm,
+                                onDelete = {
+                                    alarmToDelete = alarm
+                                }
+                            )
+                        }
                     }
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 32.dp)
+                // Timer Tab Content
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 8.dp, bottom = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    items(alarms, key = { it.id }) { alarm ->
-                        AlarmCard(
-                            alarm = alarm,
-                            onDelete = {
-                                coroutineScope.launch {
-                                    alarmController.cancelAlarm(alarm.id)
-                                    refreshAlarms()
+                    if (!timerRunning && !timerPaused) {
+                        // Idle Timer Setup View with HH:MM:SS Scrollers
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "SELECT TIMER DURATION",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontFamily = googleSansFont,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            HmsTimerPicker(
+                                hours = selectedHours,
+                                minutes = selectedMinutes,
+                                seconds = selectedSeconds,
+                                onHoursChanged = { selectedHours = it },
+                                onMinutesChanged = { selectedMinutes = it },
+                                onSecondsChanged = { selectedSeconds = it },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        val totalDurationMs = ((selectedHours * 3600) + (selectedMinutes * 60) + selectedSeconds) * 1000L
+
+                        Button(
+                            onClick = {
+                                if (totalDurationMs > 0) {
+                                    alarmController.startTimer(totalDurationMs, "Timer")
+                                }
+                            },
+                            enabled = totalDurationMs > 0,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Text(
+                                text = "START TIMER",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontFamily = googleSansFont,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    } else {
+                        // Active Timer Countdown View
+                        val remainingSec = (timerRemaining / 1000).toInt()
+                        val hrs = remainingSec / 3600
+                        val mins = (remainingSec % 3600) / 60
+                        val secs = remainingSec % 60
+                        val displayTime = if (hrs > 0) {
+                            String.format("%02d:%02d:%02d", hrs, mins, secs)
+                        } else {
+                            String.format("%02d:%02d", mins, secs)
+                        }
+                        val progress = if (timerDuration > 0) timerRemaining.toFloat() / timerDuration.toFloat() else 0f
+
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(240.dp)
+                            ) {
+                                CircularProgressIndicator(
+                                    progress = { progress },
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    strokeWidth = 8.dp,
+                                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = displayTime,
+                                        fontSize = if (hrs > 0) 36.sp else 48.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        fontFamily = dotoFont,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = if (timerPaused) "PAUSED" else "RUNNING",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontFamily = googleSansFont,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (timerPaused) Color(0xFFFF6B00) else MaterialTheme.colorScheme.primary
+                                        )
+                                    )
                                 }
                             }
-                        )
+                        }
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedButton(
+                                onClick = {
+                                    if (timerPaused) {
+                                        alarmController.resumeTimer()
+                                    } else {
+                                        alarmController.pauseTimer()
+                                    }
+                                },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
+                                Text(
+                                    text = if (timerPaused) "RESUME" else "PAUSE",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontFamily = googleSansFont,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                            Button(
+                                onClick = { alarmController.cancelTimer() },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error,
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Text(
+                                    text = "CANCEL",
+                                    style = MaterialTheme.typography.labelLarge.copy(
+                                        fontFamily = googleSansFont,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
 
-        if (showAddDialog) {
+        // Floating Circular '+' Button at Bottom Right with increased bottom margin (Only visible in Alarms tab)
+        if (selectedTab == 0) {
+            FloatingActionButton(
+                onClick = { showAddAlarmDialog = true },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 40.dp, end = 12.dp),
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.Black,
+                shape = CircleShape
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Alarm",
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
+
+        // Alarm Delete Confirmation Dialog
+        alarmToDelete?.let { alarm ->
+            AlertDialog(
+                onDismissRequest = { alarmToDelete = null },
+                title = { Text("Delete Alarm", style = MaterialTheme.typography.titleMedium.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold)) },
+                text = { Text("Are you sure you want to delete this item?", style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont)) },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                alarmController.cancelAlarm(alarm.id)
+                                refreshAlarms()
+                                alarmToDelete = null
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = Color.White),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Delete", fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { alarmToDelete = null }) {
+                        Text("Cancel", fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
+                    }
+                }
+            )
+        }
+
+        if (showAddAlarmDialog) {
             AddAlarmDialog(
-                onDismiss = { showAddDialog = false },
+                onDismiss = { showAddAlarmDialog = false },
                 onAdd = { hour, minute, label ->
                     coroutineScope.launch {
                         alarmController.setAlarm(hour, minute, label)
                         refreshAlarms()
-                        showAddDialog = false
+                        showAddAlarmDialog = false
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+fun HmsTimerPicker(
+    hours: Int,
+    minutes: Int,
+    seconds: Int,
+    onHoursChanged: (Int) -> Unit,
+    onMinutesChanged: (Int) -> Unit,
+    onSecondsChanged: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SingleUnitWheel(
+            value = hours,
+            range = 0..23,
+            label = "h",
+            onValueChanged = onHoursChanged,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = ":",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+        SingleUnitWheel(
+            value = minutes,
+            range = 0..59,
+            label = "m",
+            onValueChanged = onMinutesChanged,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = ":",
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+        SingleUnitWheel(
+            value = seconds,
+            range = 0..59,
+            label = "s",
+            onValueChanged = onSecondsChanged,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+fun SingleUnitWheel(
+    value: Int,
+    range: IntRange,
+    label: String,
+    onValueChanged: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val itemHeight = 50.dp
+    val visibleHeight = 150.dp
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = (value - range.first).coerceAtLeast(0))
+    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+
+    LaunchedEffect(listState.firstVisibleItemIndex) {
+        val selectedIndex = listState.firstVisibleItemIndex
+        val centerValue = (selectedIndex + range.first).coerceIn(range.first, range.last)
+        if (centerValue != value) {
+            onValueChanged(centerValue)
+        }
+    }
+
+    val coroutineScope = rememberCoroutineScope()
+
+    Box(
+        modifier = modifier
+            .height(visibleHeight)
+            .clip(RectangleShape), // Clean clipping at container borders without background pill
+        contentAlignment = Alignment.Center
+    ) {
+        LazyColumn(
+            state = listState,
+            flingBehavior = flingBehavior,
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(vertical = 50.dp), // Vertical padding so center element aligns perfectly
+            modifier = Modifier.fillMaxSize()
+        ) {
+            items(range.last - range.first + 1) { idx ->
+                val currentVal = range.first + idx
+                val isSelected = currentVal == value
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(itemHeight)
+                        .clickable {
+                            onValueChanged(currentVal)
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(idx)
+                            }
+                        }
+                ) {
+                    Text(
+                        text = String.format("%02d", currentVal),
+                        fontSize = if (isSelected) 32.sp else 20.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        fontFamily = googleSansFont,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.width(2.dp))
+                    Text(
+                        text = label,
+                        fontSize = 14.sp,
+                        fontFamily = googleSansFont,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                    )
+                }
+            }
         }
     }
 }
@@ -171,6 +536,7 @@ fun AlarmCard(
                         text = displayTime,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
+                        fontFamily = dotoFont,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.width(6.dp))
@@ -178,6 +544,7 @@ fun AlarmCard(
                         text = amPm,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
+                        fontFamily = googleSansFont,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(bottom = 4.dp)
                     )
@@ -185,7 +552,7 @@ fun AlarmCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = alarm.label.ifBlank { "Alarm" },
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont),
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -212,21 +579,21 @@ fun AddAlarmDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Set New Alarm", style = MaterialTheme.typography.titleLarge) },
+        title = { Text("Set New Alarm", style = MaterialTheme.typography.titleLarge.copy(fontFamily = googleSansFont)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = hourText,
                         onValueChange = { hourText = it },
-                        label = { Text("Hour (0-23)") },
+                        label = { Text("Hour (0-23)", fontFamily = googleSansFont) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     )
                     OutlinedTextField(
                         value = minuteText,
                         onValueChange = { minuteText = it },
-                        label = { Text("Minute (0-59)") },
+                        label = { Text("Minute (0-59)", fontFamily = googleSansFont) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     )
@@ -234,7 +601,7 @@ fun AddAlarmDialog(
                 OutlinedTextField(
                     value = labelText,
                     onValueChange = { labelText = it },
-                    label = { Text("Alarm Label") },
+                    label = { Text("Alarm Label", fontFamily = googleSansFont) },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -247,14 +614,18 @@ fun AddAlarmDialog(
                     val minute = minuteText.toIntOrNull()?.coerceIn(0, 59) ?: 0
                     onAdd(hour, minute, labelText)
                 },
-                shape = RoundedCornerShape(12.dp)
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.Black
+                )
             ) {
-                Text("Set Alarm")
+                Text("SET ALARM", style = MaterialTheme.typography.labelLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("CANCEL", style = MaterialTheme.typography.labelLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold))
             }
         }
     )
