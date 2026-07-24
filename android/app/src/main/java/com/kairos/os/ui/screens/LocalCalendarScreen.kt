@@ -2,6 +2,7 @@ package com.kairos.os.ui.screens
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.provider.CalendarContract
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
