@@ -76,7 +76,7 @@ fun CollapsedAgentStack(
             agents.reversed().forEachIndexed { index, agent ->
                 val reverseIndex = agents.size - 1 - index
                 val scale = 1f - (reverseIndex * 0.04f)
-                val yOffset = reverseIndex * 8.dp
+                val yOffset = (reverseIndex * 8).dp
                 val alphaVal = if (reverseIndex == 0) 1f else 0.75f - (reverseIndex * 0.2f)
 
                 RunningAgentCard(

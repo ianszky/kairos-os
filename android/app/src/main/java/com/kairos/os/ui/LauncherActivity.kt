@@ -956,9 +956,14 @@ fun MindfulLauncherScreen(
                                 chatViewModel.onPromptResponse(finalCloudConvId)
 
                                 launch {
-                                    val genTitle = localTitleGenerator.generateAndSaveTitle(finalCloudConvId, currentIntent, isLocal = false)
+                                    localTitleGenerator.generateAndSaveTitle(finalCloudConvId, currentIntent, isLocal = false)
                                     chatViewModel.onPromptResponse(finalCloudConvId)
-                                    genTitle?.let { runningAgentsViewModel.updateTitle(finalCloudConvId, it) }
+                                    val title = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                        localConversationDao.getConversationById(finalCloudConvId)?.title
+                                    }
+                                    if (title != null) {
+                                        runningAgentsViewModel.updateTitle(finalCloudConvId, title)
+                                    }
                                 }
 
                                 runningAgentsViewModel.complete(finalCloudConvId, response)
@@ -968,9 +973,14 @@ fun MindfulLauncherScreen(
                                 chatViewModel.onPromptResponse(resolvedConvId)
 
                                 launch {
-                                    val genTitle = localTitleGenerator.generateAndSaveTitle(resolvedConvId, currentIntent, isLocal = true)
+                                    localTitleGenerator.generateAndSaveTitle(resolvedConvId, currentIntent, isLocal = true)
                                     chatViewModel.onPromptResponse(resolvedConvId)
-                                    genTitle?.let { runningAgentsViewModel.updateTitle(resolvedConvId, it) }
+                                    val title = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                        localConversationDao.getConversationById(resolvedConvId)?.title
+                                    }
+                                    if (title != null) {
+                                        runningAgentsViewModel.updateTitle(resolvedConvId, title)
+                                    }
                                 }
                                 runningAgentsViewModel.complete(resolvedConvId, localResponse)
                                 interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
