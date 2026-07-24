@@ -958,9 +958,7 @@ fun MindfulLauncherScreen(
                                 launch {
                                     localTitleGenerator.generateAndSaveTitle(finalCloudConvId, currentIntent, isLocal = false)
                                     chatViewModel.onPromptResponse(finalCloudConvId)
-                                    val title = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                        localConversationDao.getConversationById(finalCloudConvId)?.title
-                                    }
+                                    val title = conversations.find { it.id == finalCloudConvId }?.title
                                     if (title != null) {
                                         runningAgentsViewModel.updateTitle(finalCloudConvId, title)
                                     }
@@ -975,9 +973,7 @@ fun MindfulLauncherScreen(
                                 launch {
                                     localTitleGenerator.generateAndSaveTitle(resolvedConvId, currentIntent, isLocal = true)
                                     chatViewModel.onPromptResponse(resolvedConvId)
-                                    val title = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                        localConversationDao.getConversationById(resolvedConvId)?.title
-                                    }
+                                    val title = conversations.find { it.id == resolvedConvId }?.title
                                     if (title != null) {
                                         runningAgentsViewModel.updateTitle(resolvedConvId, title)
                                     }
