@@ -60,4 +60,9 @@ object DatabaseModule {
     fun provideAppNotificationRuleDao(db: KairosDatabase): com.kairos.os.data.db.AppNotificationRuleDao {
         return db.appNotificationRuleDao()
     }
+
+    @Provides
+    fun provideRunningAgentDao(db: KairosDatabase): com.kairos.os.data.db.RunningAgentDao {
+        return db.runningAgentDao()
+    }
 }

@@ -426,8 +426,13 @@ fun MindfulLauncherScreen(
     val currentConversationId by chatViewModel.currentConversationId.collectAsState()
     val currentMessages by chatViewModel.currentMessages.collectAsState()
 
+    val runningAgentsViewModel: com.kairos.os.ui.viewmodels.RunningAgentsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val runningAgents by runningAgentsViewModel.agents.collectAsState()
+    var isAgentsExpanded by remember { mutableStateOf(false) }
+
     LaunchedEffect(Unit) {
         chatViewModel.loadConversations()
+        runningAgentsViewModel.cleanupStale()
     }
 
     var isSidebarOpen by remember { mutableStateOf(false) }
@@ -883,12 +888,14 @@ fun MindfulLauncherScreen(
                         )
                     }
                 }
-                isChatOpen = true
+                // Do NOT set isChatOpen = true — remain on home screen as central hub
                 interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
                 isLoading = true
-                interactions.add(com.kairos.os.domain.models.Interaction.Loading())
                 termInput = ""
                 selectedAttachments.clear()
+
+                val dispatchConvId = currentConversationId ?: java.util.UUID.randomUUID().toString()
+                runningAgentsViewModel.dispatch(dispatchConvId, currentIntent, isLocal = true)
 
                 val isDigest = currentTarget == "digest" || currentIntent.contains("@digest") || currentIntent.lowercase().trim() == "digest"
 
@@ -896,14 +903,17 @@ fun MindfulLauncherScreen(
                     coroutineScope.launch {
                         try {
                             val response = localDigestGenerator.generateDigest()
+                            runningAgentsViewModel.complete(dispatchConvId, response)
                             interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                             interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
                         } catch (e: Exception) {
+                            val errMessage = "Failed to compile local digest: ${e.message}"
+                            runningAgentsViewModel.markError(dispatchConvId, errMessage)
                             interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                             interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
                                 com.kairos.os.domain.models.KairosResponse(
                                     type = "ERROR",
-                                    text = "Failed to compile local digest: ${e.message}"
+                                    text = errMessage
                                 )
                             ))
                         } finally {
@@ -913,14 +923,9 @@ fun MindfulLauncherScreen(
                 } else {
                     coroutineScope.launch {
                         try {
-                            var activeConvId = currentConversationId
                             val user = supabaseClient.auth.currentSessionOrNull()?.user
                             val userId = user?.id ?: "local_user"
-
-                            if (activeConvId == null) {
-                                activeConvId = java.util.UUID.randomUUID().toString()
-                            }
-                            val resolvedConvId = activeConvId
+                            val resolvedConvId = dispatchConvId
 
                             val localResponse = localAgentEngine.execute(
                                 prompt = currentIntent,
@@ -951,28 +956,34 @@ fun MindfulLauncherScreen(
                                 chatViewModel.onPromptResponse(finalCloudConvId)
 
                                 launch {
-                                    localTitleGenerator.generateAndSaveTitle(finalCloudConvId, currentIntent, isLocal = false)
+                                    val genTitle = localTitleGenerator.generateAndSaveTitle(finalCloudConvId, currentIntent, isLocal = false)
                                     chatViewModel.onPromptResponse(finalCloudConvId)
+                                    genTitle?.let { runningAgentsViewModel.updateTitle(finalCloudConvId, it) }
                                 }
 
+                                runningAgentsViewModel.complete(finalCloudConvId, response)
                                 interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                 interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
                             } else {
                                 chatViewModel.onPromptResponse(resolvedConvId)
 
                                 launch {
-                                    localTitleGenerator.generateAndSaveTitle(resolvedConvId, currentIntent, isLocal = true)
+                                    val genTitle = localTitleGenerator.generateAndSaveTitle(resolvedConvId, currentIntent, isLocal = true)
                                     chatViewModel.onPromptResponse(resolvedConvId)
+                                    genTitle?.let { runningAgentsViewModel.updateTitle(resolvedConvId, it) }
                                 }
+                                runningAgentsViewModel.complete(resolvedConvId, localResponse)
                                 interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                 interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(localResponse))
                             }
                         } catch (e: Exception) {
+                            val errText = "Failed to process query: ${e.message}"
+                            runningAgentsViewModel.markError(dispatchConvId, errText)
                             interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                             interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
                                 com.kairos.os.domain.models.KairosResponse(
                                     type = "ERROR",
-                                    text = "Failed to process query: ${e.message}"
+                                    text = errText
                                 )
                             ))
                         } finally {
@@ -1217,6 +1228,26 @@ fun MindfulLauncherScreen(
                             ) {
                                 ClockView()
                             }
+
+                            if (isAgentsExpanded && runningAgents.isNotEmpty()) {
+                                com.kairos.os.ui.components.ExpandedAgentList(
+                                    agents = runningAgents,
+                                    onCollapse = { isAgentsExpanded = false },
+                                    onViewAgent = { id ->
+                                        isAgentsExpanded = false
+                                        chatViewModel.selectConversation(id)
+                                        val agent = runningAgents.find { it.id == id }
+                                        interactions.clear()
+                                        interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(agent?.prompt ?: ""))
+                                        agent?.response?.let {
+                                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(it))
+                                        }
+                                        isChatOpen = true
+                                    },
+                                    onCancelAgent = { runningAgentsViewModel.cancel(it) },
+                                    hazeState = hazeState
+                                )
+                            }
                         } else {
                             ChatView(
                                 interactions = interactions,
@@ -1357,6 +1388,25 @@ fun MindfulLauncherScreen(
                     .navigationBarsPadding()
                     .padding(24.dp)
             ) {
+                if (!isChatOpen && runningAgents.isNotEmpty() && !isAgentsExpanded) {
+                    com.kairos.os.ui.components.CollapsedAgentStack(
+                        agents = runningAgents.take(3),
+                        totalCount = runningAgents.size,
+                        onTapStack = { isAgentsExpanded = true },
+                        onViewAgent = { id ->
+                            chatViewModel.selectConversation(id)
+                            val agent = runningAgents.find { it.id == id }
+                            interactions.clear()
+                            interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(agent?.prompt ?: ""))
+                            agent?.response?.let {
+                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(it))
+                            }
+                            isChatOpen = true
+                        },
+                        onCancelAgent = { runningAgentsViewModel.cancel(it) }
+                    )
+                }
+
                 AnimatedVisibility(visible = isAppDrawerOpen) {
                     val filteredApps = availableApps.filter { 
                         it.id.contains(searchQuery, ignoreCase = true) || 

@@ -7,6 +7,17 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 23. Running Agents Widget & Home Screen Central Operations Hub Overhaul
+**Status:** DONE
+**Branch:** `feature/running-agents-widget`
+**Summary:** Overhauled the home screen experience to make KAIROS OS feel like a true agentic central hub of operations:
+- **No-Redirect Prompt Dispatch**: Dispatching a prompt from the home screen command bar no longer forces navigation away to the full chat screen. The home screen remains active.
+- **Running Agent Cards (`RunningAgentCard.kt`)**: Implemented translucent notification-style cards displaying the task title (generated locally via Gemma 4), real-time status ("Processing...", "Complete", "Failed", "Cancelled"), pulsing orange indicator dot, a primary "View" action button, and a cancel/dismiss option.
+- **Stacked Card Container (`RunningAgentsWidget.kt`)**: Positions cards directly above the chat input bar. When 2 or 3 tasks are running concurrently, cards visually stack with depth scaling and Z-offset peek layers.
+- **Expanded Full-Screen View (`ExpandedAgentList`)**: Tapping the stacked card header expands the list into a full-screen scrollable view over a blurred home screen background (powered by `hazeChild`).
+- **Room Database Persistence**: Created `RunningAgentEntity` and `RunningAgentDao` in Room DB for state persistence across app restarts, with automatic 24-hour cleanup of completed/cancelled tasks.
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 22s.
+
 ### 21. Notification Interceptor Audit, Logcat Diagnostics, 0ms Instant Settings & Per-App Rules Overhaul
 **Status:** DONE
 **Branch:** `main`
