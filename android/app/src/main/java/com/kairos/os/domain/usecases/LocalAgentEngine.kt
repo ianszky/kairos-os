@@ -194,17 +194,30 @@ class LocalAgentEngine @Inject constructor(
         val engine = localLlmClient.getEngine()
             ?: return KairosResponse(type = "TEXT", text = "LiteRT-LM local engine not available.")
 
+        val currentDateStr = SimpleDateFormat("yyyy-MM-dd HH:mm EEEE", Locale.getDefault()).format(Date())
+
         val systemPrompt = """
-            You are the local KAIROS OS agent. You execute actions on the phone using Notes, Alarms, and Calendar tools.
+            You are the local KAIROS OS agent. You execute actions on the phone using Notes, Alarms, Timers, and Calendar tools.
+            Current date and time: $currentDateStr
+
             Available Tools:
             1. create_note(title: String, content: String)
             2. list_notes()
-            3. set_alarm(hour: Int, minute: Int, label: String)
-            4. list_alarms()
-            5. create_calendar_event(title: String, description: String, start_date: String, start_time: String, duration_minutes: Int)
-               - Format start_date as YYYY-MM-DD
-               - Format start_time as HH:MM
-            6. list_calendar_events()
+            3. search_notes(query: String)
+            4. update_note(id: Int, title: String, content: String)
+            5. delete_note(id: Int)
+            6. set_alarm(hour: Int, minute: Int, label: String)
+            7. list_alarms()
+            8. cancel_alarm(id: Int)
+            9. start_timer(hours: Int, minutes: Int, seconds: Int, label: String)
+               - Starts a countdown timer for specified hours, minutes, and seconds
+            10. cancel_timer()
+            11. create_calendar_event(title: String, description: String, start_date: String, start_time: String, duration_minutes: Int)
+                - Format start_date as YYYY-MM-DD
+                - Format start_time as HH:MM
+            12. list_calendar_events()
+            13. list_calendar_events_range(start_date: String, end_date: String)
+            14. delete_calendar_event(id: Long)
 
             Analyze the user command: "$prompt"
             Respond strictly with a JSON object. No markdown styling, no ```json formatting.
@@ -271,6 +284,42 @@ class LocalAgentEngine @Inject constructor(
                         )
                     )
                 }
+                "search_notes" -> {
+                    val query = args?.get("query")?.jsonPrimitive?.content ?: ""
+                    val notes = notesController.searchNotes(query)
+                    KairosResponse(
+                        type = "WIDGET",
+                        text = "Found ${notes.size} note(s) matching '$query'.",
+                        widget = WidgetPayload(
+                            widgetType = "NOTE_CARD",
+                            title = "Search Notes: '$query'",
+                            items = notes.map { WidgetItem(id = it.id.toString(), primary = it.title, secondary = it.content, icon = "note") }
+                        )
+                    )
+                }
+                "update_note" -> {
+                    val id = args?.get("id")?.jsonPrimitive?.int ?: 0
+                    val title = args?.get("title")?.jsonPrimitive?.content ?: "Untitled"
+                    val content = args?.get("content")?.jsonPrimitive?.content ?: ""
+                    val note = notesController.updateNote(id, title, content)
+                    KairosResponse(
+                        type = "WIDGET",
+                        text = "Updated note: '$title'",
+                        widget = WidgetPayload(
+                            widgetType = "NOTE_CARD",
+                            title = "Note Updated",
+                            items = listOf(WidgetItem(id = note.id.toString(), primary = note.title, secondary = note.content, icon = "note"))
+                        )
+                    )
+                }
+                "delete_note" -> {
+                    val id = args?.get("id")?.jsonPrimitive?.int ?: 0
+                    val deleted = notesController.deleteNote(id)
+                    KairosResponse(
+                        type = "TEXT",
+                        text = if (deleted) "Deleted note #$id." else "Note #$id not found."
+                    )
+                }
                 "set_alarm" -> {
                     val hour = args?.get("hour")?.jsonPrimitive?.int ?: 8
                     val minute = args?.get("minute")?.jsonPrimitive?.int ?: 0
@@ -298,6 +347,52 @@ class LocalAgentEngine @Inject constructor(
                         )
                     )
                 }
+                "cancel_alarm" -> {
+                    val id = args?.get("id")?.jsonPrimitive?.int ?: 0
+                    val success = alarmController.cancelAlarm(id)
+                    KairosResponse(
+                        type = "TEXT",
+                        text = if (success) "Cancelled alarm #$id." else "Alarm #$id not found."
+                    )
+                }
+                "start_timer" -> {
+                    val hours = args?.get("hours")?.jsonPrimitive?.int ?: 0
+                    val minutes = args?.get("minutes")?.jsonPrimitive?.int ?: 0
+                    val seconds = args?.get("seconds")?.jsonPrimitive?.int ?: 0
+                    val label = args?.get("label")?.jsonPrimitive?.content ?: "Timer"
+                    val totalDurationMs = ((hours * 3600L) + (minutes * 60L) + seconds) * 1000L
+
+                    if (totalDurationMs > 0) {
+                        alarmController.startTimer(totalDurationMs, label)
+                        val timeDesc = buildString {
+                            if (hours > 0) append("${hours}h ")
+                            if (minutes > 0) append("${minutes}m ")
+                            if (seconds > 0 || isEmpty()) append("${seconds}s")
+                        }.trim()
+                        KairosResponse(
+                            type = "WIDGET",
+                            text = "Started timer for $timeDesc ($label).",
+                            widget = WidgetPayload(
+                                widgetType = "TIMER_CONFIRM",
+                                title = "Timer Started",
+                                items = listOf(WidgetItem(id = "timer", primary = timeDesc, secondary = label, icon = "timer")),
+                                actions = listOf(
+                                    com.kairos.os.domain.models.WidgetAction(
+                                        label = "Open Clock",
+                                        actionType = "INTENT",
+                                        target = "android.intent.action.SHOW_TIMERS"
+                                    )
+                                )
+                            )
+                        )
+                    } else {
+                        KairosResponse(type = "TEXT", text = "Invalid timer duration specified.")
+                    }
+                }
+                "cancel_timer" -> {
+                    alarmController.cancelTimer()
+                    KairosResponse(type = "TEXT", text = "Timer cancelled.")
+                }
                 "create_calendar_event" -> {
                     val title = args?.get("title")?.jsonPrimitive?.content ?: "Meeting"
                     val description = args?.get("description")?.jsonPrimitive?.content ?: ""
@@ -314,15 +409,15 @@ class LocalAgentEngine @Inject constructor(
                         Log.e(TAG, "Error parsing calendar date/time", e)
                     }
 
-                    val success = calendarController.createEvent(title, description, calendar.timeInMillis, duration)
-                    if (success) {
+                    val eventId = calendarController.createEvent(title, description, calendar.timeInMillis, duration)
+                    if (eventId != null) {
                         KairosResponse(
                             type = "WIDGET",
                             text = "Scheduled calendar event: '$title'",
                             widget = WidgetPayload(
                                 widgetType = "CALENDAR_EVENT",
                                 title = "Event Scheduled",
-                                items = listOf(WidgetItem(id = "cal_event", primary = title, secondary = "$startDateStr at $startTimeStr ($duration min)", icon = "calendar"))
+                                items = listOf(WidgetItem(id = eventId.toString(), primary = title, secondary = "$startDateStr at $startTimeStr ($duration min)", icon = "calendar"))
                             )
                         )
                     } else {
@@ -346,9 +441,65 @@ class LocalAgentEngine @Inject constructor(
                         text = "Here is your schedule for today.",
                         widget = WidgetPayload(
                             widgetType = "CALENDAR_EVENT",
-                            title = "Today's Agenda",
-                            items = events.map { WidgetItem(id = it.id.toString(), primary = it.title, secondary = it.description, icon = "calendar") }
+                            title = "Today's Agenda (${events.size})",
+                            items = events.map { 
+                                WidgetItem(
+                                    id = it.id.toString(),
+                                    primary = it.title,
+                                    secondary = buildString {
+                                        append(it.description)
+                                        if (!it.accountName.isNullOrBlank()) {
+                                            if (isNotEmpty()) append(" • ")
+                                            append(it.accountName)
+                                        }
+                                    },
+                                    icon = "calendar"
+                                )
+                            }
                         )
+                    )
+                }
+                "list_calendar_events_range" -> {
+                    val startDateStr = args?.get("start_date")?.jsonPrimitive?.content ?: ""
+                    val endDateStr = args?.get("end_date")?.jsonPrimitive?.content ?: ""
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+
+                    val startMillis = try { dateFormat.parse(startDateStr)?.time ?: System.currentTimeMillis() } catch (e: Exception) { System.currentTimeMillis() }
+                    val endMillis = try { 
+                        val parsed = dateFormat.parse(endDateStr)
+                        if (parsed != null) parsed.time + 86399000L else System.currentTimeMillis() + (7 * 86400000L)
+                    } catch (e: Exception) { System.currentTimeMillis() + (7 * 86400000L) }
+
+                    val events = calendarController.listEvents(startMillis, endMillis)
+                    KairosResponse(
+                        type = "WIDGET",
+                        text = "Events from $startDateStr to $endDateStr (${events.size} total).",
+                        widget = WidgetPayload(
+                            widgetType = "CALENDAR_EVENT",
+                            title = "Agenda Range",
+                            items = events.map { 
+                                WidgetItem(
+                                    id = it.id.toString(),
+                                    primary = it.title,
+                                    secondary = buildString {
+                                        append(it.description)
+                                        if (!it.accountName.isNullOrBlank()) {
+                                            if (isNotEmpty()) append(" • ")
+                                            append(it.accountName)
+                                        }
+                                    },
+                                    icon = "calendar"
+                                )
+                            }
+                        )
+                    )
+                }
+                "delete_calendar_event" -> {
+                    val id = args?.get("id")?.jsonPrimitive?.long ?: 0L
+                    val deleted = calendarController.deleteEvent(id)
+                    KairosResponse(
+                        type = "TEXT",
+                        text = if (deleted) "Deleted calendar event #$id." else "Calendar event #$id not found."
                     )
                 }
                 else -> {
@@ -365,6 +516,37 @@ class LocalAgentEngine @Inject constructor(
     private suspend fun handleLocalRuleFallback(prompt: String): KairosResponse {
         val lower = prompt.lowercase()
         return when {
+            lower.contains("timer") || lower.contains("countdown") -> {
+                val regex = Regex("(\\d+)\\s*(hour|hr|minute|min|second|sec)")
+                val matches = regex.findAll(lower).toList()
+                var totalSec = 0L
+                for (match in matches) {
+                    val valNum = match.groupValues[1].toLongOrNull() ?: 0L
+                    val unit = match.groupValues[2]
+                    if (unit.startsWith("h")) totalSec += valNum * 3600
+                    else if (unit.startsWith("m")) totalSec += valNum * 60
+                    else if (unit.startsWith("s")) totalSec += valNum
+                }
+                if (totalSec == 0L) totalSec = 300L // Default 5 mins
+
+                alarmController.startTimer(totalSec * 1000L, "Timer")
+                KairosResponse(
+                    type = "WIDGET",
+                    text = "[Rule Fallback] Started timer for ${totalSec / 60}m ${totalSec % 60}s.",
+                    widget = WidgetPayload(
+                        widgetType = "TIMER_CONFIRM",
+                        title = "Timer Started",
+                        items = listOf(WidgetItem(id = "timer", primary = "${totalSec / 60}m ${totalSec % 60}s", secondary = "Timer", icon = "timer")),
+                        actions = listOf(
+                            com.kairos.os.domain.models.WidgetAction(
+                                label = "Open Clock",
+                                actionType = "INTENT",
+                                target = "android.intent.action.SHOW_TIMERS"
+                            )
+                        )
+                    )
+                )
+            }
             lower.contains("alarm") || lower.contains("clock") || lower.contains("kaiclock") -> {
                 val regex = Regex("(\\d{1,2})\\s*(am|pm|:(\\d{2}))")
                 val match = regex.find(lower)
@@ -407,15 +589,15 @@ class LocalAgentEngine @Inject constructor(
                 val title = prompt.substringAfter("kaicalendar").substringAfter("calendar").substringAfter("event").substringAfter("meeting").trim().ifEmpty { "New Event" }
                 val calendar = Calendar.getInstance()
                 calendar.add(Calendar.HOUR, 1)
-                val success = calendarController.createEvent(title, "Local Event", calendar.timeInMillis, 60)
-                if (success) {
+                val eventId = calendarController.createEvent(title, "Local Event", calendar.timeInMillis, 60)
+                if (eventId != null) {
                     KairosResponse(
                         type = "WIDGET",
                         text = "[Rule Fallback] Scheduled calendar event: '$title'",
                         widget = WidgetPayload(
                             widgetType = "CALENDAR_EVENT",
                             title = "Event Scheduled",
-                            items = listOf(WidgetItem(id = "cal_event", primary = title, secondary = "Scheduled via rule fallback", icon = "calendar"))
+                            items = listOf(WidgetItem(id = eventId.toString(), primary = title, secondary = "Scheduled via rule fallback", icon = "calendar"))
                         )
                     )
                 } else {

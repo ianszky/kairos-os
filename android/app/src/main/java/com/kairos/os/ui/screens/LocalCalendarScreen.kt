@@ -82,6 +82,28 @@ fun LocalCalendarScreen(
         }
     }
 
+    DisposableEffect(context) {
+        val observer = object : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                refreshEvents()
+            }
+        }
+        try {
+            context.contentResolver.registerContentObserver(
+                CalendarContract.Events.CONTENT_URI, true, observer
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        onDispose {
+            try {
+                context.contentResolver.unregisterContentObserver(observer)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -170,6 +192,12 @@ fun CalendarEventCard(event: CalendarEvent) {
     val endFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
     val endStr = endFormat.format(Date(event.endMillis))
 
+    val accountLabel = when {
+        !event.accountName.isNullOrBlank() -> event.accountName
+        !event.calendarName.isNullOrBlank() -> event.calendarName
+        else -> null
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -186,7 +214,7 @@ fun CalendarEventCard(event: CalendarEvent) {
             Box(
                 modifier = Modifier
                     .width(4.dp)
-                    .height(48.dp)
+                    .height(56.dp)
                     .clip(RoundedCornerShape(2.dp))
                     .background(MaterialTheme.colorScheme.primary)
             )
@@ -207,6 +235,15 @@ fun CalendarEventCard(event: CalendarEvent) {
                     fontWeight = FontWeight.Medium,
                     fontFamily = googleSansFont
                 )
+                if (accountLabel != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "📅 $accountLabel",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        fontFamily = googleSansFont
+                    )
+                }
                 if (event.description.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(

@@ -1,5 +1,6 @@
 package com.kairos.os.domain.tools
 
+import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
 import android.provider.CalendarContract
@@ -15,7 +16,10 @@ class LocalCalendarController @Inject constructor(
     private fun getPrimaryCalendarId(): Long {
         val projection = arrayOf(
             CalendarContract.Calendars._ID,
-            CalendarContract.Calendars.IS_PRIMARY
+            CalendarContract.Calendars.IS_PRIMARY,
+            CalendarContract.Calendars.ACCOUNT_TYPE,
+            CalendarContract.Calendars.ACCOUNT_NAME,
+            CalendarContract.Calendars.VISIBLE
         )
         try {
             context.contentResolver.query(
@@ -27,14 +31,26 @@ class LocalCalendarController @Inject constructor(
             )?.use { cursor ->
                 val idCol = cursor.getColumnIndex(CalendarContract.Calendars._ID)
                 val primaryCol = cursor.getColumnIndex(CalendarContract.Calendars.IS_PRIMARY)
+                val accountTypeCol = cursor.getColumnIndex(CalendarContract.Calendars.ACCOUNT_TYPE)
+                val visibleCol = cursor.getColumnIndex(CalendarContract.Calendars.VISIBLE)
+
+                var googleCalId: Long? = null
+                var primaryCalId: Long? = null
+                var firstVisibleId: Long? = null
+
                 while (cursor.moveToNext()) {
-                    if (primaryCol != -1 && cursor.getInt(primaryCol) == 1) {
-                        return cursor.getLong(idCol)
-                    }
+                    val id = cursor.getLong(idCol)
+                    val accountType = if (accountTypeCol != -1) cursor.getString(accountTypeCol) else null
+                    val isPrimary = primaryCol != -1 && cursor.getInt(primaryCol) == 1
+                    val isVisible = visibleCol != -1 && cursor.getInt(visibleCol) == 1
+
+                    if (accountType == "com.google" && isPrimary) return id
+                    if (accountType == "com.google" && googleCalId == null) googleCalId = id
+                    if (isPrimary && primaryCalId == null) primaryCalId = id
+                    if (isVisible && firstVisibleId == null) firstVisibleId = id
                 }
-                if (cursor.moveToFirst()) {
-                    return cursor.getLong(idCol)
-                }
+
+                return googleCalId ?: primaryCalId ?: firstVisibleId ?: 1L
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -42,7 +58,7 @@ class LocalCalendarController @Inject constructor(
         return 1L
     }
 
-    fun createEvent(title: String, description: String, startMillis: Long, durationMinutes: Int): Boolean {
+    fun createEvent(title: String, description: String, startMillis: Long, durationMinutes: Int): Long? {
         return try {
             val calendarId = getPrimaryCalendarId()
             val values = ContentValues().apply {
@@ -54,10 +70,10 @@ class LocalCalendarController @Inject constructor(
                 put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
             }
             val uri = context.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values)
-            uri != null
+            uri?.let { ContentUris.parseId(it) }
         } catch (e: Exception) {
             e.printStackTrace()
-            false
+            null
         }
     }
 
@@ -68,10 +84,12 @@ class LocalCalendarController @Inject constructor(
             CalendarContract.Events.TITLE,
             CalendarContract.Events.DESCRIPTION,
             CalendarContract.Events.DTSTART,
-            CalendarContract.Events.DTEND
+            CalendarContract.Events.DTEND,
+            CalendarContract.Events.CALENDAR_DISPLAY_NAME,
+            CalendarContract.Events.ACCOUNT_NAME
         )
-        val selection = "${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} <= ?"
-        val selectionArgs = arrayOf(startMillis.toString(), endMillis.toString())
+        val selection = "${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} <= ? AND ${CalendarContract.Events.VISIBLE} = ?"
+        val selectionArgs = arrayOf(startMillis.toString(), endMillis.toString(), "1")
         
         try {
             context.contentResolver.query(
@@ -86,6 +104,8 @@ class LocalCalendarController @Inject constructor(
                 val descCol = cursor.getColumnIndex(CalendarContract.Events.DESCRIPTION)
                 val startCol = cursor.getColumnIndex(CalendarContract.Events.DTSTART)
                 val endCol = cursor.getColumnIndex(CalendarContract.Events.DTEND)
+                val calNameCol = cursor.getColumnIndex(CalendarContract.Events.CALENDAR_DISPLAY_NAME)
+                val accountCol = cursor.getColumnIndex(CalendarContract.Events.ACCOUNT_NAME)
                 
                 while (cursor.moveToNext()) {
                     events.add(
@@ -94,7 +114,9 @@ class LocalCalendarController @Inject constructor(
                             title = cursor.getString(titleCol) ?: "No Title",
                             description = cursor.getString(descCol) ?: "",
                             startMillis = cursor.getLong(startCol),
-                            endMillis = cursor.getLong(endCol)
+                            endMillis = cursor.getLong(endCol),
+                            calendarName = if (calNameCol != -1) cursor.getString(calNameCol) else null,
+                            accountName = if (accountCol != -1) cursor.getString(accountCol) else null
                         )
                     )
                 }
@@ -104,6 +126,17 @@ class LocalCalendarController @Inject constructor(
         }
         return events
     }
+
+    fun deleteEvent(eventId: Long): Boolean {
+        return try {
+            val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId)
+            val rowsDeleted = context.contentResolver.delete(uri, null, null)
+            rowsDeleted > 0
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
 }
 
 data class CalendarEvent(
@@ -111,5 +144,7 @@ data class CalendarEvent(
     val title: String,
     val description: String,
     val startMillis: Long,
-    val endMillis: Long
+    val endMillis: Long,
+    val calendarName: String? = null,
+    val accountName: String? = null
 )
