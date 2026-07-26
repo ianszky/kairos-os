@@ -7,6 +7,15 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 23. KaiNotes Context-Injected Semantic Note Search (Approach 1)
+**Status:** DONE
+**Branch:** `main`
+**Summary:** Implemented Approach 1 for semantic note retrieval using Gemma 4 E2B on-device context injection:
+- **Database Context Injection**: When `@kainotes` commands are processed in `LocalAgentEngine.kt`, all stored local notes (IDs, titles, and content snippets) are fetched from Room DB and dynamically injected into Gemma's system prompt.
+- **`get_note_by_id` Tool**: Declared `get_note_by_id(id)` in Gemma's system prompt, allowing Gemma to evaluate semantic intent (e.g. "buying dinner") against note candidates (e.g. "Grocery List") and directly return the target note by ID.
+- **Smart Fallback in `search_notes`**: If exact SQL `LIKE` keyword search returns 0 rows, `search_notes` automatically falls back to checking Gemma-provided IDs or soft fuzzy token matching in memory.
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 43s.
+
 ### 21. Notification Interceptor Audit, Logcat Diagnostics, 0ms Instant Settings & Per-App Rules Overhaul
 **Status:** DONE
 **Branch:** `main`
