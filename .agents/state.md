@@ -15,6 +15,12 @@
     - Integrated on-device conversation summary/title generator (`LocalTitleGenerator`) using Gemma 4, saving to Supabase.
     - Added visually matching badge chips indicating if the assistant's response was powered by Gemma 4 offline (NPU) or Gemini (Cloud).
 
+    - Refactored App Drawer with dual Segmented Switch ("Integrations" default | "App") separating cloud integrations from installed & local apps.
+    - Cleaned up dormant `@kai` agent, updated local apps (`Kai Notes` 📝, `Kai Calendar` 📅, `Kai Clock` ⏰) to category "App" with emoji icons.
+    - Updated logo endpoints for `Google Maps`, `Google Classroom`, `Composio Search`, `Microsoft Teams`, and `OneDrive`.
+    - Refined mention backspace behavior so single-stroke deletion only affects complete valid tags, allowing character-by-character deletion during typing.
+    - Resolved input trapping and App Drawer re-trigger bugs after tag removal.
+
 ## Next Steps
 - Implement end-to-end testing between the Android Auth flow, proxy server, and Supabase cloud.
 - Continue implementing the rest of the OS architecture.
