@@ -7,6 +7,20 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 24. KaiCalendar Overhaul (Week/Month Views, Rich Event Scheduler, 2-Way Google Sync & AI Tool Updates)
+**Status:** DONE
+**Branch:** `main`
+**Summary:** Implemented requested overhaul for KaiCalendar:
+- **Header View Mode Toggle**: Added a toggle button in the top action bar (beside theme toggle) to switch between **Week View** and **Month View**.
+- **Week View (7-Day Collapsible Accordion)**: Renders Today + next 6 days as collapsible day sections. Header formatted as `"Sunday, July 26, 2026"`. Today is expanded by default; remaining days can be expanded/collapsed on tap with event badges.
+- **Month View (Split View)**:
+  - Top 50%: Interactive month grid with Month/Year title and `< >` navigation arrows. Preselects current date, displays primary-colored event indicators for days with events.
+  - Bottom 50%: Displays a slimmed-down agenda list of events for the selected day.
+- **Rich Schedule Event Dialog**: Removed single `Duration` input and replaced with native **Date Picker**, **Start & End Time Pickers**, **"All-Day Event" Checkbox** (hides time pickers when checked), and **"Sync with Google / Connected Calendars" Checkbox**.
+- **2-Way Google & System Calendar Sync**: Listened via `ContentObserver` on `CalendarContract.Events.CONTENT_URI` with a 90-day rolling window query. Events created via KaiCalendar, Google Calendar, or local Gemma AI tools automatically refresh and display.
+- **Local AI Agent Tool Compatibility**: Updated `LocalAgentEngine.kt` tool signature for `create_calendar_event` (`start_date`, `start_time`, `end_date`, `end_time`, `is_all_day`, `sync_google`) and dispatch logic.
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 25s.
+
 ### 23. KaiNotes Context-Injected Semantic Note Search (Approach 1)
 **Status:** DONE
 **Branch:** `main`
