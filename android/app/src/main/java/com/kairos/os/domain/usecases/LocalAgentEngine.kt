@@ -254,8 +254,12 @@ class LocalAgentEngine @Inject constructor(
             JSON schema:
             {
               "tool": "tool_name",
-              "args": { ... arguments key-value map ... }
+              "args": { ... arguments key-value map ... },
+              "needs_synthesis": true / false
             }
+
+            Set "needs_synthesis": true if the user prompt asks to summarize, analyze, explain, answer questions about, or extract key points from the retrieved item.
+            Set "needs_synthesis": false if the user simply wants to view, show, list, create, update, or delete the item.
         """.trimIndent()
 
         try {
@@ -285,6 +289,7 @@ class LocalAgentEngine @Inject constructor(
             val root = json.parseToJsonElement(cleanJson).jsonObject
             val toolName = root["tool"]?.jsonPrimitive?.content ?: ""
             val args = root["args"]?.jsonObject
+            val needsSynthesis = root["needs_synthesis"]?.jsonPrimitive?.booleanOrNull ?: false
 
             return when (toolName) {
                 "create_note" -> {
@@ -303,9 +308,16 @@ class LocalAgentEngine @Inject constructor(
                 }
                 "list_notes" -> {
                     val notes = notesController.getAllNotes()
+                    val defaultText = "Here are your local notes."
+                    val text = if (needsSynthesis && notes.isNotEmpty()) {
+                        val contextData = notes.joinToString("\n\n") { "Note [ID: ${it.id}] Title: \"${it.title}\"\nContent:\n${it.content}" }
+                        val syn = runSynthesis(engine, prompt, contextData)
+                        syn.ifEmpty { defaultText }
+                    } else defaultText
+
                     KairosResponse(
                         type = "WIDGET",
-                        text = "Here are your local notes.",
+                        text = text,
                         widget = WidgetPayload(
                             widgetType = "NOTE_CARD",
                             title = "Local Notes (${notes.size})",
@@ -317,9 +329,16 @@ class LocalAgentEngine @Inject constructor(
                     val id = args?.get("id")?.jsonPrimitive?.int ?: 0
                     val note = notesController.getNoteById(id)
                     if (note != null) {
+                        val defaultText = "Found note: '${note.title}'"
+                        val text = if (needsSynthesis) {
+                            val contextData = "Note [ID: ${note.id}] Title: \"${note.title}\"\nContent:\n${note.content}"
+                            val syn = runSynthesis(engine, prompt, contextData)
+                            syn.ifEmpty { defaultText }
+                        } else defaultText
+
                         KairosResponse(
                             type = "WIDGET",
-                            text = "Found note: '${note.title}'",
+                            text = text,
                             widget = WidgetPayload(
                                 widgetType = "NOTE_CARD",
                                 title = "Note Found",
@@ -350,9 +369,16 @@ class LocalAgentEngine @Inject constructor(
                         }
                     }
 
+                    val defaultText = if (notes.isNotEmpty()) "Found ${notes.size} note(s) matching '$query'." else "No notes found matching '$query'."
+                    val text = if (needsSynthesis && notes.isNotEmpty()) {
+                        val contextData = notes.joinToString("\n\n") { "Note [ID: ${it.id}] Title: \"${it.title}\"\nContent:\n${it.content}" }
+                        val syn = runSynthesis(engine, prompt, contextData)
+                        syn.ifEmpty { defaultText }
+                    } else defaultText
+
                     KairosResponse(
                         type = "WIDGET",
-                        text = if (notes.isNotEmpty()) "Found ${notes.size} note(s) matching '$query'." else "No notes found matching '$query'.",
+                        text = text,
                         widget = WidgetPayload(
                             widgetType = "NOTE_CARD",
                             title = "Search Notes: '$query'",
@@ -513,9 +539,17 @@ class LocalAgentEngine @Inject constructor(
                         set(Calendar.SECOND, 59)
                     }.timeInMillis
                     val events = calendarController.listEvents(startOfDay, endOfDay)
+
+                    val defaultText = "Here is your schedule for today."
+                    val text = if (needsSynthesis && events.isNotEmpty()) {
+                        val contextData = events.joinToString("\n") { "Event [ID: ${it.id}]: '${it.title}' | Time: ${Date(it.startMillis)} - ${Date(it.endMillis)} | Desc: '${it.description}' | Account: '${it.accountName ?: ""}'" }
+                        val syn = runSynthesis(engine, prompt, contextData)
+                        syn.ifEmpty { defaultText }
+                    } else defaultText
+
                     KairosResponse(
                         type = "WIDGET",
-                        text = "Here is your schedule for today.",
+                        text = text,
                         widget = WidgetPayload(
                             widgetType = "CALENDAR_EVENT",
                             title = "Today's Agenda (${events.size})",
@@ -548,9 +582,17 @@ class LocalAgentEngine @Inject constructor(
                     } catch (e: Exception) { System.currentTimeMillis() + (7 * 86400000L) }
 
                     val events = calendarController.listEvents(startMillis, endMillis)
+
+                    val defaultText = "Events from $startDateStr to $endDateStr (${events.size} total)."
+                    val text = if (needsSynthesis && events.isNotEmpty()) {
+                        val contextData = events.joinToString("\n") { "Event [ID: ${it.id}]: '${it.title}' | Time: ${Date(it.startMillis)} - ${Date(it.endMillis)} | Desc: '${it.description}' | Account: '${it.accountName ?: ""}'" }
+                        val syn = runSynthesis(engine, prompt, contextData)
+                        syn.ifEmpty { defaultText }
+                    } else defaultText
+
                     KairosResponse(
                         type = "WIDGET",
-                        text = "Events from $startDateStr to $endDateStr (${events.size} total).",
+                        text = text,
                         widget = WidgetPayload(
                             widgetType = "CALENDAR_EVENT",
                             title = "Agenda Range",
@@ -587,6 +629,40 @@ class LocalAgentEngine @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error executing local agent prompt. Falling back to rule parser.", e)
             return handleLocalRuleFallback(prompt)
+        }
+    }
+
+    private suspend fun runSynthesis(
+        engine: com.google.ai.edge.litertlm.Engine,
+        userPrompt: String,
+        contextData: String
+    ): String {
+        return try {
+            val synthesisPrompt = """
+                You are KAIROS OS, an intelligent local AI assistant.
+                The user asked: "$userPrompt"
+
+                Retrieved Context from Local Device:
+                $contextData
+
+                Provide a clear, helpful, and concise answer, summary, or analysis based directly on the retrieved context above. Do not include markdown code block syntax.
+            """.trimIndent()
+
+            withContext(Dispatchers.IO) {
+                val conversation = engine.createConversation()
+                try {
+                    val response = conversation.sendMessage(synthesisPrompt)
+                    response.contents.contents
+                        .filterIsInstance<Content.Text>()
+                        .joinToString("\n") { it.text }
+                        .trim()
+                } finally {
+                    conversation.close()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in Pass 2 synthesis execution", e)
+            ""
         }
     }
 
