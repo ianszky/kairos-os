@@ -7,6 +7,16 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 25. KaiCalendar Visual Polish & Event Edit/Delete Dialog
+**Status:** DONE
+**Branch:** `main`
+**Summary:** Refined KaiCalendar UI aesthetics and interaction capabilities based on user feedback:
+- **Warm Orange Accent Palette**: Replaced blue accent with KAIROS OS's signature brand warm accent (`Color(0xFFFF6B00)`) for selected date highlights, event indicator dots, FAB button, time labels, and side accent bars.
+- **Borderless Card Clean Layout**: Removed borders on week view and month view cards (`border = null`) for a sleek, modern container layout.
+- **Dynamic Header Color Hierarchy**: Collapsed / non-toggled day headers display muted gray text (`Color(0xFF888888)`), transitioning to white (`MaterialTheme.colorScheme.onSurface`) when expanded/toggled, and warm orange (`Color(0xFFFF6B00)`) on Today.
+- **Event Edit & Delete Dialog**: Tapping any event card opens `EditCalendarEventDialog` pre-filled with the event's data (Title, Description, Date, Start/End Times, All-Day toggle, Sync toggle) with a prominent red **DELETE** button on the bottom left and a **SAVE** button on the bottom right.
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 24s.
+
 ### 24. KaiCalendar Overhaul (Week/Month Views, Rich Event Scheduler, 2-Way Google Sync & AI Tool Updates)
 **Status:** DONE
 **Branch:** `main`
