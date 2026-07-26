@@ -36,6 +36,10 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+// KAIROS Brand Orange Warm Accent Color
+private val OrangeAccent = Color(0xFFFF6B00)
+private val GrayMutedText = Color(0xFF888888)
+
 @Composable
 fun LocalCalendarScreen(
     calendarController: LocalCalendarController,
@@ -46,6 +50,7 @@ fun LocalCalendarScreen(
     val coroutineScope = rememberCoroutineScope()
     var events by remember { mutableStateOf<List<CalendarEvent>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
+    var editingEvent by remember { mutableStateOf<CalendarEvent?>(null) }
 
     fun refreshEvents() {
         val startWindow = Calendar.getInstance().apply {
@@ -117,9 +122,15 @@ fun LocalCalendarScreen(
             .padding(horizontal = 16.dp)
     ) {
         if (viewMode == "month") {
-            MonthViewContent(events = events)
+            MonthViewContent(
+                events = events,
+                onEventClick = { editingEvent = it }
+            )
         } else {
-            WeekViewContent(events = events)
+            WeekViewContent(
+                events = events,
+                onEventClick = { editingEvent = it }
+            )
         }
 
         // Floating Circular '+' Button at Bottom Right
@@ -128,8 +139,8 @@ fun LocalCalendarScreen(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 40.dp, end = 12.dp),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = Color.Black,
+            containerColor = OrangeAccent,
+            contentColor = Color.White,
             shape = CircleShape
         ) {
             Icon(
@@ -158,6 +169,35 @@ fun LocalCalendarScreen(
                 }
             )
         }
+
+        editingEvent?.let { targetEvent ->
+            EditCalendarEventDialog(
+                event = targetEvent,
+                onDismiss = { editingEvent = null },
+                onUpdate = { title, description, startMillis, endMillis, isAllDay, syncGoogle ->
+                    coroutineScope.launch {
+                        calendarController.updateEvent(
+                            eventId = targetEvent.id,
+                            title = title,
+                            description = description,
+                            startMillis = startMillis,
+                            endMillis = endMillis,
+                            isAllDay = isAllDay,
+                            syncGoogle = syncGoogle
+                        )
+                        refreshEvents()
+                        editingEvent = null
+                    }
+                },
+                onDelete = {
+                    coroutineScope.launch {
+                        calendarController.deleteEvent(targetEvent.id)
+                        refreshEvents()
+                        editingEvent = null
+                    }
+                }
+            )
+        }
     }
 }
 
@@ -165,7 +205,10 @@ fun LocalCalendarScreen(
 // WEEK VIEW (7-Day Collapsible Accordion)
 // ---------------------------------------------------------------------------
 @Composable
-fun WeekViewContent(events: List<CalendarEvent>) {
+fun WeekViewContent(
+    events: List<CalendarEvent>,
+    onEventClick: (CalendarEvent) -> Unit
+) {
     val todayDateStr = remember {
         SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     }
@@ -212,11 +255,13 @@ fun WeekViewContent(events: List<CalendarEvent>) {
                 it.startMillis >= startOfDay.timeInMillis && it.startMillis <= endOfDay.timeInMillis
             }
 
+            // Clean borderless container
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
+                border = null,
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isToday) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.40f)
+                    containerColor = if (isToday) OrangeAccent.copy(alpha = 0.15f)
                     else MaterialTheme.colorScheme.surface.copy(alpha = 0.85f)
                 )
             ) {
@@ -239,16 +284,20 @@ fun WeekViewContent(events: List<CalendarEvent>) {
                             Text(
                                 text = dayHeaderFormatter.format(dayCal.time),
                                 fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontWeight = if (isExpanded || isToday) FontWeight.Bold else FontWeight.Medium,
                                 fontFamily = googleSansFont,
-                                color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                color = when {
+                                    isToday -> OrangeAccent
+                                    isExpanded -> MaterialTheme.colorScheme.onSurface
+                                    else -> GrayMutedText
+                                }
                             )
                             if (isToday) {
                                 Text(
                                     text = "Today",
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                    color = OrangeAccent,
                                     fontFamily = googleSansFont
                                 )
                             }
@@ -258,14 +307,14 @@ fun WeekViewContent(events: List<CalendarEvent>) {
                         if (dayEvents.isNotEmpty()) {
                             Surface(
                                 shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.primary,
+                                color = if (isExpanded || isToday) OrangeAccent else GrayMutedText.copy(alpha = 0.4f),
                                 modifier = Modifier.padding(end = 8.dp)
                             ) {
                                 Text(
                                     text = "${dayEvents.size}",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.Black,
+                                    color = Color.White,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                 )
                             }
@@ -274,7 +323,7 @@ fun WeekViewContent(events: List<CalendarEvent>) {
                         Icon(
                             imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                             contentDescription = if (isExpanded) "Collapse" else "Expand",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = if (isExpanded || isToday) MaterialTheme.colorScheme.onSurfaceVariant else GrayMutedText
                         )
                     }
 
@@ -297,7 +346,7 @@ fun WeekViewContent(events: List<CalendarEvent>) {
                                 )
                             } else {
                                 dayEvents.forEach { event ->
-                                    CalendarEventCard(event = event)
+                                    CalendarEventCard(event = event, onClick = { onEventClick(event) })
                                 }
                             }
                         }
@@ -312,7 +361,10 @@ fun WeekViewContent(events: List<CalendarEvent>) {
 // MONTH VIEW (Top 50% Grid + Bottom 50% Day Agenda)
 // ---------------------------------------------------------------------------
 @Composable
-fun MonthViewContent(events: List<CalendarEvent>) {
+fun MonthViewContent(
+    events: List<CalendarEvent>,
+    onEventClick: (CalendarEvent) -> Unit
+) {
     var displayMonth by remember { mutableStateOf(Calendar.getInstance().apply { set(Calendar.DAY_OF_MONTH, 1) }) }
     var selectedDate by remember { mutableStateOf(Calendar.getInstance()) }
 
@@ -329,6 +381,7 @@ fun MonthViewContent(events: List<CalendarEvent>) {
                 .fillMaxWidth()
                 .weight(1.1f),
             shape = RoundedCornerShape(20.dp),
+            border = null,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)
             )
@@ -381,7 +434,7 @@ fun MonthViewContent(events: List<CalendarEvent>) {
                             textAlign = TextAlign.Center,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = OrangeAccent,
                             fontFamily = googleSansFont
                         )
                     }
@@ -428,8 +481,8 @@ fun MonthViewContent(events: List<CalendarEvent>) {
                                             .clip(CircleShape)
                                             .background(
                                                 when {
-                                                    isSelected -> MaterialTheme.colorScheme.primary
-                                                    isToday -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                                                    isSelected -> OrangeAccent
+                                                    isToday -> OrangeAccent.copy(alpha = 0.25f)
                                                     else -> Color.Transparent
                                                 }
                                             )
@@ -442,8 +495,8 @@ fun MonthViewContent(events: List<CalendarEvent>) {
                                                 fontSize = 13.sp,
                                                 fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Normal,
                                                 color = when {
-                                                    isSelected -> Color.Black
-                                                    isToday -> MaterialTheme.colorScheme.primary
+                                                    isSelected -> Color.White
+                                                    isToday -> OrangeAccent
                                                     else -> MaterialTheme.colorScheme.onSurface
                                                 },
                                                 fontFamily = googleSansFont
@@ -453,7 +506,7 @@ fun MonthViewContent(events: List<CalendarEvent>) {
                                                     modifier = Modifier
                                                         .size(4.dp)
                                                         .clip(CircleShape)
-                                                        .background(MaterialTheme.colorScheme.primary)
+                                                        .background(OrangeAccent)
                                                 )
                                             }
                                         }
@@ -476,6 +529,7 @@ fun MonthViewContent(events: List<CalendarEvent>) {
                 .fillMaxWidth()
                 .weight(0.9f),
             shape = RoundedCornerShape(20.dp),
+            border = null,
             colors = CardDefaults.cardColors(
                 containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.90f)
             )
@@ -506,7 +560,7 @@ fun MonthViewContent(events: List<CalendarEvent>) {
                     text = "Agenda: ${selectedDayFormat.format(selectedDate.time)}",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = OrangeAccent,
                     fontFamily = googleSansFont
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -532,7 +586,7 @@ fun MonthViewContent(events: List<CalendarEvent>) {
                         contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
                         items(selectedDayEvents, key = { it.id }) { event ->
-                            SlimCalendarEventCard(event = event)
+                            SlimCalendarEventCard(event = event, onClick = { onEventClick(event) })
                         }
                     }
                 }
@@ -545,7 +599,10 @@ fun MonthViewContent(events: List<CalendarEvent>) {
 // EVENT CARDS
 // ---------------------------------------------------------------------------
 @Composable
-fun CalendarEventCard(event: CalendarEvent) {
+fun CalendarEventCard(
+    event: CalendarEvent,
+    onClick: () -> Unit
+) {
     val dateFormat = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
     val startStr = if (event.isAllDay) "All Day" else dateFormat.format(Date(event.startMillis))
     val endFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
@@ -558,8 +615,11 @@ fun CalendarEventCard(event: CalendarEvent) {
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
+        border = null,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.50f)
         )
@@ -575,7 +635,7 @@ fun CalendarEventCard(event: CalendarEvent) {
                     .width(4.dp)
                     .height(48.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(OrangeAccent)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -590,7 +650,7 @@ fun CalendarEventCard(event: CalendarEvent) {
                 Text(
                     text = "$startStr$endStr",
                     fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = OrangeAccent,
                     fontWeight = FontWeight.Medium,
                     fontFamily = googleSansFont
                 )
@@ -617,13 +677,19 @@ fun CalendarEventCard(event: CalendarEvent) {
 }
 
 @Composable
-fun SlimCalendarEventCard(event: CalendarEvent) {
+fun SlimCalendarEventCard(
+    event: CalendarEvent,
+    onClick: () -> Unit
+) {
     val timeFormat = SimpleDateFormat("h:mm a", Locale.getDefault())
     val timeStr = if (event.isAllDay) "All Day" else "${timeFormat.format(Date(event.startMillis))} - ${timeFormat.format(Date(event.endMillis))}"
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
         shape = RoundedCornerShape(10.dp),
+        border = null,
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.40f)
         )
@@ -639,7 +705,7 @@ fun SlimCalendarEventCard(event: CalendarEvent) {
                     .width(3.dp)
                     .height(36.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.primary)
+                    .background(OrangeAccent)
             )
             Spacer(modifier = Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -653,7 +719,7 @@ fun SlimCalendarEventCard(event: CalendarEvent) {
                 Text(
                     text = timeStr,
                     fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = OrangeAccent,
                     fontFamily = googleSansFont
                 )
             }
@@ -662,7 +728,7 @@ fun SlimCalendarEventCard(event: CalendarEvent) {
 }
 
 // ---------------------------------------------------------------------------
-// OVERHAULED SCHEDULE NEW EVENT DIALOG
+// ADD CALENDAR EVENT DIALOG
 // ---------------------------------------------------------------------------
 @Composable
 fun AddCalendarEventDialog(
@@ -761,7 +827,7 @@ fun AddCalendarEventDialog(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.CalendarToday, contentDescription = "Date", modifier = Modifier.size(18.dp))
+                    Icon(Icons.Default.CalendarToday, contentDescription = "Date", modifier = Modifier.size(18.dp), tint = OrangeAccent)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(dateFormat.format(startDateState.time), fontFamily = googleSansFont)
                 }
@@ -773,7 +839,11 @@ fun AddCalendarEventDialog(
                         .fillMaxWidth()
                         .clickable { isAllDay = !isAllDay }
                 ) {
-                    Checkbox(checked = isAllDay, onCheckedChange = { isAllDay = it })
+                    Checkbox(
+                        checked = isAllDay,
+                        onCheckedChange = { isAllDay = it },
+                        colors = CheckboxDefaults.colors(checkedColor = OrangeAccent)
+                    )
                     Text("All-Day Event", fontFamily = googleSansFont, fontSize = 14.sp)
                 }
 
@@ -788,7 +858,7 @@ fun AddCalendarEventDialog(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.AccessTime, contentDescription = "Start Time", modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.AccessTime, contentDescription = "Start Time", modifier = Modifier.size(16.dp), tint = OrangeAccent)
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(String.format("%02d:%02d", startTimeState.first, startTimeState.second), fontFamily = googleSansFont, fontSize = 13.sp)
                         }
@@ -798,7 +868,7 @@ fun AddCalendarEventDialog(
                             modifier = Modifier.weight(1f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Icon(Icons.Default.AccessTime, contentDescription = "End Time", modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.AccessTime, contentDescription = "End Time", modifier = Modifier.size(16.dp), tint = OrangeAccent)
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(String.format("%02d:%02d", endTimeState.first, endTimeState.second), fontFamily = googleSansFont, fontSize = 13.sp)
                         }
@@ -812,7 +882,11 @@ fun AddCalendarEventDialog(
                         .fillMaxWidth()
                         .clickable { syncGoogle = !syncGoogle }
                 ) {
-                    Checkbox(checked = syncGoogle, onCheckedChange = { syncGoogle = it })
+                    Checkbox(
+                        checked = syncGoogle,
+                        onCheckedChange = { syncGoogle = it },
+                        colors = CheckboxDefaults.colors(checkedColor = OrangeAccent)
+                    )
                     Text("Sync with Google / Connected Calendars", fontFamily = googleSansFont, fontSize = 13.sp)
                 }
             }
@@ -854,11 +928,237 @@ fun AddCalendarEventDialog(
                 },
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = Color.Black
+                    containerColor = OrangeAccent,
+                    contentColor = Color.White
                 )
             ) {
                 Text("SCHEDULE", style = MaterialTheme.typography.labelLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("CANCEL", style = MaterialTheme.typography.labelLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold))
+            }
+        }
+    )
+}
+
+// ---------------------------------------------------------------------------
+// EDIT / DELETE CALENDAR EVENT DIALOG
+// ---------------------------------------------------------------------------
+@Composable
+fun EditCalendarEventDialog(
+    event: CalendarEvent,
+    onDismiss: () -> Unit,
+    onUpdate: (title: String, description: String, startMillis: Long, endMillis: Long, isAllDay: Boolean, syncGoogle: Boolean) -> Unit,
+    onDelete: () -> Unit
+) {
+    val context = LocalContext.current
+    var titleText by remember { mutableStateOf(event.title) }
+    var descText by remember { mutableStateOf(event.description) }
+
+    val startCal = remember {
+        Calendar.getInstance().apply { timeInMillis = event.startMillis }
+    }
+    val endCal = remember {
+        Calendar.getInstance().apply { timeInMillis = event.endMillis }
+    }
+
+    var startDateState by remember { mutableStateOf(startCal.clone() as Calendar) }
+    var startTimeState by remember { mutableStateOf(Pair(startCal.get(Calendar.HOUR_OF_DAY), startCal.get(Calendar.MINUTE))) }
+    var endTimeState by remember { mutableStateOf(Pair(endCal.get(Calendar.HOUR_OF_DAY), endCal.get(Calendar.MINUTE))) }
+
+    var isAllDay by remember { mutableStateOf(event.isAllDay) }
+    var syncGoogle by remember { mutableStateOf(event.accountName?.contains("google", ignoreCase = true) ?: true) }
+
+    val dateFormat = remember { SimpleDateFormat("EEE, MMM d, yyyy", Locale.getDefault()) }
+
+    val openDatePicker = {
+        DatePickerDialog(
+            context,
+            { _, year, month, dayOfMonth ->
+                val newCal = startDateState.clone() as Calendar
+                newCal.set(Calendar.YEAR, year)
+                newCal.set(Calendar.MONTH, month)
+                newCal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
+                startDateState = newCal
+            },
+            startDateState.get(Calendar.YEAR),
+            startDateState.get(Calendar.MONTH),
+            startDateState.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    val openStartTimePicker = {
+        TimePickerDialog(
+            context,
+            { _, hourOfDay, minute ->
+                startTimeState = Pair(hourOfDay, minute)
+            },
+            startTimeState.first,
+            startTimeState.second,
+            false
+        ).show()
+    }
+
+    val openEndTimePicker = {
+        TimePickerDialog(
+            context,
+            { _, hourOfDay, minute ->
+                endTimeState = Pair(hourOfDay, minute)
+            },
+            endTimeState.first,
+            endTimeState.second,
+            false
+        ).show()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Event", style = MaterialTheme.typography.titleLarge.copy(fontFamily = googleSansFont)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = titleText,
+                    onValueChange = { titleText = it },
+                    label = { Text("Event Title", fontFamily = googleSansFont) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                OutlinedTextField(
+                    value = descText,
+                    onValueChange = { descText = it },
+                    label = { Text("Description", fontFamily = googleSansFont) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+
+                // Date Picker Button
+                OutlinedButton(
+                    onClick = openDatePicker,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.CalendarToday, contentDescription = "Date", modifier = Modifier.size(18.dp), tint = OrangeAccent)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(dateFormat.format(startDateState.time), fontFamily = googleSansFont)
+                }
+
+                // All-Day Checkbox
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { isAllDay = !isAllDay }
+                ) {
+                    Checkbox(
+                        checked = isAllDay,
+                        onCheckedChange = { isAllDay = it },
+                        colors = CheckboxDefaults.colors(checkedColor = OrangeAccent)
+                    )
+                    Text("All-Day Event", fontFamily = googleSansFont, fontSize = 14.sp)
+                }
+
+                // Time Pickers (hidden if All-Day)
+                if (!isAllDay) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = openStartTimePicker,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.AccessTime, contentDescription = "Start Time", modifier = Modifier.size(16.dp), tint = OrangeAccent)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(String.format("%02d:%02d", startTimeState.first, startTimeState.second), fontFamily = googleSansFont, fontSize = 13.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = openEndTimePicker,
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.AccessTime, contentDescription = "End Time", modifier = Modifier.size(16.dp), tint = OrangeAccent)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(String.format("%02d:%02d", endTimeState.first, endTimeState.second), fontFamily = googleSansFont, fontSize = 13.sp)
+                        }
+                    }
+                }
+
+                // Sync with Google / Connected Calendars Checkbox
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { syncGoogle = !syncGoogle }
+                ) {
+                    Checkbox(
+                        checked = syncGoogle,
+                        onCheckedChange = { syncGoogle = it },
+                        colors = CheckboxDefaults.colors(checkedColor = OrangeAccent)
+                    )
+                    Text("Sync with Google / Connected Calendars", fontFamily = googleSansFont, fontSize = 13.sp)
+                }
+            }
+        },
+        confirmButton = {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Delete Button
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Event",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        if (titleText.isNotBlank()) {
+                            val finalStartCal = startDateState.clone() as Calendar
+                            val finalEndCal = startDateState.clone() as Calendar
+
+                            if (isAllDay) {
+                                finalStartCal.set(Calendar.HOUR_OF_DAY, 0)
+                                finalStartCal.set(Calendar.MINUTE, 0)
+                                finalStartCal.set(Calendar.SECOND, 0)
+                                finalStartCal.set(Calendar.MILLISECOND, 0)
+
+                                finalEndCal.set(Calendar.HOUR_OF_DAY, 23)
+                                finalEndCal.set(Calendar.MINUTE, 59)
+                                finalEndCal.set(Calendar.SECOND, 59)
+                                finalEndCal.set(Calendar.MILLISECOND, 999)
+                            } else {
+                                finalStartCal.set(Calendar.HOUR_OF_DAY, startTimeState.first)
+                                finalStartCal.set(Calendar.MINUTE, startTimeState.second)
+
+                                finalEndCal.set(Calendar.HOUR_OF_DAY, endTimeState.first)
+                                finalEndCal.set(Calendar.MINUTE, endTimeState.second)
+                            }
+
+                            onUpdate(
+                                titleText,
+                                descText,
+                                finalStartCal.timeInMillis,
+                                finalEndCal.timeInMillis,
+                                isAllDay,
+                                syncGoogle
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = OrangeAccent,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("SAVE", style = MaterialTheme.typography.labelLarge.copy(fontFamily = googleSansFont, fontWeight = FontWeight.Bold))
+                }
             }
         },
         dismissButton = {

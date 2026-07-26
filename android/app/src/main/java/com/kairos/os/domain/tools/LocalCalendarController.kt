@@ -158,6 +158,40 @@ class LocalCalendarController @Inject constructor(
         return events
     }
 
+    fun updateEvent(
+        eventId: Long,
+        title: String,
+        description: String,
+        startMillis: Long,
+        endMillis: Long,
+        isAllDay: Boolean = false,
+        syncGoogle: Boolean = true
+    ): Boolean {
+        return try {
+            val calendarId = getCalendarId(preferGoogle = syncGoogle)
+            val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId)
+            val values = ContentValues().apply {
+                put(CalendarContract.Events.DTSTART, startMillis)
+                put(CalendarContract.Events.DTEND, if (endMillis > startMillis) endMillis else startMillis + 3600000L)
+                put(CalendarContract.Events.TITLE, title)
+                put(CalendarContract.Events.DESCRIPTION, description)
+                put(CalendarContract.Events.CALENDAR_ID, calendarId)
+                if (isAllDay) {
+                    put(CalendarContract.Events.ALL_DAY, 1)
+                    put(CalendarContract.Events.EVENT_TIMEZONE, "UTC")
+                } else {
+                    put(CalendarContract.Events.ALL_DAY, 0)
+                    put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
+                }
+            }
+            val rowsUpdated = context.contentResolver.update(uri, values, null, null)
+            rowsUpdated > 0
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
     fun deleteEvent(eventId: Long): Boolean {
         return try {
             val uri = ContentUris.withAppendedId(CalendarContract.Events.CONTENT_URI, eventId)
