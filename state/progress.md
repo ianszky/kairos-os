@@ -7,6 +7,16 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 27. 2-Pass Synthesis Engine for KaiNotes & Local Tools (Strategy 1)
+**Status:** DONE
+**Branch:** `main`
+**Summary:** Implemented an on-device 2-Pass Synthesis Engine in `LocalAgentEngine.kt` so local tools can perform cognitive tasks (summarization, analysis, key point extraction, Q&A) on notes and calendar events:
+- **Pass 1 LLM-Driven Synthesis Gate**: Updated Pass 1 tool selection system prompt to include `"needs_synthesis": true / false` in Gemma's JSON output.
+- **Fast Path for Direct Retrieval**: Simple view/open commands (`"needs_synthesis": false`) skip Pass 2 and return raw widget cards with zero extra latency.
+- **Pass 2 Synthesis Pipeline (`runSynthesis`)**: When `"needs_synthesis": true`, retrieved note contents or calendar event details are formatted and passed back to Gemma 4 E2B to generate a tailored natural language summary or analysis.
+- **Unified Output**: Returns `KairosResponse` containing both the AI-generated synthesis text and the underlying source widget card (`NOTE_CARD` or `CALENDAR_EVENT`).
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 24s.
+
 ### 26. Global Live Date & Time System Prompt Injection
 **Status:** DONE
 **Branch:** `main`
