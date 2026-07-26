@@ -12,6 +12,9 @@ import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,7 +31,8 @@ data class PromptRequest(
     val intent: String,
     val appTarget: String? = null,
     val sessionId: String? = null,
-    val attachments: List<AttachmentInfo>? = null
+    val attachments: List<AttachmentInfo>? = null,
+    val currentDate: String? = null
 )
 
 @Serializable
@@ -116,7 +120,8 @@ class KairosApiClient @Inject constructor(
         intent: String, 
         appTarget: String?, 
         sessionId: String? = null,
-        attachments: List<AttachmentInfo>? = null
+        attachments: List<AttachmentInfo>? = null,
+        currentDate: String? = SimpleDateFormat("yyyy-MM-dd HH:mm EEEE", Locale.getDefault()).format(Date())
     ): com.kairos.os.domain.models.KairosResponse {
         val session = supabaseClient.auth.currentSessionOrNull()
         val token = session?.accessToken
@@ -130,7 +135,8 @@ class KairosApiClient @Inject constructor(
                     intent = intent,
                     appTarget = appTarget,
                     sessionId = sessionId,
-                    attachments = attachments
+                    attachments = attachments,
+                    currentDate = currentDate
                 )
             )
         }

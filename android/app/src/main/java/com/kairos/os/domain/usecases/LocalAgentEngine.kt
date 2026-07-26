@@ -127,8 +127,12 @@ class LocalAgentEngine @Inject constructor(
 
         val engine = localLlmClient.getEngine() ?: return Classification.CLOUD_AGENT
 
+        val currentDateStr = SimpleDateFormat("yyyy-MM-dd HH:mm EEEE", Locale.getDefault()).format(Date())
+
         val classificationPrompt = """
             You are the KAIROS OS local intent classifier. Analyze the user request.
+            Current date and time: $currentDateStr
+
             Categorize the request into exactly one of these tiers:
             1. SIMPLE - general conversational inputs, trivia, direct questions, or greetings (e.g. "hi", "how are you", "what is photosynthesis", "tell me a joke"). There are no app mentions, and no actions like setting alarms, calendar events, or notes are required.
             2. LOCAL_AGENT - commands specifically relating to notes, alarms, clock, or calendars (e.g. "set alarm for 6am", "create a shopping list note", "what are my plans today", "add doctor meeting tomorrow at 3pm to calendar").
@@ -171,11 +175,19 @@ class LocalAgentEngine @Inject constructor(
         val engine = localLlmClient.getEngine() 
             ?: return KairosResponse(type = "TEXT", text = "LiteRT-LM local engine not available.")
 
+        val currentDateStr = SimpleDateFormat("yyyy-MM-dd HH:mm EEEE", Locale.getDefault()).format(Date())
+        val systemPrompt = """
+            You are KAIROS OS, an intelligent, helpful, and concise AI assistant.
+            Current date and time: $currentDateStr
+
+            User prompt: $prompt
+        """.trimIndent()
+
         return try {
             val responseText = withContext(Dispatchers.IO) {
                 val conversation = engine.createConversation()
                 try {
-                    val response = conversation.sendMessage(prompt)
+                    val response = conversation.sendMessage(systemPrompt)
                     response.contents.contents
                         .filterIsInstance<Content.Text>()
                         .joinToString("\n") { it.text }
