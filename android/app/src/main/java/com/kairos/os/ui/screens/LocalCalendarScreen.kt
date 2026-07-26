@@ -557,7 +557,7 @@ fun MonthViewContent(
                     .padding(16.dp)
             ) {
                 Text(
-                    text = "Agenda: ${selectedDayFormat.format(selectedDate.time)}",
+                    text = "${selectedDayFormat.format(selectedDate.time)}",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = OrangeAccent,
