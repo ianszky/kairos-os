@@ -42,10 +42,12 @@ fun CollapsedAgentStack(
     totalCount: Int,
     onTapStack: () -> Unit,
     onViewAgent: (String) -> Unit,
-    onCancelAgent: (String) -> Unit,
+    onDismissAgent: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     if (agents.isEmpty()) return
+
+    val topPadding = ((agents.size - 1) * 20).dp
 
     Column(modifier = modifier.padding(bottom = 12.dp)) {
         Row(
@@ -71,18 +73,19 @@ fun CollapsedAgentStack(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(top = topPadding)
                 .clickable { onTapStack() }
         ) {
             agents.reversed().forEachIndexed { index, agent ->
                 val reverseIndex = agents.size - 1 - index
                 val scale = 1f - (reverseIndex * 0.04f)
-                val yOffset = (reverseIndex * 8).dp
-                val alphaVal = if (reverseIndex == 0) 1f else 0.75f - (reverseIndex * 0.2f)
+                val yOffset = (reverseIndex * 20).dp
+                val alphaVal = if (reverseIndex == 0) 1f else 0.8f - (reverseIndex * 0.15f)
 
                 RunningAgentCard(
                     agent = agent,
                     onView = onViewAgent,
-                    onCancel = onCancelAgent,
+                    onDismiss = onDismissAgent,
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer {
@@ -102,20 +105,27 @@ fun ExpandedAgentList(
     agents: List<RunningAgent>,
     onCollapse: () -> Unit,
     onViewAgent: (String) -> Unit,
-    onCancelAgent: (String) -> Unit,
+    onDismissAgent: (String) -> Unit,
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier
             .fillMaxSize()
-            .hazeChild(state = hazeState)
-            .background(MaterialTheme.colorScheme.background.copy(alpha = 0.85f))
             .clickable(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             ) { onCollapse() }
     ) {
+        // Backdrop Blur Layer (Haze blur applied ONLY to background)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .hazeChild(state = hazeState)
+                .background(MaterialTheme.colorScheme.background.copy(alpha = 0.75f))
+        )
+
+        // Crisp Content Layer (Rendered unblurred on top)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -148,7 +158,7 @@ fun ExpandedAgentList(
 
             LazyColumn(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(
                     items = agents,
@@ -160,7 +170,7 @@ fun ExpandedAgentList(
                             onCollapse()
                             onViewAgent(id)
                         },
-                        onCancel = onCancelAgent
+                        onDismiss = onDismissAgent
                     )
                 }
             }

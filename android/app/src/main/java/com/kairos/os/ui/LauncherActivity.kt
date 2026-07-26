@@ -429,6 +429,7 @@ fun MindfulLauncherScreen(
     val runningAgentsViewModel: com.kairos.os.ui.viewmodels.RunningAgentsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val runningAgents by runningAgentsViewModel.agents.collectAsState()
     var isAgentsExpanded by remember { mutableStateOf(false) }
+    val runningJobs = remember { mutableStateMapOf<String, kotlinx.coroutines.Job>() }
 
     LaunchedEffect(Unit) {
         chatViewModel.loadConversations()
@@ -888,41 +889,34 @@ fun MindfulLauncherScreen(
                         )
                     }
                 }
-                // Do NOT set isChatOpen = true — remain on home screen as central hub
-                interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
-                isLoading = true
+                val dispatchConvId = if (isChatOpen && currentConversationId != null) {
+                    currentConversationId!!
+                } else {
+                    java.util.UUID.randomUUID().toString()
+                }
+
+                if (isChatOpen) {
+                    interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(currentIntent, currentTarget))
+                    isLoading = true
+                    interactions.add(com.kairos.os.domain.models.Interaction.Loading())
+                }
                 termInput = ""
                 selectedAttachments.clear()
 
-                val dispatchConvId = currentConversationId ?: java.util.UUID.randomUUID().toString()
                 runningAgentsViewModel.dispatch(dispatchConvId, currentIntent, isLocal = true)
 
                 val isDigest = currentTarget == "digest" || currentIntent.contains("@digest") || currentIntent.lowercase().trim() == "digest"
 
-                if (isDigest) {
-                    coroutineScope.launch {
-                        try {
+                val taskJob = coroutineScope.launch {
+                    try {
+                        if (isDigest) {
                             val response = localDigestGenerator.generateDigest()
                             runningAgentsViewModel.complete(dispatchConvId, response)
-                            interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
-                        } catch (e: Exception) {
-                            val errMessage = "Failed to compile local digest: ${e.message}"
-                            runningAgentsViewModel.markError(dispatchConvId, errMessage)
-                            interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
-                                com.kairos.os.domain.models.KairosResponse(
-                                    type = "ERROR",
-                                    text = errMessage
-                                )
-                            ))
-                        } finally {
-                            isLoading = false
-                        }
-                    }
-                } else {
-                    coroutineScope.launch {
-                        try {
+                            if (isChatOpen && currentConversationId == dispatchConvId) {
+                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                            }
+                        } else {
                             val user = supabaseClient.auth.currentSessionOrNull()?.user
                             val userId = user?.id ?: "local_user"
                             val resolvedConvId = dispatchConvId
@@ -937,7 +931,7 @@ fun MindfulLauncherScreen(
                             if (localResponse.type == "CLOUD_FALLBACK") {
                                 Log.i("Launcher", "Local agent returned CLOUD_FALLBACK. Routing to Next.js backend...")
 
-                                var cloudConvId: String? = currentConversationId
+                                var cloudConvId: String? = if (isChatOpen) currentConversationId else null
                                 if (cloudConvId == null && user != null) {
                                     try {
                                         val newConv = supabaseClient.postgrest["conversations"].insert(
@@ -965,8 +959,10 @@ fun MindfulLauncherScreen(
                                 }
 
                                 runningAgentsViewModel.complete(finalCloudConvId, response)
-                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                                if (isChatOpen && currentConversationId == finalCloudConvId) {
+                                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                                }
                             } else {
                                 chatViewModel.onPromptResponse(resolvedConvId)
 
@@ -979,24 +975,36 @@ fun MindfulLauncherScreen(
                                     }
                                 }
                                 runningAgentsViewModel.complete(resolvedConvId, localResponse)
-                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(localResponse))
+                                if (isChatOpen && currentConversationId == resolvedConvId) {
+                                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(localResponse))
+                                }
                             }
-                        } catch (e: Exception) {
+                        }
+                    } catch (e: Exception) {
+                        if (e is kotlinx.coroutines.CancellationException) {
+                            runningAgentsViewModel.cancel(dispatchConvId)
+                        } else {
                             val errText = "Failed to process query: ${e.message}"
                             runningAgentsViewModel.markError(dispatchConvId, errText)
-                            interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
-                                com.kairos.os.domain.models.KairosResponse(
-                                    type = "ERROR",
-                                    text = errText
-                                )
-                            ))
-                        } finally {
+                            if (isChatOpen && currentConversationId == dispatchConvId) {
+                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
+                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(
+                                    com.kairos.os.domain.models.KairosResponse(
+                                        type = "ERROR",
+                                        text = errText
+                                    )
+                                ))
+                            }
+                        }
+                    } finally {
+                        runningJobs.remove(dispatchConvId)
+                        if (isChatOpen && currentConversationId == dispatchConvId) {
                             isLoading = false
                         }
                     }
                 }
+                runningJobs[dispatchConvId] = taskJob
             }
         }
     }
@@ -1234,26 +1242,6 @@ fun MindfulLauncherScreen(
                             ) {
                                 ClockView()
                             }
-
-                            if (isAgentsExpanded && runningAgents.isNotEmpty()) {
-                                com.kairos.os.ui.components.ExpandedAgentList(
-                                    agents = runningAgents,
-                                    onCollapse = { isAgentsExpanded = false },
-                                    onViewAgent = { id ->
-                                        isAgentsExpanded = false
-                                        chatViewModel.selectConversation(id)
-                                        val agent = runningAgents.find { it.id == id }
-                                        interactions.clear()
-                                        interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(agent?.prompt ?: ""))
-                                        agent?.response?.let {
-                                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(it))
-                                        }
-                                        isChatOpen = true
-                                    },
-                                    onCancelAgent = { runningAgentsViewModel.cancel(it) },
-                                    hazeState = hazeState
-                                )
-                            }
                         } else {
                             ChatView(
                                 interactions = interactions,
@@ -1274,6 +1262,25 @@ fun MindfulLauncherScreen(
                 .statusBarsPadding()
                 .imePadding()
         ) {
+            if (isAgentsExpanded && runningAgents.isNotEmpty()) {
+                com.kairos.os.ui.components.ExpandedAgentList(
+                    agents = runningAgents,
+                    onCollapse = { isAgentsExpanded = false },
+                    onViewAgent = { id ->
+                        isAgentsExpanded = false
+                        chatViewModel.selectConversation(id)
+                        val agent = runningAgents.find { it.id == id }
+                        interactions.clear()
+                        interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(agent?.prompt ?: ""))
+                        agent?.response?.let {
+                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(it))
+                        }
+                        isChatOpen = true
+                    },
+                    onDismissAgent = { runningAgentsViewModel.cancel(it) },
+                    hazeState = hazeState
+                )
+            }
             // Header (Aligned to TopCenter, fading vertical gradient background)
             Box(
                 modifier = Modifier
@@ -1409,7 +1416,7 @@ fun MindfulLauncherScreen(
                             }
                             isChatOpen = true
                         },
-                        onCancelAgent = { runningAgentsViewModel.cancel(it) }
+                        onDismissAgent = { runningAgentsViewModel.cancel(it) }
                     )
                 }
 
@@ -1642,24 +1649,42 @@ fun MindfulLauncherScreen(
                                             Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
                                         }
                                     } else {
-                                        IconButton(
-                                            onClick = {
-                                                recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                            },
-                                            modifier = Modifier.size(36.dp)
-                                        ) {
-                                            Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        }
+                                        val isCurrentTaskRunning = isChatOpen && currentConversationId != null && (runningJobs.containsKey(currentConversationId) || runningAgents.find { it.id == currentConversationId }?.status == com.kairos.os.domain.models.AgentStatus.PROCESSING)
+                                        if (isCurrentTaskRunning) {
+                                            IconButton(
+                                                onClick = {
+                                                    val convId = currentConversationId
+                                                    if (convId != null) {
+                                                        runningJobs[convId]?.cancel()
+                                                        runningJobs.remove(convId)
+                                                        runningAgentsViewModel.cancel(convId)
+                                                        isLoading = false
+                                                    }
+                                                },
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Icon(Icons.Default.Stop, contentDescription = "Stop Agent", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                            }
+                                        } else {
+                                            IconButton(
+                                                onClick = {
+                                                    recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                                },
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
 
-                                        Spacer(modifier = Modifier.width(8.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
 
-                                        IconButton(
-                                            onClick = {
-                                                onSendPrompt()
-                                            },
-                                            modifier = Modifier.size(36.dp)
-                                        ) {
-                                            Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                            IconButton(
+                                                onClick = {
+                                                    onSendPrompt()
+                                                },
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                            }
                                         }
                                     }
                                 }
@@ -1718,24 +1743,42 @@ fun MindfulLauncherScreen(
                                          Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
                                      }
                                  } else {
-                                     IconButton(
-                                         onClick = {
-                                             recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                         },
-                                         modifier = Modifier.size(36.dp)
-                                     ) {
-                                         Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                     }
+                                     val isCurrentTaskRunning = isChatOpen && currentConversationId != null && (runningJobs.containsKey(currentConversationId) || runningAgents.find { it.id == currentConversationId }?.status == com.kairos.os.domain.models.AgentStatus.PROCESSING)
+                                     if (isCurrentTaskRunning) {
+                                         IconButton(
+                                             onClick = {
+                                                 val convId = currentConversationId
+                                                 if (convId != null) {
+                                                     runningJobs[convId]?.cancel()
+                                                     runningJobs.remove(convId)
+                                                     runningAgentsViewModel.cancel(convId)
+                                                     isLoading = false
+                                                 }
+                                             },
+                                             modifier = Modifier.size(36.dp)
+                                         ) {
+                                             Icon(Icons.Default.Stop, contentDescription = "Stop Agent", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                         }
+                                     } else {
+                                         IconButton(
+                                             onClick = {
+                                                 recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                             },
+                                             modifier = Modifier.size(36.dp)
+                                         ) {
+                                             Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                         }
 
-                                     Spacer(modifier = Modifier.width(8.dp))
+                                         Spacer(modifier = Modifier.width(8.dp))
 
-                                     IconButton(
-                                         onClick = {
-                                             onSendPrompt()
-                                         },
-                                         modifier = Modifier.size(36.dp)
-                                     ) {
-                                         Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                         IconButton(
+                                             onClick = {
+                                                 onSendPrompt()
+                                             },
+                                             modifier = Modifier.size(36.dp)
+                                         ) {
+                                             Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                         }
                                      }
                                  }
                              }
