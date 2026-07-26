@@ -227,9 +227,11 @@ class LocalAgentEngine @Inject constructor(
             10. start_timer(hours: Int, minutes: Int, seconds: Int, label: String)
                - Starts a countdown timer for specified hours, minutes, and seconds
             11. cancel_timer()
-            12. create_calendar_event(title: String, description: String, start_date: String, start_time: String, duration_minutes: Int)
-                - Format start_date as YYYY-MM-DD
-                - Format start_time as HH:MM
+            12. create_calendar_event(title: String, description: String, start_date: String, start_time: String, end_date: String, end_time: String, is_all_day: Boolean, sync_google: Boolean)
+                - start_date & end_date format: YYYY-MM-DD
+                - start_time & end_time format: HH:MM (ignored if is_all_day is true)
+                - is_all_day: boolean
+                - sync_google: boolean (default true)
             13. list_calendar_events()
             14. list_calendar_events_range(start_date: String, end_date: String)
             15. delete_calendar_event(id: Long)
@@ -446,19 +448,33 @@ class LocalAgentEngine @Inject constructor(
                     val title = args?.get("title")?.jsonPrimitive?.content ?: "Meeting"
                     val description = args?.get("description")?.jsonPrimitive?.content ?: ""
                     val startDateStr = args?.get("start_date")?.jsonPrimitive?.content ?: ""
-                    val startTimeStr = args?.get("start_time")?.jsonPrimitive?.content ?: ""
-                    val duration = args?.get("duration_minutes")?.jsonPrimitive?.int ?: 60
+                    val startTimeStr = args?.get("start_time")?.jsonPrimitive?.content ?: "09:00"
+                    val endDateStr = args?.get("end_date")?.jsonPrimitive?.content ?: startDateStr
+                    val endTimeStr = args?.get("end_time")?.jsonPrimitive?.content ?: "10:00"
+                    val isAllDay = args?.get("is_all_day")?.jsonPrimitive?.booleanOrNull ?: false
+                    val syncGoogle = args?.get("sync_google")?.jsonPrimitive?.booleanOrNull ?: true
 
-                    val calendar = Calendar.getInstance()
+                    val startCal = Calendar.getInstance()
+                    val endCal = Calendar.getInstance()
                     try {
                         val format = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
-                        val date = format.parse("$startDateStr $startTimeStr")
-                        if (date != null) calendar.time = date
+                        val sDate = format.parse("$startDateStr $startTimeStr")
+                        if (sDate != null) startCal.time = sDate
+
+                        val eDate = format.parse("$endDateStr $endTimeStr")
+                        if (eDate != null) endCal.time = eDate
                     } catch (e: Exception) {
                         Log.e(TAG, "Error parsing calendar date/time", e)
                     }
 
-                    val eventId = calendarController.createEvent(title, description, calendar.timeInMillis, duration)
+                    val eventId = calendarController.createEvent(
+                        title = title,
+                        description = description,
+                        startMillis = startCal.timeInMillis,
+                        endMillis = if (endCal.timeInMillis > startCal.timeInMillis) endCal.timeInMillis else startCal.timeInMillis + 3600000L,
+                        isAllDay = isAllDay,
+                        syncGoogle = syncGoogle
+                    )
                     if (eventId != null) {
                         KairosResponse(
                             type = "WIDGET",
@@ -466,7 +482,7 @@ class LocalAgentEngine @Inject constructor(
                             widget = WidgetPayload(
                                 widgetType = "CALENDAR_EVENT",
                                 title = "Event Scheduled",
-                                items = listOf(WidgetItem(id = eventId.toString(), primary = title, secondary = "$startDateStr at $startTimeStr ($duration min)", icon = "calendar"))
+                                items = listOf(WidgetItem(id = eventId.toString(), primary = title, secondary = if (isAllDay) "$startDateStr (All Day)" else "$startDateStr $startTimeStr - $endTimeStr", icon = "calendar"))
                             )
                         )
                     } else {

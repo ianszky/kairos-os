@@ -13,7 +13,7 @@ import javax.inject.Singleton
 class LocalCalendarController @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
-    private fun getPrimaryCalendarId(): Long {
+    private fun getCalendarId(preferGoogle: Boolean = true): Long {
         val projection = arrayOf(
             CalendarContract.Calendars._ID,
             CalendarContract.Calendars.IS_PRIMARY,
@@ -35,6 +35,7 @@ class LocalCalendarController @Inject constructor(
                 val visibleCol = cursor.getColumnIndex(CalendarContract.Calendars.VISIBLE)
 
                 var googleCalId: Long? = null
+                var localCalId: Long? = null
                 var primaryCalId: Long? = null
                 var firstVisibleId: Long? = null
 
@@ -44,13 +45,21 @@ class LocalCalendarController @Inject constructor(
                     val isPrimary = primaryCol != -1 && cursor.getInt(primaryCol) == 1
                     val isVisible = visibleCol != -1 && cursor.getInt(visibleCol) == 1
 
-                    if (accountType == "com.google" && isPrimary) return id
-                    if (accountType == "com.google" && googleCalId == null) googleCalId = id
+                    if (accountType == "com.google") {
+                        if (isPrimary && preferGoogle) return id
+                        if (googleCalId == null) googleCalId = id
+                    } else {
+                        if (localCalId == null) localCalId = id
+                    }
                     if (isPrimary && primaryCalId == null) primaryCalId = id
                     if (isVisible && firstVisibleId == null) firstVisibleId = id
                 }
 
-                return googleCalId ?: primaryCalId ?: firstVisibleId ?: 1L
+                return if (preferGoogle) {
+                    googleCalId ?: primaryCalId ?: firstVisibleId ?: 1L
+                } else {
+                    localCalId ?: primaryCalId ?: firstVisibleId ?: 1L
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -59,15 +68,33 @@ class LocalCalendarController @Inject constructor(
     }
 
     fun createEvent(title: String, description: String, startMillis: Long, durationMinutes: Int): Long? {
+        val endMillis = startMillis + (durationMinutes * 60 * 1000L)
+        return createEvent(title, description, startMillis, endMillis, isAllDay = false, syncGoogle = true)
+    }
+
+    fun createEvent(
+        title: String,
+        description: String,
+        startMillis: Long,
+        endMillis: Long,
+        isAllDay: Boolean = false,
+        syncGoogle: Boolean = true
+    ): Long? {
         return try {
-            val calendarId = getPrimaryCalendarId()
+            val calendarId = getCalendarId(preferGoogle = syncGoogle)
             val values = ContentValues().apply {
                 put(CalendarContract.Events.DTSTART, startMillis)
-                put(CalendarContract.Events.DTEND, startMillis + (durationMinutes * 60 * 1000))
+                put(CalendarContract.Events.DTEND, if (endMillis > startMillis) endMillis else startMillis + 3600000L)
                 put(CalendarContract.Events.TITLE, title)
                 put(CalendarContract.Events.DESCRIPTION, description)
                 put(CalendarContract.Events.CALENDAR_ID, calendarId)
-                put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
+                if (isAllDay) {
+                    put(CalendarContract.Events.ALL_DAY, 1)
+                    put(CalendarContract.Events.EVENT_TIMEZONE, "UTC")
+                } else {
+                    put(CalendarContract.Events.ALL_DAY, 0)
+                    put(CalendarContract.Events.EVENT_TIMEZONE, TimeZone.getDefault().id)
+                }
             }
             val uri = context.contentResolver.insert(CalendarContract.Events.CONTENT_URI, values)
             uri?.let { ContentUris.parseId(it) }
@@ -85,6 +112,7 @@ class LocalCalendarController @Inject constructor(
             CalendarContract.Events.DESCRIPTION,
             CalendarContract.Events.DTSTART,
             CalendarContract.Events.DTEND,
+            CalendarContract.Events.ALL_DAY,
             CalendarContract.Events.CALENDAR_DISPLAY_NAME,
             CalendarContract.Events.ACCOUNT_NAME
         )
@@ -104,10 +132,12 @@ class LocalCalendarController @Inject constructor(
                 val descCol = cursor.getColumnIndex(CalendarContract.Events.DESCRIPTION)
                 val startCol = cursor.getColumnIndex(CalendarContract.Events.DTSTART)
                 val endCol = cursor.getColumnIndex(CalendarContract.Events.DTEND)
+                val allDayCol = cursor.getColumnIndex(CalendarContract.Events.ALL_DAY)
                 val calNameCol = cursor.getColumnIndex(CalendarContract.Events.CALENDAR_DISPLAY_NAME)
                 val accountCol = cursor.getColumnIndex(CalendarContract.Events.ACCOUNT_NAME)
                 
                 while (cursor.moveToNext()) {
+                    val isAllDay = allDayCol != -1 && cursor.getInt(allDayCol) == 1
                     events.add(
                         CalendarEvent(
                             id = cursor.getLong(idCol),
@@ -115,6 +145,7 @@ class LocalCalendarController @Inject constructor(
                             description = cursor.getString(descCol) ?: "",
                             startMillis = cursor.getLong(startCol),
                             endMillis = cursor.getLong(endCol),
+                            isAllDay = isAllDay,
                             calendarName = if (calNameCol != -1) cursor.getString(calNameCol) else null,
                             accountName = if (accountCol != -1) cursor.getString(accountCol) else null
                         )
@@ -145,6 +176,7 @@ data class CalendarEvent(
     val description: String,
     val startMillis: Long,
     val endMillis: Long,
+    val isAllDay: Boolean = false,
     val calendarName: String? = null,
     val accountName: String? = null
 )

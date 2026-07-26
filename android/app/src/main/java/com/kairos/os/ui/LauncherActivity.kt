@@ -458,6 +458,7 @@ fun MindfulLauncherScreen(
     val focusRequester = remember { FocusRequester() }
     var isTerminalFocused by remember { mutableStateOf(false) }
     var activeScreen by remember { mutableStateOf("home") }
+    var calendarViewMode by remember { mutableStateOf("week") }
     var noteIsEditing by remember { mutableStateOf(false) }
     var noteSaveState by remember { mutableStateOf(com.kairos.os.ui.screens.NoteSaveState.GRAY_CHECK) }
     var noteSaveAction by remember { mutableStateOf<(() -> Unit)?>(null) }
@@ -1198,6 +1199,7 @@ fun MindfulLauncherScreen(
                     "calendar" -> {
                         com.kairos.os.ui.screens.LocalCalendarScreen(
                             calendarController = localCalendarController,
+                            viewMode = calendarViewMode,
                             onBack = { activeScreen = "home" }
                         )
                     }
@@ -1334,6 +1336,15 @@ fun MindfulLauncherScreen(
                                         )
                                     }
                                 }
+                            }
+                        }
+                        if (activeScreen == "calendar") {
+                            IconButton(onClick = { calendarViewMode = if (calendarViewMode == "week") "month" else "week" }) {
+                                Icon(
+                                    imageVector = if (calendarViewMode == "week") Icons.Default.CalendarMonth else Icons.Default.ViewWeek,
+                                    contentDescription = "Toggle Calendar View",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                         IconButton(onClick = onThemeToggle) {
