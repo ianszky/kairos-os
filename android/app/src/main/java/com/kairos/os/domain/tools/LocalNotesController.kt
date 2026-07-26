@@ -31,6 +31,10 @@ class LocalNotesController @Inject constructor(
         localNoteDao.searchNotes(query)
     }
 
+    suspend fun getNoteById(id: Int): LocalNote? = withContext(Dispatchers.IO) {
+        localNoteDao.getAllNotes().find { it.id == id }
+    }
+
     suspend fun deleteNote(id: Int): Boolean = withContext(Dispatchers.IO) {
         val notes = localNoteDao.getAllNotes()
         val note = notes.find { it.id == id }

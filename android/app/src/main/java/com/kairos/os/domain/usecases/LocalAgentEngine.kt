@@ -196,28 +196,43 @@ class LocalAgentEngine @Inject constructor(
 
         val currentDateStr = SimpleDateFormat("yyyy-MM-dd HH:mm EEEE", Locale.getDefault()).format(Date())
 
+        val existingNotes = notesController.getAllNotes()
+        val notesSummary = if (existingNotes.isEmpty()) {
+            "No notes currently stored."
+        } else {
+            existingNotes.joinToString("\n") { note ->
+                "[ID: ${note.id}] Title: \"${note.title}\" | Content: \"${note.content.take(150)}\""
+            }
+        }
+
         val systemPrompt = """
             You are the local KAIROS OS agent. You execute actions on the phone using Notes, Alarms, Timers, and Calendar tools.
             Current date and time: $currentDateStr
+
+            Existing Notes in Database:
+            $notesSummary
 
             Available Tools:
             1. create_note(title: String, content: String)
             2. list_notes()
             3. search_notes(query: String)
-            4. update_note(id: Int, title: String, content: String)
-            5. delete_note(id: Int)
-            6. set_alarm(hour: Int, minute: Int, label: String)
-            7. list_alarms()
-            8. cancel_alarm(id: Int)
-            9. start_timer(hours: Int, minutes: Int, seconds: Int, label: String)
+               - Performs a title/content query or retrieves notes matching the user's intent.
+            4. get_note_by_id(id: Int)
+               - Use this tool when one of the Existing Notes above matches what the user is looking for (even if exact words differ).
+            5. update_note(id: Int, title: String, content: String)
+            6. delete_note(id: Int)
+            7. set_alarm(hour: Int, minute: Int, label: String)
+            8. list_alarms()
+            9. cancel_alarm(id: Int)
+            10. start_timer(hours: Int, minutes: Int, seconds: Int, label: String)
                - Starts a countdown timer for specified hours, minutes, and seconds
-            10. cancel_timer()
-            11. create_calendar_event(title: String, description: String, start_date: String, start_time: String, duration_minutes: Int)
+            11. cancel_timer()
+            12. create_calendar_event(title: String, description: String, start_date: String, start_time: String, duration_minutes: Int)
                 - Format start_date as YYYY-MM-DD
                 - Format start_time as HH:MM
-            12. list_calendar_events()
-            13. list_calendar_events_range(start_date: String, end_date: String)
-            14. delete_calendar_event(id: Long)
+            13. list_calendar_events()
+            14. list_calendar_events_range(start_date: String, end_date: String)
+            15. delete_calendar_event(id: Long)
 
             Analyze the user command: "$prompt"
             Respond strictly with a JSON object. No markdown styling, no ```json formatting.
@@ -284,12 +299,46 @@ class LocalAgentEngine @Inject constructor(
                         )
                     )
                 }
+                "get_note_by_id" -> {
+                    val id = args?.get("id")?.jsonPrimitive?.int ?: 0
+                    val note = notesController.getNoteById(id)
+                    if (note != null) {
+                        KairosResponse(
+                            type = "WIDGET",
+                            text = "Found note: '${note.title}'",
+                            widget = WidgetPayload(
+                                widgetType = "NOTE_CARD",
+                                title = "Note Found",
+                                items = listOf(WidgetItem(id = note.id.toString(), primary = note.title, secondary = note.content, icon = "note"))
+                            )
+                        )
+                    } else {
+                        KairosResponse(type = "TEXT", text = "Note #$id not found.")
+                    }
+                }
                 "search_notes" -> {
                     val query = args?.get("query")?.jsonPrimitive?.content ?: ""
-                    val notes = notesController.searchNotes(query)
+                    val idArg = args?.get("id")?.jsonPrimitive?.intOrNull
+                    var notes = notesController.searchNotes(query)
+
+                    // Semantic fallback: If SQL query returned empty, check if ID was passed or match candidate notes by title/content
+                    if (notes.isEmpty() && idArg != null) {
+                        val matchedById = notesController.getNoteById(idArg)
+                        if (matchedById != null) notes = listOf(matchedById)
+                    }
+
+                    if (notes.isEmpty() && query.isNotBlank()) {
+                        // Soft matching against existing notes loaded in memory
+                        notes = existingNotes.filter { n ->
+                            n.title.contains(query, ignoreCase = true) ||
+                            n.content.contains(query, ignoreCase = true) ||
+                            query.split(" ").any { word -> word.length > 3 && (n.title.contains(word, ignoreCase = true) || n.content.contains(word, ignoreCase = true)) }
+                        }
+                    }
+
                     KairosResponse(
                         type = "WIDGET",
-                        text = "Found ${notes.size} note(s) matching '$query'.",
+                        text = if (notes.isNotEmpty()) "Found ${notes.size} note(s) matching '$query'." else "No notes found matching '$query'.",
                         widget = WidgetPayload(
                             widgetType = "NOTE_CARD",
                             title = "Search Notes: '$query'",
