@@ -229,15 +229,21 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
     required: ["text"]
   };
 
+  const chatConfig: any = {
+    systemInstruction: systemInstruction,
+    temperature: 0.2,
+  };
+
+  if (functionDeclarations.length > 0) {
+    chatConfig.tools = [{ functionDeclarations }];
+  } else {
+    chatConfig.responseMimeType = "application/json";
+    chatConfig.responseSchema = jsonSchema;
+  }
+
   const chat = ai.chats.create({
     model: 'gemini-3.5-flash',
-    config: {
-      tools: functionDeclarations.length > 0 ? [{ functionDeclarations }] : [],
-      systemInstruction: systemInstruction,
-      responseMimeType: "application/json",
-      responseSchema: jsonSchema,
-      temperature: 0.2, // Lower temperature to avoid creative guesses
-    }
+    config: chatConfig
   });
 
   console.log("[ToolExecutor] Sending prompt to Gemini 2.5 Flash...");
@@ -252,6 +258,8 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
 
   const MAX_ITERATIONS = 5;
   let iterations = 0;
+  const executedCalls = new Set<string>();
+  let lastToolResult: any = null;
 
   while (response.functionCalls && response.functionCalls.length > 0 && iterations < MAX_ITERATIONS) {
     iterations++;
@@ -260,6 +268,20 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
     for (const fc of response.functionCalls) {
       const toolName = fc.name;
       if (!toolName) continue;
+
+      const callSignature = `${toolName}:${JSON.stringify(fc.args || {})}`;
+      if (executedCalls.has(callSignature)) {
+        console.warn(`[ToolExecutor] Prevented duplicate execution for ${toolName}`);
+        parts.push({
+          functionResponse: {
+            name: toolName,
+            response: {
+              notice: `Tool "${toolName}" with these arguments has already been executed successfully. Do not invoke it again. Return your final JSON response now.`
+            }
+          }
+        });
+        continue;
+      }
 
       console.log(`[ToolExecutor] Model requested function call: ${toolName}`);
 
@@ -283,11 +305,15 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
           args: fc.args,
         });
 
+        executedCalls.add(callSignature);
+        const parsedResult = typeof result === 'string' ? (runCatchingJson(result) || result) : result;
+        lastToolResult = parsedResult;
+
         console.log(`[ToolExecutor] Executed tool: ${toolName}`);
         parts.push({
           functionResponse: { 
             name: toolName, 
-            response: typeof result === 'string' ? JSON.parse(result) : result 
+            response: parsedResult
           }
         });
       } catch (err: unknown) {
@@ -313,5 +339,29 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
   }
 
   console.log("[ToolExecutor] Completed loop. Returning final text payload.");
-  return response.text;
+
+  const responseText = response.text?.trim() || "";
+  if (responseText.length > 0) {
+    return responseText;
+  }
+
+  if (lastToolResult) {
+    return JSON.stringify({
+      text: `Successfully executed requested action(s).`,
+      widget: lastToolResult?.widget || null
+    });
+  }
+
+  return JSON.stringify({
+    text: "Task execution complete."
+  });
 }
+
+function runCatchingJson(str: string) {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return null;
+  }
+}
+

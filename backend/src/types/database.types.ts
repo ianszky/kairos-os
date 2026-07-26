@@ -115,7 +115,6 @@ export interface Database {
           avatar_url?: string | null
         }
       }
-    }
       user_app_configs: {
         Row: {
           id: string
