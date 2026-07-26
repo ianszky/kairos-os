@@ -7,6 +7,15 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 26. Global Live Date & Time System Prompt Injection
+**Status:** DONE
+**Branch:** `main`
+**Summary:** Updated system prompt construction across all prompt execution tiers (simple conversational prompts, local intent classifier, local tools agent, and cloud backend requests) to inject live client date and time context (`yyyy-MM-dd HH:mm EEEE`):
+- **Simple Local Prompts (`handleSimplePrompt`)**: Injected system prompt header containing `Current date and time: $currentDateStr` so general conversational queries know the exact date/time context on-device.
+- **Intent Classifier (`classifyPrompt`)**: Added `Current date and time: $currentDateStr` into `classificationPrompt` so relative time expressions (e.g. "tomorrow", "next Monday") are accurately classified into local/cloud tiers.
+- **Cloud API Client (`KairosApiClient.kt`)**: Added `currentDate` field to `PromptRequest` and auto-populated client-side formatted timestamp so cloud requests carry the exact local date & time.
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 24s.
+
 <<<<<<< HEAD
 ### 25. KaiCalendar Visual Polish & Event Edit/Delete Dialog
 **Status:** DONE
