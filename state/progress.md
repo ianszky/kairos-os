@@ -7,6 +7,7 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+<<<<<<< HEAD
 ### 25. KaiCalendar Visual Polish & Event Edit/Delete Dialog
 **Status:** DONE
 **Branch:** `main`
@@ -39,6 +40,19 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 - **`get_note_by_id` Tool**: Declared `get_note_by_id(id)` in Gemma's system prompt, allowing Gemma to evaluate semantic intent (e.g. "buying dinner") against note candidates (e.g. "Grocery List") and directly return the target note by ID.
 - **Smart Fallback in `search_notes`**: If exact SQL `LIKE` keyword search returns 0 rows, `search_notes` automatically falls back to checking Gemma-provided IDs or soft fuzzy token matching in memory.
 - **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 43s.
+### 26. Running Agents Widget & Home Screen Central Operations Hub Overhaul
+**Status:** DONE
+**Branch:** `main`
+**Summary:** Overhauled the home screen experience to make KAIROS OS feel like a true agentic central hub of operations:
+- **No-Redirect Prompt Dispatch**: Dispatching a prompt from the home screen command bar no longer forces navigation away to the full chat screen. The home screen remains active.
+- **Running Agent Cards (`RunningAgentCard.kt`)**: Implemented translucent notification-style cards displaying the task title (generated locally via Gemma 4), real-time status ("Processing...", "Complete", "Failed", "Cancelled"), pulsing orange indicator dot, and a primary "View" action button.
+- **Swipe-to-Dismiss Gesture**: Removed X icon button; added horizontal drag (swipe right) to dismiss cards from view without cancelling background processes.
+- **Stacked Card Container (`RunningAgentsWidget.kt`)**: Positions cards directly above the chat input bar. Stacked cards feature a 20dp vertical peek offset so cards layered underneath are prominently visible.
+- **Expanded Full-Screen View (`ExpandedAgentList`)**: Expanded view uses a separate backdrop blur layer (`hazeChild`), keeping expanded agent cards and header 100% crisp and unblurred on top.
+- **Concurrent Prompt Isolation**: Every home dispatch generates a distinct `conversationId` and maintains isolated messages, preventing multi-prompt overwrites.
+- **In-Chat Stop Button**: Send button transforms into a Stop button when viewing an actively generating conversation, allowing users to abort the process.
+- **Room Database Persistence**: Created `RunningAgentEntity` and `RunningAgentDao` in Room DB for state persistence across app restarts, with automatic 24-hour cleanup of completed/cancelled tasks.
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 47s.
 
 ### 21. Notification Interceptor Audit, Logcat Diagnostics, 0ms Instant Settings & Per-App Rules Overhaul
 **Status:** DONE

@@ -12,14 +12,28 @@ export async function buildResponse(
   userMemory: Record<string, any> | null
 ): Promise<KairosResponse> {
   try {
-    // Parse the structured JSON response directly from the tool executor
-    // The tool executor now outputs KairosResponse-compatible JSON directly
-    const result = typeof rawToolOutput === 'string' ? JSON.parse(rawToolOutput) : rawToolOutput;
+    let result: any = null;
+    if (typeof rawToolOutput === 'string') {
+      const cleanedText = rawToolOutput.trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/, '')
+        .replace(/\s*```$/, '');
+      try {
+        result = JSON.parse(cleanedText);
+      } catch {
+        // If not valid JSON, treat rawToolOutput as plain text response
+        result = { text: rawToolOutput };
+      }
+    } else {
+      result = rawToolOutput || {};
+    }
+
+    const textContent = result?.text || (typeof rawToolOutput === 'string' ? rawToolOutput : '') || prompt;
 
     const payload: KairosResponse = {
       type: 'RESPONSE',
-      text: result.text || rawToolOutput || prompt,
-      widget: result.widget,
+      text: textContent,
+      widget: result?.widget || null,
       meta: {
         conversationId: conversationId,
         timestamp: new Date().toISOString(),

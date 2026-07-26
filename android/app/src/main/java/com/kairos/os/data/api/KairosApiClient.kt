@@ -101,6 +101,11 @@ class KairosApiClient @Inject constructor(
                 isLenient = true
             })
         }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 60000L
+            connectTimeoutMillis = 30000L
+            socketTimeoutMillis = 60000L
+        }
         defaultRequest {
             url("http://192.168.100.132:3001/") // replace with real URL later
             contentType(ContentType.Application.Json)
