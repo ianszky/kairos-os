@@ -253,7 +253,7 @@ val localKaiApps = listOf(
 )
 
 val composioApps = listOf(
-    AppConnection("digest", "Digest Summary", null, null, "utility"),
+    AppConnection("digest", "Digest Summary", null, null, "utility", null, "📰"),
     AppConnection("gmail", "Gmail", "https://logos.composio.dev/api/gmail", null, "productivity"),
     AppConnection("composio", "Composio", "https://logos.composio.dev/api/composio", null, "developer"),
     AppConnection("github", "Github", "https://logos.composio.dev/api/github", null, "developer"),
@@ -1423,16 +1423,19 @@ fun MindfulLauncherScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                                        .background(if (isSelected) Color(0xFFFF6B00) else Color.Transparent)
                                         .clickable { selectedDrawerTab = tab }
                                         .padding(vertical = 6.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = tab,
-                                        style = MaterialTheme.typography.labelMedium,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        style = TextStyle(
+                                            fontFamily = googleSansFont,
+                                            fontSize = 13.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                        ),
+                                        color = if (isSelected) Color.White else Color(0xFF9E9E9E)
                                     )
                                 }
                             }
@@ -1459,7 +1462,7 @@ fun MindfulLauncherScreen(
                                         Box(
                                             modifier = Modifier
                                                 .size(28.dp)
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f), RoundedCornerShape(6.dp)),
+                                                .background(Color(0xFFFF6B00).copy(alpha = 0.15f), RoundedCornerShape(6.dp)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Text(app.iconEmoji, fontSize = 16.sp)
@@ -1474,8 +1477,8 @@ fun MindfulLauncherScreen(
                                     }
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
-                                        Text(app.displayName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
-                                        Text("@${app.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        Text(app.displayName, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp, fontWeight = FontWeight.Medium), color = MaterialTheme.colorScheme.onBackground)
+                                        Text("@${app.id}", style = TextStyle(fontFamily = googleSansFont, fontSize = 11.sp), color = Color(0xFF8A8A8A))
                                     }
                                 }
                             }
