@@ -21,7 +21,7 @@ class LocalTitleGenerator @Inject constructor(
 ) {
     private val TAG = "LocalTitleGenerator"
 
-    suspend fun generateAndSaveTitle(conversationId: String, firstPrompt: String, isLocal: Boolean = false) {
+    suspend fun generateAndSaveTitle(conversationId: String, firstPrompt: String, isLocal: Boolean = false): String {
         val engine = localLlmClient.getEngine()
 
         var titleResult = ""
@@ -84,5 +84,6 @@ class LocalTitleGenerator @Inject constructor(
                 }
             }
         }
+        return titleResult
     }
 }

@@ -7,6 +7,16 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 28. Agent Widget UX, Title Synchronization & Chat Loading Fixes
+**Status:** DONE
+**Branch:** `feature/agent-widget-ux-fixes`
+**Summary:** Resolved 3 Running Agent Widget UX and state synchronization issues:
+- **Direct Title Synchronization**: Updated `LocalTitleGenerator.generateAndSaveTitle` to return the generated title string directly, updating `RunningAgentsViewModel.updateTitle` instantly without relying on stale async state.
+- **Chatbar Auto-Clear & Keyboard Dismissal**: Prompt submissions now automatically clear text input, reset attachments, clear focus via `LocalFocusManager`, and hide the software keyboard via `LocalSoftwareKeyboardController`.
+- **Card Entrance Animation**: Wrapped `CollapsedAgentStack` in `AnimatedVisibility` for a smooth slide-up entrance animation above the chatbar when a new agent task starts.
+- **Restored Three-Dots Indicator**: `onViewAgent` now appends `Interaction.Loading()` when navigating to an active agent in `PROCESSING` status, displaying the three-dots loading bubble in `ChatView`.
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 47s.
+
 ### 27. 2-Pass Synthesis Engine for KaiNotes & Local Tools (Strategy 1)
 **Status:** DONE
 **Branch:** `main`
