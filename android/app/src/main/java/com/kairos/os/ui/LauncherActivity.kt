@@ -1324,7 +1324,6 @@ fun MindfulLauncherScreen(
                                     "calendar" -> "Kai Calendar"
                                     "clock" -> "Kai Clock"
                                     "search" -> "Search"
-                                    "scheduled" -> "Scheduled Tasks"
                                     "distracting_apps" -> "Distracting Apps"
                                     "notification_rules" -> "Notification Rules"
                                     else -> ""
@@ -1405,12 +1404,13 @@ fun MindfulLauncherScreen(
             }
 
             // Input box column (Aligned to BottomCenter, fading bottom gradient background)
-            if (activeScreen == "home") {
+            if (activeScreen == "home" || activeScreen == "scheduled") {
                 Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding()
+                    .imePadding()
                     .padding(24.dp)
             ) {
                 if (!isChatOpen && runningAgents.isNotEmpty() && !isAgentsExpanded) {
@@ -1433,7 +1433,12 @@ fun MindfulLauncherScreen(
                 }
 
                 AnimatedVisibility(visible = isAppDrawerOpen) {
-                    val filteredApps = currentTabApps.filter { 
+                    val availableDrawerApps = if (activeScreen == "scheduled") {
+                        localKaiApps + composioApps
+                    } else {
+                        currentTabApps
+                    }
+                    val filteredApps = availableDrawerApps.filter { 
                         it.id.contains(searchQuery, ignoreCase = true) || 
                         it.displayName.contains(searchQuery, ignoreCase = true) ||
                         it.id.removePrefix("app:").contains(searchQuery.removePrefix("app:"), ignoreCase = true)
@@ -1446,39 +1451,40 @@ fun MindfulLauncherScreen(
                             .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                             .padding(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp, vertical = 4.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                                .padding(4.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            listOf("Integrations", "App").forEach { tab ->
-                                val isSelected = selectedDrawerTab == tab
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSelected) Color(0xFFFF6B00) else Color.Transparent)
-                                        .clickable { selectedDrawerTab = tab }
-                                        .padding(vertical = 6.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = tab,
-                                        style = TextStyle(
-                                            fontFamily = googleSansFont,
-                                            fontSize = 13.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                        ),
-                                        color = if (isSelected) Color.White else Color(0xFF9E9E9E)
-                                    )
+                        if (activeScreen != "scheduled") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4.dp, vertical = 4.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                listOf("Integrations", "App").forEach { tab ->
+                                    val isSelected = selectedDrawerTab == tab
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (isSelected) Color(0xFFFF6B00) else Color.Transparent)
+                                            .clickable { selectedDrawerTab = tab }
+                                            .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = tab,
+                                            style = TextStyle(
+                                                fontFamily = googleSansFont,
+                                                fontSize = 13.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                            ),
+                                            color = if (isSelected) Color.White else Color(0xFF9E9E9E)
+                                        )
+                                    }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(4.dp))
                         }
-
-                        Spacer(modifier = Modifier.height(4.dp))
 
                         androidx.compose.foundation.lazy.LazyColumn(
                             modifier = Modifier.heightIn(max = 200.dp)
@@ -1891,7 +1897,8 @@ fun MindfulLauncherScreen(
                             }
                         }
 
-                         AnimatedVisibility(visible = activeScreen == "scheduled" && termInput.trim().isNotEmpty()) {
+                         val hasAppOrPrompt = parsedActiveApp != null || parsedActiveIntegration != null || termInput.contains("@") || termInput.trim().isNotEmpty()
+                         AnimatedVisibility(visible = activeScreen == "scheduled" && hasAppOrPrompt) {
                              com.kairos.os.ui.screens.ScheduleConfigBelowInputPanel(
                                  promptText = termInput.trim(),
                                  onActivate = { frequency, daysOfWeek, timeOfDay ->
