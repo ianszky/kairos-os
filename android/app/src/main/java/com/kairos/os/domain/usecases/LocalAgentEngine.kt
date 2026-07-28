@@ -104,25 +104,38 @@ class LocalAgentEngine @Inject constructor(
 
     private suspend fun classifyPrompt(prompt: String, appTarget: String?): Classification {
         val lowerPrompt = prompt.lowercase()
-        val localTargets = listOf("kai", "kairos", "kainotes", "notes", "kaicalendar", "calendar", "kaiclock", "clock", "alarm")
+        val localTargets = listOf(
+            "kai", "kairos", 
+            "kainotes", "notes", "note", 
+            "kaicalendar", "calendar", "event", "meeting", 
+            "kaiclock", "clock", "alarm", "timer", "kaialarm"
+        )
+
         val cleanTarget = appTarget?.removePrefix("app:")?.lowercase()
 
-        if (cleanTarget != null && localTargets.contains(cleanTarget)) {
-            return Classification.LOCAL_AGENT
-        }
-        if (cleanTarget != null && !localTargets.contains(cleanTarget)) {
-            return Classification.CLOUD_AGENT
+        if (cleanTarget != null) {
+            if (localTargets.contains(cleanTarget)) {
+                Log.i(TAG, "Classified as LOCAL_AGENT via appTarget '$appTarget'")
+                return Classification.LOCAL_AGENT
+            } else {
+                Log.i(TAG, "Classified as CLOUD_AGENT via appTarget '$appTarget'")
+                return Classification.CLOUD_AGENT
+            }
         }
         
-        if (prompt.contains("@gmail") || prompt.contains("@googlecalendar") || 
-            prompt.contains("@spotify") || prompt.contains("@github") || 
-            prompt.contains("@notion") || prompt.contains("@googlesheets") || 
-            prompt.contains("@googledrive")
-        ) {
+        val cloudTags = listOf("@gmail", "@googlecalendar", "@spotify", "@github", "@notion", "@googlesheets", "@googledrive", "@slack", "@composio")
+        if (cloudTags.any { lowerPrompt.contains(it) }) {
+            Log.i(TAG, "Classified as CLOUD_AGENT via cloud tag in prompt")
             return Classification.CLOUD_AGENT
         }
 
-        if (localTargets.any { lowerPrompt.contains("@$it") || lowerPrompt.contains("@app:$it") }) {
+        if (localTargets.any { target -> 
+            lowerPrompt.contains("@$target") || 
+            lowerPrompt.contains("@app:$target") || 
+            lowerPrompt.contains("app:$target") || 
+            lowerPrompt.contains(target) 
+        }) {
+            Log.i(TAG, "Classified as LOCAL_AGENT via local target keyword match in prompt")
             return Classification.LOCAL_AGENT
         }
 
@@ -134,21 +147,22 @@ class LocalAgentEngine @Inject constructor(
             You are the KAIROS OS local intent classifier. Analyze the user request.
             Current date and time: $currentDateStr
 
-            IMPORTANT: The following app tags are KAIROS LOCAL apps and must ALWAYS be classified as LOCAL_AGENT:
-            - @kainotes, @app:kainotes → local notes app
-            - @kaicalendar, @app:kaicalendar → local calendar app
-            - @kaiclock, @app:kaiclock → local clock/alarm app
-            - @kai, @kairos → general local KAIROS assistant
-            These are NOT cloud integrations — never classify them as CLOUD_AGENT.
+            STRICT CLASSIFICATION RULES:
 
-            Categorize the request into exactly one of these tiers:
-            1. SIMPLE - general conversational inputs, trivia, direct questions, or greetings (e.g. "hi", "how are you", "what is photosynthesis", "tell me a joke"). There are no app mentions, and no actions like setting alarms, calendar events, or notes are required.
-            2. LOCAL_AGENT - commands specifically relating to notes, alarms, clock, or calendars, OR any prompt mentioning @kainotes, @kaicalendar, @kaiclock, @app:kainotes, @app:kaicalendar, @app:kaiclock, @kai, @kairos (e.g. "set alarm for 6am", "@app:kainotes create a shopping list", "@kaicalendar add doctor meeting tomorrow").
-            3. CLOUD_AGENT - tasks requiring cloud apps, emails, search, spotify, documents, sheets, slack, or explicit cloud integration tags like @gmail, @notion, @spotify, @github, @googledrive (e.g. "send an email to my boss", "play lo-fi music on spotify", "@notion summarize project").
+            1. LOCAL_AGENT: Use LOCAL_AGENT for all phone management, local apps, notes, calendar, alarms, clock, and timers.
+               - KAI Local App Tags: @kainotes, @app:kainotes, @kaicalendar, @app:kaicalendar, @kaiclock, @app:kaiclock, @kai, @kairos.
+               - KAI Local Keywords: kainotes, kaicalendar, kaiclock, notes, calendar, clock, alarm, timer, event, meeting.
+               - ANY request involving notes, alarms, clock, timers, or calendar events MUST be classified as LOCAL_AGENT.
+
+            2. CLOUD_AGENT: Use CLOUD_AGENT ONLY for external cloud integrations or cloud web apps.
+               - Cloud Tags: @gmail, @googlecalendar, @spotify, @github, @notion, @googlesheets, @googledrive, @slack, @composio.
+               - External web searches, sending emails, playing music on Spotify, or cloud document editing.
+
+            3. SIMPLE: Use SIMPLE only for basic chitchat, greetings, trivia, or general Q&A with no app actions required (e.g., "hello", "how are you", "what is gravity").
 
             User Request: "$prompt"
 
-            Return ONLY one word: SIMPLE, LOCAL_AGENT, or CLOUD_AGENT. Do not write any other explanation or text.
+            Respond ONLY with a single word: SIMPLE, LOCAL_AGENT, or CLOUD_AGENT. Do not write any other explanation or formatting.
         """.trimIndent()
 
         return try {
@@ -166,7 +180,7 @@ class LocalAgentEngine @Inject constructor(
             }
             Log.i(TAG, "Classifier raw output: '$responseText'")
             
-            if (responseText.contains("LOCAL_AGENT") || localTargets.any { lowerPrompt.contains("@$it") || lowerPrompt.contains("@app:$it") }) {
+            if (responseText.contains("LOCAL_AGENT") || localTargets.any { target -> lowerPrompt.contains(target) || lowerPrompt.contains("app:$target") }) {
                 Classification.LOCAL_AGENT
             } else if (responseText.contains("SIMPLE")) {
                 Classification.SIMPLE
@@ -709,7 +723,7 @@ class LocalAgentEngine @Inject constructor(
                     )
                 )
             }
-            lower.contains("alarm") || lower.contains("clock") || lower.contains("kaiclock") -> {
+            lower.contains("alarm") || lower.contains("clock") || lower.contains("kaiclock") || lower.contains("app:kaiclock") -> {
                 val regex = Regex("(\\d{1,2})\\s*(am|pm|:(\\d{2}))")
                 val match = regex.find(lower)
                 var hour = 8
@@ -765,6 +779,18 @@ class LocalAgentEngine @Inject constructor(
                 } else {
                     KairosResponse(type = "TEXT", text = "Failed to schedule calendar event due to permission or system error.")
                 }
+            }
+            lower.contains("kai") || lower.contains("kairos") -> {
+                val notes = notesController.getAllNotes()
+                KairosResponse(
+                    type = "WIDGET",
+                    text = "Local KAIROS Assistant: Here are your stored notes.",
+                    widget = WidgetPayload(
+                        widgetType = "NOTE_CARD",
+                        title = "Local Notes (${notes.size})",
+                        items = notes.map { WidgetItem(id = it.id.toString(), primary = it.title, secondary = it.content, icon = "note") }
+                    )
+                )
             }
             else -> {
                 KairosResponse(type = "CLOUD_FALLBACK")
