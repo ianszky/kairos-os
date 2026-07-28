@@ -320,7 +320,7 @@ fun ScheduleConfigBelowInputPanel(
     var selectedFrequency by remember { mutableStateOf("daily") } // "daily", "weekly"
     var selectedHour by remember { mutableIntStateOf(9) }
     var selectedMinute by remember { mutableIntStateOf(0) }
-    var selectedDays by remember { mutableStateOf(setOf(1, 2, 3, 4, 5)) } // Mon-Fri default
+    var selectedDays by remember { mutableStateOf(setOf(1)) } // Mon default
     var showTimePickerDialog by remember { mutableStateOf(false) }
 
     val daysOfWeekLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
@@ -335,19 +335,6 @@ fun ScheduleConfigBelowInputPanel(
                 .fillMaxWidth()
                 .height(1.dp)
                 .background(MaterialTheme.colorScheme.surfaceVariant)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Section Title
-        Text(
-            text = "SCHEDULE CONFIGURATION",
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontFamily = googleSansFont,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                letterSpacing = 0.5.sp
-            )
         )
 
         Spacer(modifier = Modifier.height(12.dp))

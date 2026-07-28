@@ -1811,7 +1811,9 @@ fun MindfulLauncherScreen(
                                 val hasPromptAfterTag = termInput.contains(' ') && promptAfterTag.isNotEmpty()
                                 val currentApp = availableApps.find { it.id == parsedActiveApp } ?: frictionTargetApp
 
-                                if (isFrictionMode || (currentApp != null && intentViewModel.isDistractingApp(currentApp.id))) {
+                                if (activeScreen == "scheduled") {
+                                    // No send icon or open-in-new icon on scheduled screen - ACTIVATE on the config panel below is the CTA
+                                } else if (isFrictionMode || (currentApp != null && intentViewModel.isDistractingApp(currentApp.id))) {
                                     val isCanOpen = intentApproved && !isValidatingReason && selectedFrictionTime != null
                                     IconButton(
                                         onClick = {
@@ -1897,8 +1899,8 @@ fun MindfulLauncherScreen(
                             }
                         }
 
-                         val hasAppOrPrompt = parsedActiveApp != null || parsedActiveIntegration != null || termInput.contains("@") || termInput.trim().isNotEmpty()
-                         AnimatedVisibility(visible = activeScreen == "scheduled" && hasAppOrPrompt) {
+                         val hasAppMention = parsedActiveApp != null || parsedActiveIntegration != null || termInput.contains("@")
+                         AnimatedVisibility(visible = activeScreen == "scheduled" && hasAppMention) {
                              com.kairos.os.ui.screens.ScheduleConfigBelowInputPanel(
                                  promptText = termInput.trim(),
                                  onActivate = { frequency, daysOfWeek, timeOfDay ->
@@ -1911,6 +1913,7 @@ fun MindfulLauncherScreen(
                                          onSuccess = {
                                              termInput = ""
                                              textFieldValue = androidx.compose.ui.text.input.TextFieldValue("")
+                                             scheduledViewModel.refreshAll()
                                          }
                                      )
                                  }
