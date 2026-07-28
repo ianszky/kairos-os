@@ -1891,6 +1891,25 @@ fun MindfulLauncherScreen(
                             }
                         }
 
+                         AnimatedVisibility(visible = activeScreen == "scheduled" && termInput.trim().isNotEmpty()) {
+                             com.kairos.os.ui.screens.ScheduleConfigBelowInputPanel(
+                                 promptText = termInput.trim(),
+                                 onActivate = { frequency, daysOfWeek, timeOfDay ->
+                                     scheduledViewModel.createScheduledTask(
+                                         prompt = termInput.trim(),
+                                         appTarget = parsedActiveIntegration ?: parsedActiveApp,
+                                         frequency = frequency,
+                                         daysOfWeek = daysOfWeek,
+                                         timeOfDay = timeOfDay,
+                                         onSuccess = {
+                                             termInput = ""
+                                             textFieldValue = androidx.compose.ui.text.input.TextFieldValue("")
+                                         }
+                                     )
+                                 }
+                             )
+                         }
+
                          AnimatedVisibility(visible = isFrictionMode) {
                              Column(
                                  modifier = Modifier

@@ -1,8 +1,6 @@
 package com.kairos.os.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -11,9 +9,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
@@ -28,22 +25,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kairos.os.domain.models.ScheduledTask
 import com.kairos.os.domain.models.ScheduledTaskRun
-import com.kairos.os.ui.dotoFont
 import com.kairos.os.ui.googleSansFont
 import com.kairos.os.ui.viewmodels.ScheduledViewModel
+import java.util.Calendar
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduledScreen(
     scheduledViewModel: ScheduledViewModel,
@@ -56,36 +49,26 @@ fun ScheduledScreen(
     val runs by scheduledViewModel.runs.collectAsState()
     val isLoading by scheduledViewModel.isLoading.collectAsState()
 
-    // Input state
-    var inputText by remember { mutableStateOf("") }
-    var selectedFrequency by remember { mutableStateOf("daily") } // "daily", "weekly", "specific_days"
-    var selectedHour by remember { mutableIntStateOf(9) }
-    var selectedMinute by remember { mutableIntStateOf(0) }
-    var selectedDays by remember { mutableStateOf(setOf(1, 3, 5)) } // Mon, Wed, Fri default
-
     // Modals
     var editingTask by remember { mutableStateOf<ScheduledTask?>(null) }
     var manualRunTask by remember { mutableStateOf<ScheduledTask?>(null) }
     var taskToDelete by remember { mutableStateOf<ScheduledTask?>(null) }
 
-    val daysOfWeekLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
-
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .statusBarsPadding()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
         ) {
-            // Header bar
+            // Top Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp),
+                    .padding(top = 16.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -99,11 +82,11 @@ fun ScheduledScreen(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "SCHEDULED",
+                        text = "SCHEDULED TASKS",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontFamily = googleSansFont,
                             fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp
+                            letterSpacing = 0.5.sp
                         ),
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -164,13 +147,13 @@ fun ScheduledScreen(
                     if (runs.isEmpty()) {
                         EmptyScheduledPlaceholder(
                             title = "No Processes Executed Yet",
-                            subtitle = "Executed cron tasks will appear here as clickable conversation runs."
+                            subtitle = "Executed scheduled tasks will appear here as clickable conversation runs."
                         )
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(10.dp),
-                            contentPadding = PaddingValues(bottom = 180.dp)
+                            contentPadding = PaddingValues(bottom = 220.dp)
                         ) {
                             items(runs, key = { it.id }) { run ->
                                 ScheduledRunCard(
@@ -189,13 +172,13 @@ fun ScheduledScreen(
                     if (tasks.isEmpty()) {
                         EmptyScheduledPlaceholder(
                             title = "Scheduled Tasks Live Here",
-                            subtitle = "Type a prompt below and set a schedule to automate your workflows."
+                            subtitle = "Type a prompt in the chatbox below to configure and activate your automation."
                         )
                     } else {
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
-                            contentPadding = PaddingValues(bottom = 220.dp)
+                            contentPadding = PaddingValues(bottom = 240.dp)
                         ) {
                             items(tasks, key = { it.id }) { task ->
                                 ScheduledJobCard(
@@ -208,279 +191,6 @@ fun ScheduledScreen(
                         }
                     }
                 }
-            }
-        }
-
-        // Floating Bottom Input & Friction-style Schedule Config Panel
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        ) {
-            // Animated Schedule Config Panel (slides up when typing text in input)
-            AnimatedVisibility(
-                visible = inputText.trim().isNotEmpty(),
-                enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
-                        .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "SCHEDULE CONFIGURATION",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontFamily = googleSansFont,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary,
-                            letterSpacing = 0.5.sp
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Frequency selector chips
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf(
-                            "daily" to "Daily",
-                            "weekly" to "Weekly",
-                            "specific_days" to "Specific Days"
-                        ).forEach { (freqKey, freqLabel) ->
-                            val isSelected = selectedFrequency == freqKey
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                        else MaterialTheme.colorScheme.background
-                                    )
-                                    .border(
-                                        1.dp,
-                                        if (isSelected) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.surfaceVariant,
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .clickable { selectedFrequency = freqKey }
-                                    .padding(vertical = 8.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = freqLabel,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontFamily = googleSansFont,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                )
-                            }
-                        }
-                    }
-
-                    // Days selector chips (if weekly or specific_days)
-                    if (selectedFrequency != "daily") {
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "Days to run",
-                            style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            daysOfWeekLabels.forEachIndexed { index, label ->
-                                val isSelected = selectedDays.contains(index)
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (isSelected) MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                        )
-                                        .clickable {
-                                            selectedDays = if (isSelected) {
-                                                selectedDays - index
-                                            } else {
-                                                selectedDays + index
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = label.take(1),
-                                        style = MaterialTheme.typography.labelMedium.copy(
-                                            fontFamily = googleSansFont,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Time Selection Row
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "Time to run",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Hour selector
-                            OutlinedTextField(
-                                value = String.format("%02d", selectedHour),
-                                onValueChange = { input ->
-                                    input.toIntOrNull()?.let { selectedHour = it.coerceIn(0, 23) }
-                                },
-                                modifier = Modifier.width(56.dp),
-                                textStyle = TextStyle(
-                                    fontFamily = dotoFont,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.primary
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                singleLine = true
-                            )
-                            Text(
-                                text = ":",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            )
-                            // Minute selector
-                            OutlinedTextField(
-                                value = String.format("%02d", selectedMinute),
-                                onValueChange = { input ->
-                                    input.toIntOrNull()?.let { selectedMinute = it.coerceIn(0, 59) }
-                                },
-                                modifier = Modifier.width(56.dp),
-                                textStyle = TextStyle(
-                                    fontFamily = dotoFont,
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.primary
-                                ),
-                                shape = RoundedCornerShape(8.dp),
-                                singleLine = true
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Schedule Submit Button
-                    Button(
-                        onClick = {
-                            val promptText = inputText.trim()
-                            if (promptText.isNotEmpty()) {
-                                val timeStr = String.format("%02d:%02d:00", selectedHour, selectedMinute)
-                                scheduledViewModel.createScheduledTask(
-                                    prompt = promptText,
-                                    appTarget = null,
-                                    frequency = selectedFrequency,
-                                    daysOfWeek = selectedDays.toList().sorted(),
-                                    timeOfDay = timeStr,
-                                    onSuccess = {
-                                        inputText = ""
-                                        selectedTab = 1 // Switch to JOBS tab to view created task
-                                    }
-                                )
-                            }
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.Black
-                        )
-                    ) {
-                        Icon(imageVector = Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "ACTIVATE CRON JOB",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontFamily = googleSansFont,
-                                fontWeight = FontWeight.Bold
-                            )
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Bottom Chat Input Bar (reusing existing app drawer / chatbox pattern)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.90f))
-                    .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(24.dp))
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "@",
-                    style = TextStyle(
-                        fontFamily = googleSansFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                )
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                BasicTextField(
-                    value = inputText,
-                    onValueChange = { inputText = it },
-                    textStyle = TextStyle(
-                        color = MaterialTheme.colorScheme.onBackground,
-                        fontFamily = googleSansFont,
-                        fontSize = 14.sp
-                    ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.weight(1f),
-                    decorationBox = { innerTextField ->
-                        if (inputText.isEmpty()) {
-                            Text(
-                                text = "Schedule a task (e.g. @gmail check unread emails)...",
-                                style = TextStyle(
-                                    fontFamily = googleSansFont,
-                                    fontSize = 14.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                            )
-                        }
-                        innerTextField()
-                    }
-                )
             }
         }
 
@@ -523,7 +233,7 @@ fun ScheduledScreen(
                 },
                 text = {
                     Text(
-                        text = "Run task '${task.title ?: task.prompt.take(30)}' right now? This will dispatch an agent card on the main screen.",
+                        text = "Run task '${task.title ?: task.prompt.take(30)}' right now? This will dispatch an agent card on the home screen.",
                         style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont)
                     )
                 },
@@ -596,6 +306,271 @@ fun ScheduledScreen(
     }
 }
 
+/**
+ * Schedule Configuration Panel rendered directly BELOW the bottom chat input box
+ * inside LauncherActivity.kt (mirroring the Intentional Friction Layer UI).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ScheduleConfigBelowInputPanel(
+    promptText: String,
+    onActivate: (frequency: String, daysOfWeek: List<Int>, timeOfDay: String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var selectedFrequency by remember { mutableStateOf("daily") } // "daily", "weekly"
+    var selectedHour by remember { mutableIntStateOf(9) }
+    var selectedMinute by remember { mutableIntStateOf(0) }
+    var selectedDays by remember { mutableStateOf(setOf(1, 2, 3, 4, 5)) } // Mon-Fri default
+    var showTimePickerDialog by remember { mutableStateOf(false) }
+
+    val daysOfWeekLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Section Title
+        Text(
+            text = "SCHEDULE CONFIGURATION",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontFamily = googleSansFont,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 0.5.sp
+            )
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Frequency Selector (Daily vs Weekly)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            listOf(
+                "daily" to "Daily",
+                "weekly" to "Weekly"
+            ).forEach { (freqKey, freqLabel) ->
+                val isSelected = selectedFrequency == freqKey
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            else MaterialTheme.colorScheme.background,
+                            RoundedCornerShape(8.dp)
+                        )
+                        .border(
+                            1.dp,
+                            if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant,
+                            RoundedCornerShape(8.dp)
+                        )
+                        .clickable { selectedFrequency = freqKey }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = freqLabel,
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontFamily = googleSansFont,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    )
+                }
+            }
+        }
+
+        // Day of week chips (only visible when Weekly is selected)
+        if (selectedFrequency == "weekly") {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Select days to run",
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                daysOfWeekLabels.forEachIndexed { index, label ->
+                    val isSelected = selectedDays.contains(index)
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.background
+                            )
+                            .border(
+                                1.dp,
+                                if (isSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceVariant,
+                                CircleShape
+                            )
+                            .clickable {
+                                selectedDays = if (isSelected) {
+                                    selectedDays - index
+                                } else {
+                                    selectedDays + index
+                                }
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = label.take(1),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontFamily = googleSansFont,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // Time to run button triggering Material 3 TimePicker Dialog
+        val formattedTime = String.format("%02d:%02d", selectedHour, selectedMinute)
+        val amPmStr = if (selectedHour >= 12) "PM" else "AM"
+        val displayHour12 = when {
+            selectedHour == 0 -> 12
+            selectedHour > 12 -> selectedHour - 12
+            else -> selectedHour
+        }
+        val displayTime12 = String.format("%02d:%02d %s", displayHour12, selectedMinute, amPmStr)
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))
+                .border(1.dp, MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                .clickable { showTimePickerDialog = true }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.AccessTime,
+                    contentDescription = "Time to run",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    text = "Time to run",
+                    style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Text(
+                text = displayTime12,
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontFamily = googleSansFont,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // ACTIVATE Button
+        Button(
+            onClick = {
+                val timeStr = String.format("%02d:%02d:00", selectedHour, selectedMinute)
+                onActivate(selectedFrequency, selectedDays.toList().sorted(), timeStr)
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.Black
+            )
+        ) {
+            Icon(imageVector = Icons.Default.Schedule, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "ACTIVATE",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontFamily = googleSansFont,
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        }
+    }
+
+    // Material 3 TimePicker Dialog
+    if (showTimePickerDialog) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = selectedHour,
+            initialMinute = selectedMinute,
+            is24Hour = false
+        )
+
+        AlertDialog(
+            onDismissRequest = { showTimePickerDialog = false },
+            title = {
+                Text(
+                    text = "Select Time to Run",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontFamily = googleSansFont,
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            },
+            text = {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    TimePicker(state = timePickerState)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        selectedHour = timePickerState.hour
+                        selectedMinute = timePickerState.minute
+                        showTimePickerDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("OK", fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePickerDialog = false }) {
+                    Text("CANCEL", fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+}
+
 @Composable
 fun EmptyScheduledPlaceholder(title: String, subtitle: String) {
     Box(
@@ -658,7 +633,10 @@ fun ScheduledJobCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onToggleActive() }
+                ) {
                     Box(
                         modifier = Modifier
                             .size(10.dp)
@@ -679,19 +657,31 @@ fun ScheduledJobCard(
                     )
                 }
 
-                Row {
-                    // Separate explicit "Run Manually" button directly on the job card
-                    IconButton(
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Separate explicit "Run Manually" button on job card
+                    OutlinedButton(
                         onClick = onRunManually,
-                        modifier = Modifier.size(32.dp)
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
                             contentDescription = "Run Manually",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Run",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontFamily = googleSansFont,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
-                    Spacer(modifier = Modifier.width(4.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     IconButton(
                         onClick = onEdit,
                         modifier = Modifier.size(32.dp)
@@ -699,7 +689,8 @@ fun ScheduledJobCard(
                         Icon(
                             imageVector = Icons.Default.Edit,
                             contentDescription = "Edit Job",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -730,7 +721,7 @@ fun ScheduledJobCard(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Schedule info badge
+            // Schedule info badge using Google Sans font
             val daysLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
             val daysText = if (task.frequency == "daily") "Daily"
             else if (task.daysOfWeek.isNotEmpty()) task.daysOfWeek.map { daysLabels.getOrElse(it) { "" } }.joinToString(", ")
@@ -747,7 +738,7 @@ fun ScheduledJobCard(
                 Text(
                     text = "$daysText at ${task.timeOfDay.take(5)}",
                     style = MaterialTheme.typography.labelSmall.copy(
-                        fontFamily = dotoFont,
+                        fontFamily = googleSansFont,
                         fontWeight = FontWeight.Bold
                     ),
                     color = MaterialTheme.colorScheme.primary
@@ -833,6 +824,7 @@ fun ScheduledRunCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleEditModal(
     task: ScheduledTask,
