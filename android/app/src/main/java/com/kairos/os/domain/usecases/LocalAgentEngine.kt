@@ -105,11 +105,12 @@ class LocalAgentEngine @Inject constructor(
     private suspend fun classifyPrompt(prompt: String, appTarget: String?): Classification {
         val lowerPrompt = prompt.lowercase()
         val localTargets = listOf("kai", "kairos", "kainotes", "notes", "kaicalendar", "calendar", "kaiclock", "clock", "alarm")
+        val cleanTarget = appTarget?.removePrefix("app:")?.lowercase()
 
-        if (appTarget != null && localTargets.contains(appTarget.lowercase())) {
+        if (cleanTarget != null && localTargets.contains(cleanTarget)) {
             return Classification.LOCAL_AGENT
         }
-        if (appTarget != null && !localTargets.contains(appTarget.lowercase())) {
+        if (cleanTarget != null && !localTargets.contains(cleanTarget)) {
             return Classification.CLOUD_AGENT
         }
         
@@ -121,7 +122,7 @@ class LocalAgentEngine @Inject constructor(
             return Classification.CLOUD_AGENT
         }
 
-        if (localTargets.any { lowerPrompt.contains("@$it") }) {
+        if (localTargets.any { lowerPrompt.contains("@$it") || lowerPrompt.contains("@app:$it") }) {
             return Classification.LOCAL_AGENT
         }
 
@@ -220,6 +221,7 @@ class LocalAgentEngine @Inject constructor(
         val systemPrompt = """
             You are the local KAIROS OS agent. You execute actions on the phone using Notes, Alarms, Timers, and Calendar tools.
             Current date and time: $currentDateStr
+            Note: Mentions like @app:kainotes, @kainotes, @app:kaicalendar, @kaicalendar, @app:kaiclock, @kaiclock specify the local target app.
 
             Existing Notes in Database:
             $notesSummary
@@ -725,8 +727,8 @@ class LocalAgentEngine @Inject constructor(
                     )
                 )
             }
-            lower.contains("note") || lower.contains("kainotes") -> {
-                val content = prompt.substringAfter("kainotes").substringAfter("note").trim()
+            lower.contains("note") || lower.contains("kainotes") || lower.contains("app:kainotes") -> {
+                val content = prompt.substringAfter("app:kainotes").substringAfter("kainotes").substringAfter("notes").substringAfter("note").trim()
                 val note = notesController.createNote("Quick Note", if (content.isBlank()) prompt else content)
                 KairosResponse(
                     type = "WIDGET",
@@ -738,8 +740,8 @@ class LocalAgentEngine @Inject constructor(
                     )
                 )
             }
-            lower.contains("calendar") || lower.contains("kaicalendar") || lower.contains("event") || lower.contains("meeting") -> {
-                val title = prompt.substringAfter("kaicalendar").substringAfter("calendar").substringAfter("event").substringAfter("meeting").trim().ifEmpty { "New Event" }
+            lower.contains("calendar") || lower.contains("kaicalendar") || lower.contains("app:kaicalendar") || lower.contains("event") || lower.contains("meeting") -> {
+                val title = prompt.substringAfter("app:kaicalendar").substringAfter("kaicalendar").substringAfter("calendar").substringAfter("event").substringAfter("meeting").trim().ifEmpty { "New Event" }
                 val calendar = Calendar.getInstance()
                 calendar.add(Calendar.HOUR, 1)
                 val eventId = calendarController.createEvent(title, "Local Event", calendar.timeInMillis, 60)
