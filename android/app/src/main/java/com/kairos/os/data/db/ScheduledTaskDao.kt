@@ -13,23 +13,23 @@ interface ScheduledTaskDao {
     fun getAllTasksFlow(): Flow<List<ScheduledTaskEntity>>
 
     @Query("SELECT * FROM scheduled_tasks ORDER BY createdAt DESC")
-    suspend fun getAllTasks(): List<ScheduledTaskEntity>
+    fun getAllTasks(): List<ScheduledTaskEntity>
 
     @Query("SELECT * FROM scheduled_tasks WHERE id = :id LIMIT 1")
-    suspend fun getTaskById(id: String): ScheduledTaskEntity?
+    fun getTaskById(id: String): ScheduledTaskEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertAll(tasks: List<ScheduledTaskEntity>)
+    fun insertAll(tasks: List<ScheduledTaskEntity>)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insert(task: ScheduledTaskEntity)
+    fun insert(task: ScheduledTaskEntity)
 
     @Update
-    suspend fun update(task: ScheduledTaskEntity)
+    fun update(task: ScheduledTaskEntity)
 
     @Query("DELETE FROM scheduled_tasks WHERE id = :id")
-    suspend fun delete(id: String)
+    fun delete(id: String)
 
     @Query("DELETE FROM scheduled_tasks")
-    suspend fun deleteAll()
+    fun deleteAll()
 }
