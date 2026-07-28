@@ -724,6 +724,12 @@ fun MindfulLauncherScreen(
         } else null
     }
 
+    fun isKaiApp(id: String?): Boolean {
+        if (id == null) return false
+        val clean = id.removePrefix("app:").lowercase()
+        return clean == "kainotes" || clean == "notes" || clean == "kaicalendar" || clean == "calendar" || clean == "kaiclock" || clean == "clock" || clean == "alarm"
+    }
+
 
     val imageLoader = remember {
         ImageLoader.Builder(context)
@@ -979,34 +985,33 @@ fun MindfulLauncherScreen(
                             if (localResponse.type == "CLOUD_FALLBACK") {
                                 Log.i("Launcher", "Local agent returned CLOUD_FALLBACK. Routing to Next.js backend...")
 
-                                var cloudConvId: String? = if (isChatOpen) currentConversationId else null
-                                if (cloudConvId == null && user != null) {
+                                val targetConvId = dispatchConvId
+                                var cloudConvId: String? = if (isChatOpen) currentConversationId else targetConvId
+                                if (user != null) {
                                     try {
-                                        val newConv = supabaseClient.postgrest["conversations"].insert(
-                                            mapOf("user_id" to user.id, "title" to "New Conversation")
-                                        ) {
-                                            select()
-                                        }.decodeSingle<com.kairos.os.domain.models.Conversation>()
-                                        cloudConvId = newConv.id
+                                        supabaseClient.postgrest["conversations"].upsert(
+                                            mapOf("id" to targetConvId, "user_id" to user.id, "title" to "New Conversation")
+                                        )
+                                        cloudConvId = targetConvId
                                     } catch (e: Exception) {
-                                        Log.e("Launcher", "Failed to create cloud conversation in Supabase", e)
+                                        Log.e("Launcher", "Failed to sync cloud conversation ID in Supabase", e)
                                     }
                                 }
 
-                                val response = apiClient.postPrompt(currentIntent, currentTarget, cloudConvId ?: resolvedConvId, attachmentsPayload)
-                                val finalCloudConvId = response.meta?.conversationId ?: cloudConvId ?: resolvedConvId
-                                chatViewModel.onPromptResponse(finalCloudConvId)
+                                val response = apiClient.postPrompt(currentIntent, currentTarget, cloudConvId ?: targetConvId, attachmentsPayload)
+                                val finalCloudConvId = response.meta?.conversationId ?: cloudConvId ?: targetConvId
+                                chatViewModel.onPromptResponse(targetConvId)
 
                                 launch {
-                                    val genTitle = localTitleGenerator.generateAndSaveTitle(finalCloudConvId, currentIntent, isLocal = false)
+                                    val genTitle = localTitleGenerator.generateAndSaveTitle(targetConvId, currentIntent, isLocal = false)
                                     if (genTitle.isNotBlank()) {
-                                        runningAgentsViewModel.updateTitle(finalCloudConvId, genTitle)
+                                        runningAgentsViewModel.updateTitle(targetConvId, genTitle)
                                     }
-                                    chatViewModel.onPromptResponse(finalCloudConvId)
+                                    chatViewModel.onPromptResponse(targetConvId)
                                 }
 
-                                runningAgentsViewModel.complete(finalCloudConvId, response)
-                                if (isChatOpen && currentConversationId == finalCloudConvId) {
+                                runningAgentsViewModel.complete(targetConvId, response)
+                                if (isChatOpen && (currentConversationId == targetConvId || currentConversationId == finalCloudConvId)) {
                                     interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
                                     interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
                                 }
@@ -1681,8 +1686,27 @@ fun MindfulLauncherScreen(
 
                                     Spacer(modifier = Modifier.weight(1f))
 
+                                    val activeTarget = parsedActiveIntegration ?: parsedActiveApp
+                                    val isKaiTarget = isKaiApp(activeTarget)
+                                    val promptAfterTag = termInput.substringAfter(' ').trim()
+                                    val hasPromptAfterTag = termInput.contains(' ') && promptAfterTag.isNotEmpty()
                                     val currentApp = availableApps.find { it.id == parsedActiveApp }
-                                    if (currentApp?.packageName != null) {
+
+                                    if (isKaiTarget && !hasPromptAfterTag) {
+                                        IconButton(
+                                            onClick = {
+                                                val clean = activeTarget?.removePrefix("app:")?.lowercase()
+                                                if (clean == "notes" || clean == "kainotes") activeScreen = "notes"
+                                                else if (clean == "calendar" || clean == "kaicalendar") activeScreen = "calendar"
+                                                else if (clean == "clock" || clean == "kaiclock" || clean == "alarm") activeScreen = "clock"
+                                                termInput = ""
+                                                textFieldValue = TextFieldValue("")
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
+                                        }
+                                    } else if (!isKaiTarget && currentApp?.packageName != null) {
                                         IconButton(
                                             onClick = {
                                                 val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
@@ -1758,77 +1782,96 @@ fun MindfulLauncherScreen(
                                     movableTextField(Modifier.fillMaxWidth())
                                 }
 
-                                 val currentApp = availableApps.find { it.id == parsedActiveApp } ?: frictionTargetApp
-                                 if (isFrictionMode || (currentApp != null && intentViewModel.isDistractingApp(currentApp.id))) {
-                                     val isCanOpen = intentApproved && !isValidatingReason && selectedFrictionTime != null
-                                     IconButton(
-                                         onClick = {
-                                             if (isCanOpen) {
-                                                 launchDistractingApp()
-                                             }
-                                         },
-                                         enabled = isCanOpen,
-                                         modifier = Modifier.size(36.dp)
-                                     ) {
-                                         Icon(
-                                             Icons.Default.OpenInNew,
-                                             contentDescription = "Open App",
-                                             tint = if (isCanOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                                         )
-                                     }
-                                 } else if (currentApp?.packageName != null) {
-                                     IconButton(
-                                         onClick = {
-                                             val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
-                                             if (launchIntent != null) {
-                                                 context.startActivity(launchIntent)
-                                             }
-                                         },
-                                         modifier = Modifier.size(36.dp)
-                                     ) {
-                                         Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
-                                     }
-                                 } else {
-                                     val isCurrentTaskRunning = isChatOpen && currentConversationId != null && (runningJobs.containsKey(currentConversationId) || runningAgents.find { it.id == currentConversationId }?.status == com.kairos.os.domain.models.AgentStatus.PROCESSING)
-                                     if (isCurrentTaskRunning) {
-                                         IconButton(
-                                             onClick = {
-                                                 val convId = currentConversationId
-                                                 if (convId != null) {
-                                                     runningJobs[convId]?.cancel()
-                                                     runningJobs.remove(convId)
-                                                     runningAgentsViewModel.cancel(convId)
-                                                     isLoading = false
-                                                 }
-                                             },
-                                             modifier = Modifier.size(36.dp)
-                                         ) {
-                                             Icon(Icons.Default.Stop, contentDescription = "Stop Agent", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
-                                         }
-                                     } else {
-                                         IconButton(
-                                             onClick = {
-                                                 recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
-                                             },
-                                             modifier = Modifier.size(36.dp)
-                                         ) {
-                                             Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                                         }
+                                val activeTarget = parsedActiveIntegration ?: parsedActiveApp
+                                val isKaiTarget = isKaiApp(activeTarget)
+                                val promptAfterTag = termInput.substringAfter(' ').trim()
+                                val hasPromptAfterTag = termInput.contains(' ') && promptAfterTag.isNotEmpty()
+                                val currentApp = availableApps.find { it.id == parsedActiveApp } ?: frictionTargetApp
 
-                                         Spacer(modifier = Modifier.width(8.dp))
+                                if (isFrictionMode || (currentApp != null && intentViewModel.isDistractingApp(currentApp.id))) {
+                                    val isCanOpen = intentApproved && !isValidatingReason && selectedFrictionTime != null
+                                    IconButton(
+                                        onClick = {
+                                            if (isCanOpen) {
+                                                launchDistractingApp()
+                                            }
+                                        },
+                                        enabled = isCanOpen,
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.OpenInNew,
+                                            contentDescription = "Open App",
+                                            tint = if (isCanOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                        )
+                                    }
+                                } else if (isKaiTarget && !hasPromptAfterTag) {
+                                    IconButton(
+                                        onClick = {
+                                            val clean = activeTarget?.removePrefix("app:")?.lowercase()
+                                            if (clean == "notes" || clean == "kainotes") activeScreen = "notes"
+                                            else if (clean == "calendar" || clean == "kaicalendar") activeScreen = "calendar"
+                                            else if (clean == "clock" || clean == "kaiclock" || clean == "alarm") activeScreen = "clock"
+                                            termInput = ""
+                                            textFieldValue = TextFieldValue("")
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                } else if (!isKaiTarget && currentApp?.packageName != null) {
+                                    IconButton(
+                                        onClick = {
+                                            val launchIntent = packageManager.getLaunchIntentForPackage(currentApp.packageName!!)
+                                            if (launchIntent != null) {
+                                                context.startActivity(launchIntent)
+                                            }
+                                        },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.OpenInNew, contentDescription = "Open App", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                } else {
+                                    val isCurrentTaskRunning = isChatOpen && currentConversationId != null && (runningJobs.containsKey(currentConversationId) || runningAgents.find { it.id == currentConversationId }?.status == com.kairos.os.domain.models.AgentStatus.PROCESSING)
+                                    if (isCurrentTaskRunning) {
+                                        IconButton(
+                                            onClick = {
+                                                val convId = currentConversationId
+                                                if (convId != null) {
+                                                    runningJobs[convId]?.cancel()
+                                                    runningJobs.remove(convId)
+                                                    runningAgentsViewModel.cancel(convId)
+                                                    isLoading = false
+                                                }
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(Icons.Default.Stop, contentDescription = "Stop Agent", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(24.dp))
+                                        }
+                                    } else {
+                                        IconButton(
+                                            onClick = {
+                                                recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(Icons.Default.Mic, contentDescription = "Voice Input", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        }
 
-                                         IconButton(
-                                             onClick = {
-                                                 onSendPrompt()
-                                             },
-                                             modifier = Modifier.size(36.dp)
-                                         ) {
-                                             Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                                         }
-                                     }
-                                 }
-                             }
-                         }
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        IconButton(
+                                            onClick = {
+                                                onSendPrompt()
+                                            },
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
                          AnimatedVisibility(visible = isFrictionMode) {
                              Column(

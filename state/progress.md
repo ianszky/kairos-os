@@ -7,6 +7,14 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 29. Agent Card ID Parity & Kai Apps Hybrid UI/UX Overhaul
+**Status:** DONE
+**Branch:** `feature/agent-card-id-sync-fix`
+**Summary:** Resolved 2 core architectural issues with Agent Cards and Kai Apps prompt routing:
+- **Conversation ID Parity**: Updated cloud fallback in `LauncherActivity.kt` to reuse `dispatchConvId` when creating/upserting Supabase conversations (`mapOf("id" to targetConvId, ...)`). This ensures 1:1 ID parity across agent cards, Room DB, Supabase DB, and sidebar history, resolving the bug where cards remained stuck on "Processing...".
+- **Kai Apps vs Standard Apps Routing**: Standard apps (`@spotify`, `@youtube`) always launch native packages and display `OpenInNew`. Kai Apps (`@kaicalendar`, `@kainotes`, `@kaiclock`) act as hybrids: without prompt text, they display `OpenInNew` and open the app screen; when prompt text is typed, the icon switches to `Send` and dispatches an agent prompt with a running card.
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 47s.
+
 ### 28. Agent Widget UX, Title Synchronization & Chat Loading Fixes
 **Status:** DONE
 **Branch:** `feature/agent-widget-ux-fixes`
