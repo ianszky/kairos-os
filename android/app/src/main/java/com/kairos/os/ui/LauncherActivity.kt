@@ -242,18 +242,18 @@ data class AppConnection(
     val iconUrl: String? = null,
     val iconDrawable: android.graphics.drawable.Drawable? = null,
     val category: String,
-    val packageName: String? = null
+    val packageName: String? = null,
+    val iconEmoji: String? = null
 )
 
 val localKaiApps = listOf(
-    AppConnection("kai", "Kai AI Agent", null, null, "local"),
-    AppConnection("kainotes", "Kai Notes", null, null, "local"),
-    AppConnection("kaicalendar", "Kai Calendar", null, null, "local"),
-    AppConnection("kaiclock", "Kai Clock", null, null, "local")
+    AppConnection("app:kainotes", "Kai Notes", null, null, "app", null, "📝"),
+    AppConnection("app:kaicalendar", "Kai Calendar", null, null, "app", null, "📅"),
+    AppConnection("app:kaiclock", "Kai Clock", null, null, "app", null, "⏰")
 )
 
 val composioApps = listOf(
-    AppConnection("digest", "Digest Summary", null, null, "utility"),
+    AppConnection("digest", "Digest Summary", null, null, "utility", null, "📰"),
     AppConnection("gmail", "Gmail", "https://logos.composio.dev/api/gmail", null, "productivity"),
     AppConnection("composio", "Composio", "https://logos.composio.dev/api/composio", null, "developer"),
     AppConnection("github", "Github", "https://logos.composio.dev/api/github", null, "developer"),
@@ -265,10 +265,10 @@ val composioApps = listOf(
     AppConnection("googleforms", "Google Forms", "https://logos.composio.dev/api/googleforms", null, "productivity"),
     AppConnection("googledrive", "Google Drive", "https://logos.composio.dev/api/googledrive", null, "storage"),
     AppConnection("googletasks", "Google Tasks", "https://logos.composio.dev/api/googletasks", null, "productivity"),
-    AppConnection("googlemaps", "Google Maps", "https://logos.composio.dev/api/googlemaps", null, "utility"),
+    AppConnection("googlemaps", "Google Maps", "https://logos.composio.dev/api/google_maps", null, "utility"),
     AppConnection("googlesuper", "Google Super", "https://logos.composio.dev/api/googlesuper", null, "productivity"),
     AppConnection("googlechat", "Google Chat", "https://logos.composio.dev/api/googlechat", null, "communication"),
-    AppConnection("googleclassroom", "Google Classroom", "https://logos.composio.dev/api/googleclassroom", null, "productivity"),
+    AppConnection("googleclassroom", "Google Classroom", "https://logos.composio.dev/api/google_classroom", null, "productivity"),
     AppConnection("googleslides", "Google Slides", "https://logos.composio.dev/api/googleslides", null, "productivity"),
     AppConnection("googlephotos", "Google Photos", "https://logos.composio.dev/api/googlephotos", null, "utility"),
     AppConnection("googlemeet", "Google Meet", "https://logos.composio.dev/api/googlemeet", null, "communication"),
@@ -287,13 +287,13 @@ val composioApps = listOf(
     AppConnection("discord", "Discord", "https://logos.composio.dev/api/discord", null, "communication"),
     AppConnection("figma", "Figma", "https://logos.composio.dev/api/figma", null, "design"),
     AppConnection("reddit", "Reddit", "https://logos.composio.dev/api/reddit", null, "social"),
-    AppConnection("browser", "Composio Search", "https://logos.composio.dev/api/browser", null, "utility"),
+    AppConnection("browser", "Composio Search", "https://logos.composio.dev/api/composio", null, "utility"),
     AppConnection("hackernews", "Hacker News", "https://logos.composio.dev/api/hackernews", null, "news"),
-    AppConnection("microsoftteams", "Microsoft Teams", "https://logos.composio.dev/api/microsoftteams", null, "communication"),
+    AppConnection("microsoftteams", "Microsoft Teams", "https://logos.composio.dev/api/microsoft_teams", null, "communication"),
     AppConnection("asana", "Asana", "https://logos.composio.dev/api/asana", null, "productivity"),
     AppConnection("shopify", "Shopify", "https://logos.composio.dev/api/shopify", null, "commerce"),
     AppConnection("linkedin", "LinkedIn", "https://logos.composio.dev/api/linkedin", null, "social"),
-    AppConnection("onedrive", "OneDrive", "https://logos.composio.dev/api/onedrive", null, "storage"),
+    AppConnection("onedrive", "OneDrive", "https://logos.composio.dev/api/one_drive", null, "storage"),
     AppConnection("docusign", "DocuSign", "https://logos.composio.dev/api/docusign", null, "productivity"),
     AppConnection("discordbot", "Discord Bot", "https://logos.composio.dev/api/discordbot", null, "communication"),
     AppConnection("salesforce", "Salesforce", "https://logos.composio.dev/api/salesforce", null, "crm"),
@@ -366,7 +366,7 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMentionsPills(
     iconCache: Map<String, android.graphics.drawable.Drawable>
 ) {
     if (layoutResult == null) return
-    val regex = Regex("@([a-zA-Z0-9\\-]+)")
+    val regex = Regex("@((?:app:)?[a-zA-Z0-9\\-]+)")
     val matches = regex.findAll(termInput).toList()
     
     var matchIndex = 0
@@ -397,6 +397,14 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMentionsPills(
                         (iconTop + iconSize).toInt()
                     )
                     drawable.draw(drawContext.canvas.nativeCanvas)
+                } else if (app.iconEmoji != null) {
+                    val paint = android.graphics.Paint().apply {
+                        textSize = 11.dp.toPx()
+                        textAlign = android.graphics.Paint.Align.CENTER
+                    }
+                    val iconX = spaceRect.left + spaceRect.width / 2
+                    val iconY = spaceRect.top + spaceRect.height / 2 + (paint.textSize / 3)
+                    drawContext.canvas.nativeCanvas.drawText(app.iconEmoji, iconX, iconY, paint)
                 }
             } catch (e: Exception) {
                 // ignore layout out of bounds
@@ -488,7 +496,7 @@ fun MindfulLauncherScreen(
             val icon = resolveInfo.loadIcon(packageManager)
             
             AppConnection(
-                id = appName.lowercase().replace(" ", "-"),
+                id = "app:${appName.lowercase().replace(" ", "-")}",
                 displayName = appName,
                 iconDrawable = icon,
                 category = "installed",
@@ -498,6 +506,14 @@ fun MindfulLauncherScreen(
     }
 
     val availableApps = remember { (localKaiApps + composioApps + installedApps) }
+    var selectedDrawerTab by remember { mutableStateOf("Integrations") }
+    val currentTabApps = remember(selectedDrawerTab, localKaiApps, composioApps, installedApps) {
+        if (selectedDrawerTab == "App") {
+            localKaiApps + installedApps
+        } else {
+            composioApps
+        }
+    }
     
     val selectedAttachments = remember { mutableStateListOf<AttachmentState>() }
     val iconCache = remember { mutableStateMapOf<String, android.graphics.drawable.Drawable>() }
@@ -689,9 +705,17 @@ fun MindfulLauncherScreen(
     
     val parsedActiveApp = remember(termInput) {
         val firstWord = termInput.substringBefore(' ')
-        if (firstWord.startsWith("@")) {
+        if (firstWord.startsWith("@app:")) {
             val slug = firstWord.drop(1)
             if (availableApps.any { it.id.equals(slug, ignoreCase = true) }) slug.lowercase() else null
+        } else null
+    }
+
+    val parsedActiveIntegration = remember(termInput) {
+        val firstWord = termInput.substringBefore(' ')
+        if (firstWord.startsWith("@") && !firstWord.startsWith("@app:")) {
+            val slug = firstWord.drop(1)
+            if (availableApps.any { it.id.equals(slug, ignoreCase = true) && !it.id.startsWith("app:") }) slug.lowercase() else null
         } else null
     }
 
@@ -835,7 +859,7 @@ fun MindfulLauncherScreen(
     val onSendPrompt = {
         if (termInput.isNotBlank()) {
             val currentIntent = termInput.trim()
-            val currentTarget = parsedActiveApp
+            val currentTarget = parsedActiveIntegration ?: parsedActiveApp
             
             // Check for /open commands (Tier 0 direct launcher & local screens)
             if (currentIntent.startsWith("/open ")) {
@@ -853,7 +877,7 @@ fun MindfulLauncherScreen(
                     termInput = ""
                     textFieldValue = TextFieldValue("")
                 } else {
-                    val app = availableApps.find { it.id.equals(appToOpen, ignoreCase = true) || it.displayName.lowercase() == appToOpen }
+                    val app = availableApps.find { it.id.removePrefix("app:").equals(appToOpen, ignoreCase = true) || it.displayName.lowercase() == appToOpen }
                     if (app?.packageName != null) {
                         try {
                             val intent = packageManager.getLaunchIntentForPackage(app.packageName)
@@ -867,19 +891,34 @@ fun MindfulLauncherScreen(
                     termInput = ""
                     textFieldValue = TextFieldValue("")
                 }
-            } else if (currentIntent == "@notes" || currentIntent == "@kainotes") {
+            } else if (currentIntent == "@app:notes" || currentIntent == "@app:kainotes" || currentIntent == "@notes" || currentIntent == "@kainotes") {
                 activeScreen = "notes"
                 termInput = ""
                 textFieldValue = TextFieldValue("")
-            } else if (currentIntent == "@calendar" || currentIntent == "@kaicalendar") {
+            } else if (currentIntent == "@app:calendar" || currentIntent == "@app:kaicalendar" || currentIntent == "@calendar" || currentIntent == "@kaicalendar") {
                 activeScreen = "calendar"
                 termInput = ""
                 textFieldValue = TextFieldValue("")
-            } else if (currentIntent == "@clock" || currentIntent == "@kaiclock" || currentIntent == "@alarm") {
+            } else if (currentIntent == "@app:clock" || currentIntent == "@app:kaiclock" || currentIntent == "@clock" || currentIntent == "@kaiclock" || currentIntent == "@alarm") {
                 activeScreen = "clock"
                 termInput = ""
                 textFieldValue = TextFieldValue("")
-            } else if (currentIntent != "@$parsedActiveApp") {
+            } else if (currentIntent.startsWith("@app:")) {
+                val appToOpen = currentIntent.substringAfter("@app:").trim().lowercase()
+                val app = availableApps.find { it.id.equals("app:$appToOpen", ignoreCase = true) || it.id.removePrefix("app:").equals(appToOpen, ignoreCase = true) }
+                if (app?.packageName != null) {
+                    try {
+                        val intent = packageManager.getLaunchIntentForPackage(app.packageName)
+                        if (intent != null) {
+                            context.startActivity(intent)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("Launcher", "Failed to launch app: ${app.packageName}", e)
+                    }
+                }
+                termInput = ""
+                textFieldValue = TextFieldValue("")
+            } else if (currentIntent != "@$parsedActiveApp" && currentIntent != "@$parsedActiveIntegration") {
                 val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
                     attachment.uploadedPath?.let { path ->
                         AttachmentInfo(
@@ -1013,24 +1052,8 @@ fun MindfulLauncherScreen(
 
 
     LaunchedEffect(termInput) {
-        val firstWord = termInput.substringBefore(' ')
-        val activeApp = if (firstWord.startsWith("@")) {
-            val slug = firstWord.drop(1)
-            val app = availableApps.find { it.id.equals(slug, ignoreCase = true) }
-            if (app != null && app.category == "installed") app else null
-        } else null
-        
-        val resolvedText = if (activeApp != null) {
-            "@${activeApp.id}"
-        } else {
-            termInput
-        }
-        
-        if (textFieldValue.text != resolvedText) {
-            textFieldValue = TextFieldValue(text = resolvedText, selection = TextRange(resolvedText.length))
-        }
-        if (termInput != resolvedText) {
-            termInput = resolvedText
+        if (textFieldValue.text != termInput) {
+            textFieldValue = TextFieldValue(text = termInput, selection = TextRange(termInput.length))
         }
     }
 
@@ -1046,57 +1069,22 @@ fun MindfulLauncherScreen(
                     if (isDeletion) {
                         val deletedIndex = newVal.selection.start
                         val oldText = oldVal.text
-                        val regex = Regex("@([a-zA-Z0-9\\-]+)")
+                        val regex = Regex("@((?:app:)?[a-zA-Z0-9\\-]+)")
                         val match = regex.findAll(oldText).find { m ->
                             deletedIndex >= m.range.first && deletedIndex <= m.range.last + 1
                         }
                         
                         if (match != null) {
-                            val start = match.range.first
-                            val end = match.range.last + 1
-                            val newText = oldText.substring(0, start) + oldText.substring(end)
-                            val newSelection = TextRange(start)
-                            
-                            textFieldValue = TextFieldValue(text = newText, selection = newSelection)
-                            termInput = newText
-                            handled = true
-                        }
-                    }
-                    
-                    if (!handled) {
-                        val firstWordOld = oldVal.text.substringBefore(' ')
-                        val activeAppOld = if (firstWordOld.startsWith("@")) {
-                            val slug = firstWordOld.drop(1)
-                            val app = availableApps.find { it.id.equals(slug, ignoreCase = true) }
-                            if (app != null && app.category == "installed") app else null
-                        } else null
-                        
-                        if (activeAppOld != null) {
-                            val expectedText = "@${activeAppOld.id}"
-                            val expectedTextWithSpace = "@${activeAppOld.id} "
-                            if (newVal.text != expectedText && newVal.text != expectedTextWithSpace) {
-                                handled = true
-                            }
-                        }
-                    }
-                    
-                    if (!handled) {
-                        val firstWordNew = newVal.text.substringBefore(' ')
-                        val activeAppNew = if (firstWordNew.startsWith("@")) {
-                            val slug = firstWordNew.drop(1)
-                            val app = availableApps.find { it.id.equals(slug, ignoreCase = true) }
-                            if (app != null && app.category == "installed") app else null
-                        } else null
-                        
-                        if (activeAppNew != null) {
-                            val formattedText = "@${activeAppNew.id}"
-                            if (newVal.text != formattedText && newVal.text != "$formattedText ") {
-                                val resolvedVal = TextFieldValue(
-                                    text = formattedText,
-                                    selection = TextRange(formattedText.length)
-                                )
-                                textFieldValue = resolvedVal
-                                termInput = formattedText
+                            val appId = match.groups[1]?.value?.lowercase() ?: ""
+                            val isValidMention = availableApps.any { it.id.equals(appId, ignoreCase = true) }
+                            if (isValidMention) {
+                                val start = match.range.first
+                                val end = match.range.last + 1
+                                val newText = oldText.substring(0, start) + oldText.substring(end)
+                                val newSelection = TextRange(start)
+                                
+                                textFieldValue = TextFieldValue(text = newText, selection = newSelection)
+                                termInput = newText
                                 handled = true
                             }
                         }
@@ -1432,7 +1420,7 @@ fun MindfulLauncherScreen(
                 }
 
                 AnimatedVisibility(visible = isAppDrawerOpen) {
-                    val filteredApps = availableApps.filter { 
+                    val filteredApps = currentTabApps.filter { 
                         it.id.contains(searchQuery, ignoreCase = true) || 
                         it.displayName.contains(searchQuery, ignoreCase = true) 
                     }
@@ -1444,12 +1432,40 @@ fun MindfulLauncherScreen(
                             .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                             .padding(8.dp)
                     ) {
-                        Text(
-                            text = "AVAILABLE CONNECTIONS", 
-                            style = MaterialTheme.typography.labelSmall, 
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp, vertical = 4.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                .padding(4.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            listOf("Integrations", "App").forEach { tab ->
+                                val isSelected = selectedDrawerTab == tab
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (isSelected) Color(0xFFFF6B00) else Color.Transparent)
+                                        .clickable { selectedDrawerTab = tab }
+                                        .padding(vertical = 6.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = tab,
+                                        style = TextStyle(
+                                            fontFamily = googleSansFont,
+                                            fontSize = 13.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                        ),
+                                        color = if (isSelected) Color.White else Color(0xFF9E9E9E)
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
                         androidx.compose.foundation.lazy.LazyColumn(
                             modifier = Modifier.heightIn(max = 200.dp)
                         ) {
@@ -1462,27 +1478,37 @@ fun MindfulLauncherScreen(
                                             termInput = insertAppMention(termInput, app.id)
                                             isAppDrawerOpen = false
                                         }
-                                        .padding(12.dp),
+                                        .padding(horizontal = 12.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    AsyncImage(
-                                        model = app.iconDrawable ?: app.iconUrl,
-                                        imageLoader = imageLoader,
-                                        contentDescription = app.displayName,
-                                        modifier = Modifier.size(24.dp).clip(RoundedCornerShape(4.dp))
-                                    )
-                                    Spacer(modifier = Modifier.width(16.dp))
+                                    if (app.iconEmoji != null) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .background(Color(0xFFFF6B00).copy(alpha = 0.15f), RoundedCornerShape(6.dp)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(app.iconEmoji, fontSize = 16.sp)
+                                        }
+                                    } else {
+                                        AsyncImage(
+                                            model = app.iconDrawable ?: app.iconUrl,
+                                            imageLoader = imageLoader,
+                                            contentDescription = app.displayName,
+                                            modifier = Modifier.size(28.dp).clip(RoundedCornerShape(6.dp))
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
                                     Column {
-                                        Text(app.displayName, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
-                                        Text("@${app.id}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                        Text(if (app.packageName != null) "App" else if (app.category == "local") "Local App" else "Integration", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                        Text(app.displayName, style = TextStyle(fontFamily = googleSansFont, fontSize = 14.sp, fontWeight = FontWeight.Medium), color = MaterialTheme.colorScheme.onBackground)
+                                        Text("@${app.id}", style = TextStyle(fontFamily = googleSansFont, fontSize = 11.sp), color = Color(0xFF8A8A8A))
                                     }
                                 }
                             }
                             if (filteredApps.isEmpty()) {
                                 item {
                                     Text(
-                                        "No connections found matching '@$searchQuery'", 
+                                        "No ${selectedDrawerTab.lowercase()} connections found matching '@$searchQuery'", 
                                         style = MaterialTheme.typography.bodyMedium, 
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(16.dp)
@@ -2317,7 +2343,7 @@ class MentionVisualTransformation(
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val originalText = text.text
-        val regex = Regex("@([a-zA-Z0-9\\-]+)")
+        val regex = Regex("@((?:app:)?[a-zA-Z0-9\\-]+)")
         val matches = regex.findAll(originalText).toList()
         
         val validStarts = mutableListOf<Int>()
