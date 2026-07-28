@@ -713,7 +713,8 @@ fun MindfulLauncherScreen(
     }
 
     val parsedActiveApp = remember(termInput, availableApps) {
-        val firstWord = termInput.substringBefore(' ')
+        val cleanInput = termInput.trimStart()
+        val firstWord = cleanInput.substringBefore(' ')
         if (firstWord.startsWith("@")) {
             val rawSlug = firstWord.drop(1).lowercase()
             val cleanSlug = rawSlug.removePrefix("app:")
@@ -729,7 +730,8 @@ fun MindfulLauncherScreen(
     }
 
     val parsedActiveIntegration = remember(termInput, availableApps) {
-        val firstWord = termInput.substringBefore(' ')
+        val cleanInput = termInput.trimStart()
+        val firstWord = cleanInput.substringBefore(' ')
         if (firstWord.startsWith("@") && !firstWord.startsWith("@app:")) {
             val rawSlug = firstWord.drop(1).lowercase()
             val matchedIntegration = availableApps.find { 
@@ -774,9 +776,10 @@ fun MindfulLauncherScreen(
     }
 
     LaunchedEffect(termInput) {
-        val atIndex = termInput.lastIndexOf('@')
+        val cleanInput = termInput.trimStart()
+        val atIndex = cleanInput.lastIndexOf('@')
         if (atIndex != -1) {
-            val query = termInput.substring(atIndex + 1)
+            val query = cleanInput.substring(atIndex + 1)
             if (!query.contains(" ")) {
                 isAppDrawerOpen = true
                 searchQuery = query.lowercase()
@@ -1081,19 +1084,19 @@ fun MindfulLauncherScreen(
                     if (isDeletion) {
                         val deletedIndex = newVal.selection.start
                         val oldText = oldVal.text
-                        val regex = Regex("@((?:app:)?[a-zA-Z0-9\\-]+)")
+                        val regex = Regex("@((?:app:)?[a-zA-Z0-9\\-]+)\\s?")
                         val match = regex.findAll(oldText).find { m ->
                             deletedIndex >= m.range.first && deletedIndex <= m.range.last + 1
                         }
                         
                         if (match != null) {
                             val appId = match.groups[1]?.value?.lowercase() ?: ""
-                            val isValidMention = availableApps.any { it.id.equals(appId, ignoreCase = true) }
+                            val isValidMention = availableApps.any { it.id.equals(appId, ignoreCase = true) || it.id.equals("app:$appId", ignoreCase = true) || it.id.removePrefix("app:").equals(appId, ignoreCase = true) }
                             if (isValidMention) {
                                 val start = match.range.first
-                                val end = match.range.last + 1
-                                val newText = oldText.substring(0, start) + oldText.substring(end)
-                                val newSelection = TextRange(start)
+                                val end = match.range.last
+                                val newText = (oldText.substring(0, start) + oldText.substring(end + 1)).trimStart()
+                                val newSelection = TextRange(start.coerceAtMost(newText.length))
                                 
                                 textFieldValue = TextFieldValue(text = newText, selection = newSelection)
                                 termInput = newText
