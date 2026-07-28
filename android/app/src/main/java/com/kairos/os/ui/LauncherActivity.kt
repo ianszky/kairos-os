@@ -56,6 +56,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -433,6 +435,9 @@ fun MindfulLauncherScreen(
     val conversations by chatViewModel.conversations.collectAsState()
     val currentConversationId by chatViewModel.currentConversationId.collectAsState()
     val currentMessages by chatViewModel.currentMessages.collectAsState()
+
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val runningAgentsViewModel: com.kairos.os.ui.viewmodels.RunningAgentsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val runningAgents by runningAgentsViewModel.agents.collectAsState()
@@ -941,7 +946,10 @@ fun MindfulLauncherScreen(
                     interactions.add(com.kairos.os.domain.models.Interaction.Loading())
                 }
                 termInput = ""
+                textFieldValue = TextFieldValue("")
                 selectedAttachments.clear()
+                focusManager.clearFocus()
+                keyboardController?.hide()
 
                 runningAgentsViewModel.dispatch(dispatchConvId, currentIntent, isLocal = true)
 
@@ -990,12 +998,11 @@ fun MindfulLauncherScreen(
                                 chatViewModel.onPromptResponse(finalCloudConvId)
 
                                 launch {
-                                    localTitleGenerator.generateAndSaveTitle(finalCloudConvId, currentIntent, isLocal = false)
-                                    chatViewModel.onPromptResponse(finalCloudConvId)
-                                    val title = conversations.find { it.id == finalCloudConvId }?.title
-                                    if (title != null) {
-                                        runningAgentsViewModel.updateTitle(finalCloudConvId, title)
+                                    val genTitle = localTitleGenerator.generateAndSaveTitle(finalCloudConvId, currentIntent, isLocal = false)
+                                    if (genTitle.isNotBlank()) {
+                                        runningAgentsViewModel.updateTitle(finalCloudConvId, genTitle)
                                     }
+                                    chatViewModel.onPromptResponse(finalCloudConvId)
                                 }
 
                                 runningAgentsViewModel.complete(finalCloudConvId, response)
@@ -1007,12 +1014,11 @@ fun MindfulLauncherScreen(
                                 chatViewModel.onPromptResponse(resolvedConvId)
 
                                 launch {
-                                    localTitleGenerator.generateAndSaveTitle(resolvedConvId, currentIntent, isLocal = true)
-                                    chatViewModel.onPromptResponse(resolvedConvId)
-                                    val title = conversations.find { it.id == resolvedConvId }?.title
-                                    if (title != null) {
-                                        runningAgentsViewModel.updateTitle(resolvedConvId, title)
+                                    val genTitle = localTitleGenerator.generateAndSaveTitle(resolvedConvId, currentIntent, isLocal = true)
+                                    if (genTitle.isNotBlank()) {
+                                        runningAgentsViewModel.updateTitle(resolvedConvId, genTitle)
                                     }
+                                    chatViewModel.onPromptResponse(resolvedConvId)
                                 }
                                 runningAgentsViewModel.complete(resolvedConvId, localResponse)
                                 if (isChatOpen && currentConversationId == resolvedConvId) {
@@ -1262,8 +1268,11 @@ fun MindfulLauncherScreen(
                         val agent = runningAgents.find { it.id == id }
                         interactions.clear()
                         interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(agent?.prompt ?: ""))
-                        agent?.response?.let {
-                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(it))
+                        if (agent?.response != null) {
+                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(agent.response))
+                        } else if (agent?.status == com.kairos.os.domain.models.AgentStatus.PROCESSING) {
+                            isLoading = true
+                            interactions.add(com.kairos.os.domain.models.Interaction.Loading())
                         }
                         isChatOpen = true
                     },
