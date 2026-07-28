@@ -1084,9 +1084,9 @@ fun MindfulLauncherScreen(
                     if (isDeletion) {
                         val deletedIndex = newVal.selection.start
                         val oldText = oldVal.text
-                        val regex = Regex("@((?:app:)?[a-zA-Z0-9\\-]+)\\s?")
+                        val regex = Regex("@((?:app:)?[a-zA-Z0-9\\-]+)")
                         val match = regex.findAll(oldText).find { m ->
-                            deletedIndex >= m.range.first && deletedIndex <= m.range.last + 1
+                            deletedIndex >= m.range.first && deletedIndex <= m.range.last
                         }
                         
                         if (match != null) {
@@ -1094,11 +1094,14 @@ fun MindfulLauncherScreen(
                             val isValidMention = availableApps.any { it.id.equals(appId, ignoreCase = true) || it.id.equals("app:$appId", ignoreCase = true) || it.id.removePrefix("app:").equals(appId, ignoreCase = true) }
                             if (isValidMention) {
                                 val start = match.range.first
-                                val end = match.range.last
+                                var end = match.range.last
+                                if (end + 1 < oldText.length && oldText[end + 1] == ' ') {
+                                    end += 1
+                                }
                                 val newText = (oldText.substring(0, start) + oldText.substring(end + 1)).trimStart()
                                 val newSelection = TextRange(start.coerceAtMost(newText.length))
                                 
-                                textFieldValue = TextFieldValue(text = newText, selection = newSelection)
+                                textFieldValue = TextFieldValue(text = newText, selection = newSelection, composition = null)
                                 termInput = newText
                                 handled = true
                             }
@@ -1106,8 +1109,12 @@ fun MindfulLauncherScreen(
                     }
                     
                     if (!handled) {
-                        textFieldValue = newVal
-                        termInput = newVal.text
+                        if (!isDeletion && parsedActiveApp != null && !isKaiApp(parsedActiveApp)) {
+                            // Block typing additional prompt text after non-KAI installed app mentions
+                        } else {
+                            textFieldValue = newVal
+                            termInput = newVal.text
+                        }
                     }
                 },
                 textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontFamily = googleSansFont, fontWeight = FontWeight.Normal, fontSize = 14.sp),
