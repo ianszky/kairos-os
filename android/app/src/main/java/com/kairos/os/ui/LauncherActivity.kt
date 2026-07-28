@@ -251,7 +251,8 @@ data class AppConnection(
 val localKaiApps = listOf(
     AppConnection("app:kainotes", "Kai Notes", null, null, "app", null, "📝"),
     AppConnection("app:kaicalendar", "Kai Calendar", null, null, "app", null, "📅"),
-    AppConnection("app:kaiclock", "Kai Clock", null, null, "app", null, "⏰")
+    AppConnection("app:kaiclock", "Kai Clock", null, null, "app", null, "⏰"),
+    AppConnection("app:kaischeduled", "Kai Scheduled", null, null, "app", null, "🔄")
 )
 
 val composioApps = listOf(
@@ -458,6 +459,7 @@ fun MindfulLauncherScreen(
     var termInput by remember { mutableStateOf("") }
     
     val intentViewModel: com.kairos.os.ui.viewmodels.IntentViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val scheduledViewModel: com.kairos.os.ui.viewmodels.ScheduledViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val userSettings by intentViewModel.userSettings.collectAsState()
     val distractingAppIds by intentViewModel.distractingAppIds.collectAsState()
     
@@ -725,7 +727,7 @@ fun MindfulLauncherScreen(
     fun isKaiApp(id: String?): Boolean {
         if (id == null) return false
         val clean = id.removePrefix("app:").lowercase()
-        return clean == "kainotes" || clean == "notes" || clean == "kaicalendar" || clean == "calendar" || clean == "kaiclock" || clean == "clock" || clean == "alarm"
+        return clean == "kainotes" || clean == "notes" || clean == "kaicalendar" || clean == "calendar" || clean == "kaiclock" || clean == "clock" || clean == "alarm" || clean == "kaischeduled" || clean == "scheduled" || clean == "schedule"
     }
 
     val currentApp = remember(parsedActiveApp, availableApps) {
@@ -1181,7 +1183,15 @@ fun MindfulLauncherScreen(
                         SearchDummyScreen()
                     }
                     "scheduled" -> {
-                        ScheduledDummyScreen()
+                        com.kairos.os.ui.screens.ScheduledScreen(
+                            scheduledViewModel = scheduledViewModel,
+                            onOpenConversation = { conversationId ->
+                                chatViewModel.selectConversation(conversationId)
+                                isChatOpen = true
+                                activeScreen = "home"
+                            },
+                            onBack = { activeScreen = "home" }
+                        )
                     }
                     "distracting_apps" -> {
                         com.kairos.os.ui.screens.DistractingAppsScreen(
@@ -1705,6 +1715,7 @@ fun MindfulLauncherScreen(
                                                 if (clean == "notes" || clean == "kainotes") activeScreen = "notes"
                                                 else if (clean == "calendar" || clean == "kaicalendar") activeScreen = "calendar"
                                                 else if (clean == "clock" || clean == "kaiclock" || clean == "alarm") activeScreen = "clock"
+                                                else if (clean == "scheduled" || clean == "kaischeduled" || clean == "schedule") activeScreen = "scheduled"
                                                 termInput = ""
                                                 textFieldValue = TextFieldValue("")
                                             },
@@ -1818,6 +1829,7 @@ fun MindfulLauncherScreen(
                                             if (clean == "notes" || clean == "kainotes") activeScreen = "notes"
                                             else if (clean == "calendar" || clean == "kaicalendar") activeScreen = "calendar"
                                             else if (clean == "clock" || clean == "kaiclock" || clean == "alarm") activeScreen = "clock"
+                                            else if (clean == "scheduled" || clean == "kaischeduled" || clean == "schedule") activeScreen = "scheduled"
                                             termInput = ""
                                             textFieldValue = TextFieldValue("")
                                         },
@@ -2119,7 +2131,12 @@ fun MindfulLauncherScreen(
                                         )
                                         .padding(horizontal = 12.dp, vertical = 16.dp)
                                 ) {
-                                    val displayTitle = conv.title ?: "New Conversation"
+                                    val rawTitle = conv.title ?: "New Conversation"
+                                    val displayTitle = if (conv.source == "scheduled" || conv.scheduledTaskId != null) {
+                                        if (rawTitle.startsWith("🔄")) rawTitle else "🔄 $rawTitle"
+                                    } else {
+                                        rawTitle
+                                    }
                                     Text(displayTitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Spacer(modifier = Modifier.height(8.dp))
                                     val displayDate = conv.createdAt.take(10)

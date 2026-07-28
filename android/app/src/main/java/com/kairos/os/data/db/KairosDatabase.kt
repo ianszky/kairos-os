@@ -11,9 +11,10 @@ import androidx.room.RoomDatabase
         LocalConversationEntity::class,
         LocalMessageEntity::class,
         AppNotificationRuleEntity::class,
-        RunningAgentEntity::class
+        RunningAgentEntity::class,
+        ScheduledTaskEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class KairosDatabase : RoomDatabase() {
@@ -24,4 +25,5 @@ abstract class KairosDatabase : RoomDatabase() {
     abstract fun localMessageDao(): LocalMessageDao
     abstract fun appNotificationRuleDao(): AppNotificationRuleDao
     abstract fun runningAgentDao(): RunningAgentDao
+    abstract fun scheduledTaskDao(): ScheduledTaskDao
 }

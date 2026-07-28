@@ -288,5 +288,121 @@ class KairosApiClient @Inject constructor(
             SettingsUpdateResult(status = "APPLIED", message = "Updated locally")
         }
     }
+
+    suspend fun getScheduledTasks(): List<com.kairos.os.domain.models.ScheduledTask> {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.get("api/scheduled") {
+                if (token != null) bearerAuth(token)
+            }
+            if (response.status.isSuccess()) {
+                response.body()
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    suspend fun createScheduledTask(
+        request: com.kairos.os.domain.models.CreateScheduledTaskRequest
+    ): com.kairos.os.domain.models.ScheduledTask? {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.post("api/scheduled") {
+                if (token != null) bearerAuth(token)
+                setBody(request)
+            }
+            if (response.status.isSuccess()) {
+                response.body()
+            } else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun updateScheduledTask(
+        request: com.kairos.os.domain.models.UpdateScheduledTaskRequest
+    ): com.kairos.os.domain.models.ScheduledTask? {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.put("api/scheduled") {
+                if (token != null) bearerAuth(token)
+                setBody(request)
+            }
+            if (response.status.isSuccess()) {
+                response.body()
+            } else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+    suspend fun deleteScheduledTask(taskId: String): Boolean {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.delete("api/scheduled") {
+                if (token != null) bearerAuth(token)
+                parameter("id", taskId)
+            }
+            response.status.isSuccess()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    suspend fun executeScheduledTask(taskId: String): com.kairos.os.domain.models.KairosResponse {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.post("api/scheduled/execute") {
+                if (token != null) bearerAuth(token)
+                setBody(com.kairos.os.domain.models.ExecuteTaskRequest(taskId))
+            }
+            val rawText = response.body<String>()
+            kotlinx.serialization.json.Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            }.decodeFromString<com.kairos.os.domain.models.KairosResponse>(rawText)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            com.kairos.os.domain.models.KairosResponse(
+                type = "ERROR",
+                text = "Failed to execute scheduled task: ${e.message}"
+            )
+        }
+    }
+
+    suspend fun getScheduledTaskRuns(taskId: String? = null): List<com.kairos.os.domain.models.ScheduledTaskRun> {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        return try {
+            val response = client.get("api/scheduled/runs") {
+                if (token != null) bearerAuth(token)
+                if (taskId != null) parameter("taskId", taskId)
+            }
+            if (response.status.isSuccess()) {
+                response.body()
+            } else emptyList()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
 }
 

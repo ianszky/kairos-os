@@ -11,5 +11,7 @@ data class Conversation(
     @SerialName("created_at") val createdAt: String,
     @SerialName("updated_at") val updatedAt: String,
     @SerialName("is_active") val isActive: Boolean = true,
-    val isLocal: Boolean = false
+    val isLocal: Boolean = false,
+    val source: String = "chat",
+    @SerialName("scheduled_task_id") val scheduledTaskId: String? = null
 )
