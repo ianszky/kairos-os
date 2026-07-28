@@ -1,20 +1,25 @@
 # KAIROS OS Project State
 
-## Current Task: Fixing Chatbox App Mentions, KAI Local App Prompt Dispatching, & Friction Layer Persistence
+## Current Task: Chatbox App Mentions, Local Agent Intent Routing, & IME Keyboard Session Overhaul
 
-### Identified Root Causes & Bug Fixes:
-1. **Local KAI App Prompt Disregarding**:
-   - `onSendPrompt()` in `LauncherActivity.kt` previously intercepted all prompts starting with `@app:` and attempted to launch a package manager intent, swallowing prompts intended for local KAI apps (e.g. `@app:kainotes create a note`).
-   - **Fix**: Added `!isKaiApp(currentTarget)` check to the `@app:` opening branch in `onSendPrompt()`. Local KAI app mentions with prompt text after the tag are now exempted and proceed to dispatch to `LocalAgentEngine`.
+### Status: COMPLETED & MERGED TO `main`
 
-2. **Installed App Open Icon & Friction Layer Disappearing on Re-Mention**:
-   - `isFrictionMode` and `frictionTargetApp` relied on asynchronous `LaunchedEffect(parsedActiveApp)` side-effect mutations. Clearing the text and typing an `@app:` mention again caused a 1-frame state lag where `isFrictionMode` was false and `frictionTargetApp` was null during initial composition, causing the UI to fall back to the Send button.
-   - **Fix**: Derived `currentApp` and `isFrictionMode` synchronously using `remember(parsedActiveApp, availableApps)` and `remember(currentApp, distractingAppIds)`. Synchronized action button logic across both Single-Line and Stacked input layouts.
+### Summary of Completed Fixes:
+1. **Local KAI App Prompt Routing & Classification**:
+   - `onSendPrompt()` in `LauncherActivity.kt` exempted KAI local apps (`isKaiApp`) from launcher opening logic when prompt text is present.
+   - Updated `LocalAgentEngine.kt` to strip `app:` from `appTarget` (`cleanTarget`) and added a deterministic pre-classifier (`localTargets`) for all KAI local apps (`kainotes`, `kaicalendar`, `kaiclock`, `kairos`, `kai`) so local prompts never fall through to `CLOUD_AGENT`.
+   - Strengthened LiteRT-LM classifier system prompt rules.
 
-3. **App Drawer Backspace & Re-triggering**:
-   - Clearing an `@app:` or `@integration` mention via backspace cleared `termInput`, but left `searchQuery` and tab state unhandled, preventing typing `@` immediately after from opening the drawer.
-   - **Fix**: Enhanced `LaunchedEffect(termInput)` to auto-switch drawer tabs to "App" when queries start with `app` or `app:`, and updated `filteredApps` to search both `it.id` and `it.id.removePrefix("app:")`.
+2. **Cursor Session App Drawer Re-Triggering & Leftover Space Fix**:
+   - Updated drawer `.clickable` item listener to update `termInput` and `textFieldValue` synchronously, clear `searchQuery`, and request focus, keeping Android IME active composition sessions intact.
+   - Fixed regex mention pill deletion to remove the trailing space along with `@app:<slug>`, eliminating leftover spaces that previously suppressed the drawer or prepended spaces to new queries.
+   - Added `termInput.trimStart()` handling in `parsedActiveApp`, `parsedActiveIntegration`, and the drawer `LaunchedEffect`.
+
+3. **Input Blocker & IME Composition Clearing**:
+   - Enforced input blocking on installed non-KAI apps (`!isKaiApp(parsedActiveApp)`), preventing users from typing prompt text after `@app:installed_app` mentions while leaving KAI local apps unblocked.
+   - Added `composition = null` to `TextFieldValue` on mention deletion to clear Android soft keyboard composition buffers (`finishComposingText()`), eliminating the bug where the first character after a mention pill was left behind upon backspacing.
 
 ### Verification:
-- Android debug build (`./gradlew assembleDebug`) verified clean compilation.
+- `./gradlew assembleDebug`: **`BUILD SUCCESSFUL in 2m 31s`** (0 errors).
+- All changes merged cleanly into `main` branch.
 
