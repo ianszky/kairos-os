@@ -706,26 +706,37 @@ fun MindfulLauncherScreen(
         }
     }
     
+    fun isKaiApp(id: String?): Boolean {
+        if (id == null) return false
+        val clean = id.removePrefix("app:").lowercase()
+        return clean == "kainotes" || clean == "notes" || clean == "kaicalendar" || clean == "calendar" || clean == "kaiclock" || clean == "clock" || clean == "alarm"
+    }
+
     val parsedActiveApp = remember(termInput, availableApps) {
         val firstWord = termInput.substringBefore(' ')
-        if (firstWord.startsWith("@app:")) {
-            val slug = firstWord.drop(1)
-            if (availableApps.any { it.id.equals(slug, ignoreCase = true) }) slug.lowercase() else null
+        if (firstWord.startsWith("@")) {
+            val rawSlug = firstWord.drop(1).lowercase()
+            val cleanSlug = rawSlug.removePrefix("app:")
+            val matchedApp = availableApps.find { 
+                it.id.equals(rawSlug, ignoreCase = true) ||
+                it.id.equals("app:$cleanSlug", ignoreCase = true) ||
+                it.id.removePrefix("app:").equals(cleanSlug, ignoreCase = true)
+            }
+            if (matchedApp != null && (matchedApp.packageName != null || isKaiApp(matchedApp.id) || matchedApp.category == "installed" || matchedApp.id.startsWith("app:"))) {
+                matchedApp.id.lowercase()
+            } else null
         } else null
     }
 
     val parsedActiveIntegration = remember(termInput, availableApps) {
         val firstWord = termInput.substringBefore(' ')
         if (firstWord.startsWith("@") && !firstWord.startsWith("@app:")) {
-            val slug = firstWord.drop(1)
-            if (availableApps.any { it.id.equals(slug, ignoreCase = true) && !it.id.startsWith("app:") }) slug.lowercase() else null
+            val rawSlug = firstWord.drop(1).lowercase()
+            val matchedIntegration = availableApps.find { 
+                it.id.equals(rawSlug, ignoreCase = true) && !it.id.startsWith("app:") && it.packageName == null
+            }
+            matchedIntegration?.id?.lowercase()
         } else null
-    }
-
-    fun isKaiApp(id: String?): Boolean {
-        if (id == null) return false
-        val clean = id.removePrefix("app:").lowercase()
-        return clean == "kainotes" || clean == "notes" || clean == "kaicalendar" || clean == "calendar" || clean == "kaiclock" || clean == "clock" || clean == "alarm"
     }
 
     val currentApp = remember(parsedActiveApp, availableApps) {
@@ -777,6 +788,7 @@ fun MindfulLauncherScreen(
             }
         } else {
             isAppDrawerOpen = false
+            searchQuery = ""
         }
     }
 
@@ -1479,8 +1491,12 @@ fun MindfulLauncherScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clickable {
-                                            termInput = insertAppMention(termInput, app.id)
+                                            val newText = insertAppMention(termInput, app.id)
+                                            termInput = newText
+                                            textFieldValue = androidx.compose.ui.text.input.TextFieldValue(text = newText, selection = androidx.compose.ui.text.TextRange(newText.length))
                                             isAppDrawerOpen = false
+                                            searchQuery = ""
+                                            focusRequester.requestFocus()
                                         }
                                         .padding(horizontal = 12.dp, vertical = 8.dp),
                                     verticalAlignment = Alignment.CenterVertically
