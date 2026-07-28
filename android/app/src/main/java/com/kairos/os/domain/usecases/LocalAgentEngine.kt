@@ -134,10 +134,17 @@ class LocalAgentEngine @Inject constructor(
             You are the KAIROS OS local intent classifier. Analyze the user request.
             Current date and time: $currentDateStr
 
+            IMPORTANT: The following app tags are KAIROS LOCAL apps and must ALWAYS be classified as LOCAL_AGENT:
+            - @kainotes, @app:kainotes → local notes app
+            - @kaicalendar, @app:kaicalendar → local calendar app
+            - @kaiclock, @app:kaiclock → local clock/alarm app
+            - @kai, @kairos → general local KAIROS assistant
+            These are NOT cloud integrations — never classify them as CLOUD_AGENT.
+
             Categorize the request into exactly one of these tiers:
             1. SIMPLE - general conversational inputs, trivia, direct questions, or greetings (e.g. "hi", "how are you", "what is photosynthesis", "tell me a joke"). There are no app mentions, and no actions like setting alarms, calendar events, or notes are required.
-            2. LOCAL_AGENT - commands specifically relating to notes, alarms, clock, or calendars (e.g. "set alarm for 6am", "create a shopping list note", "what are my plans today", "add doctor meeting tomorrow at 3pm to calendar").
-            3. CLOUD_AGENT - tasks requiring cloud apps, emails, search, spotify, documents, sheets, slack, or explicit cloud app tags (e.g. "send an email to my boss", "play lo-fi music on spotify", "@notion summarize project").
+            2. LOCAL_AGENT - commands specifically relating to notes, alarms, clock, or calendars, OR any prompt mentioning @kainotes, @kaicalendar, @kaiclock, @app:kainotes, @app:kaicalendar, @app:kaiclock, @kai, @kairos (e.g. "set alarm for 6am", "@app:kainotes create a shopping list", "@kaicalendar add doctor meeting tomorrow").
+            3. CLOUD_AGENT - tasks requiring cloud apps, emails, search, spotify, documents, sheets, slack, or explicit cloud integration tags like @gmail, @notion, @spotify, @github, @googledrive (e.g. "send an email to my boss", "play lo-fi music on spotify", "@notion summarize project").
 
             User Request: "$prompt"
 
@@ -159,7 +166,7 @@ class LocalAgentEngine @Inject constructor(
             }
             Log.i(TAG, "Classifier raw output: '$responseText'")
             
-            if (responseText.contains("LOCAL_AGENT") || localTargets.any { lowerPrompt.contains("@$it") }) {
+            if (responseText.contains("LOCAL_AGENT") || localTargets.any { lowerPrompt.contains("@$it") || lowerPrompt.contains("@app:$it") }) {
                 Classification.LOCAL_AGENT
             } else if (responseText.contains("SIMPLE")) {
                 Classification.SIMPLE
