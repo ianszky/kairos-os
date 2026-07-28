@@ -165,7 +165,7 @@ class IntentViewModel @Inject constructor(
 
     fun isDistractingApp(appId: String?): Boolean {
         if (appId == null) return false
-        val cleanId = appId.lowercase()
+        val cleanId = appId.removePrefix("app:").lowercase()
         return _distractingAppIds.value.contains(cleanId)
     }
 
@@ -205,7 +205,7 @@ class IntentViewModel @Inject constructor(
     }
 
     fun toggleAppDistracting(appId: String, isDistracting: Boolean, onResult: (String) -> Unit) {
-        val cleanId = appId.lowercase()
+        val cleanId = appId.removePrefix("app:").lowercase()
         val currentSet = _distractingAppIds.value.toMutableSet()
         if (isDistracting) {
             currentSet.add(cleanId)

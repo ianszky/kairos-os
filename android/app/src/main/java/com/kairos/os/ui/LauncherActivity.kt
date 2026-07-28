@@ -247,9 +247,9 @@ data class AppConnection(
 )
 
 val localKaiApps = listOf(
-    AppConnection("kainotes", "Kai Notes", null, null, "app", null, "📝"),
-    AppConnection("kaicalendar", "Kai Calendar", null, null, "app", null, "📅"),
-    AppConnection("kaiclock", "Kai Clock", null, null, "app", null, "⏰")
+    AppConnection("app:kainotes", "Kai Notes", null, null, "app", null, "📝"),
+    AppConnection("app:kaicalendar", "Kai Calendar", null, null, "app", null, "📅"),
+    AppConnection("app:kaiclock", "Kai Clock", null, null, "app", null, "⏰")
 )
 
 val composioApps = listOf(
@@ -366,7 +366,7 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawMentionsPills(
     iconCache: Map<String, android.graphics.drawable.Drawable>
 ) {
     if (layoutResult == null) return
-    val regex = Regex("@([a-zA-Z0-9\\-]+)")
+    val regex = Regex("@((?:app:)?[a-zA-Z0-9\\-]+)")
     val matches = regex.findAll(termInput).toList()
     
     var matchIndex = 0
@@ -496,7 +496,7 @@ fun MindfulLauncherScreen(
             val icon = resolveInfo.loadIcon(packageManager)
             
             AppConnection(
-                id = appName.lowercase().replace(" ", "-"),
+                id = "app:${appName.lowercase().replace(" ", "-")}",
                 displayName = appName,
                 iconDrawable = icon,
                 category = "installed",
@@ -705,9 +705,17 @@ fun MindfulLauncherScreen(
     
     val parsedActiveApp = remember(termInput) {
         val firstWord = termInput.substringBefore(' ')
-        if (firstWord.startsWith("@")) {
+        if (firstWord.startsWith("@app:")) {
             val slug = firstWord.drop(1)
             if (availableApps.any { it.id.equals(slug, ignoreCase = true) }) slug.lowercase() else null
+        } else null
+    }
+
+    val parsedActiveIntegration = remember(termInput) {
+        val firstWord = termInput.substringBefore(' ')
+        if (firstWord.startsWith("@") && !firstWord.startsWith("@app:")) {
+            val slug = firstWord.drop(1)
+            if (availableApps.any { it.id.equals(slug, ignoreCase = true) && !it.id.startsWith("app:") }) slug.lowercase() else null
         } else null
     }
 
@@ -851,7 +859,7 @@ fun MindfulLauncherScreen(
     val onSendPrompt = {
         if (termInput.isNotBlank()) {
             val currentIntent = termInput.trim()
-            val currentTarget = parsedActiveApp
+            val currentTarget = parsedActiveIntegration ?: parsedActiveApp
             
             // Check for /open commands (Tier 0 direct launcher & local screens)
             if (currentIntent.startsWith("/open ")) {
@@ -869,7 +877,7 @@ fun MindfulLauncherScreen(
                     termInput = ""
                     textFieldValue = TextFieldValue("")
                 } else {
-                    val app = availableApps.find { it.id.equals(appToOpen, ignoreCase = true) || it.displayName.lowercase() == appToOpen }
+                    val app = availableApps.find { it.id.removePrefix("app:").equals(appToOpen, ignoreCase = true) || it.displayName.lowercase() == appToOpen }
                     if (app?.packageName != null) {
                         try {
                             val intent = packageManager.getLaunchIntentForPackage(app.packageName)
@@ -883,19 +891,34 @@ fun MindfulLauncherScreen(
                     termInput = ""
                     textFieldValue = TextFieldValue("")
                 }
-            } else if (currentIntent == "@notes" || currentIntent == "@kainotes") {
+            } else if (currentIntent == "@app:notes" || currentIntent == "@app:kainotes" || currentIntent == "@notes" || currentIntent == "@kainotes") {
                 activeScreen = "notes"
                 termInput = ""
                 textFieldValue = TextFieldValue("")
-            } else if (currentIntent == "@calendar" || currentIntent == "@kaicalendar") {
+            } else if (currentIntent == "@app:calendar" || currentIntent == "@app:kaicalendar" || currentIntent == "@calendar" || currentIntent == "@kaicalendar") {
                 activeScreen = "calendar"
                 termInput = ""
                 textFieldValue = TextFieldValue("")
-            } else if (currentIntent == "@clock" || currentIntent == "@kaiclock" || currentIntent == "@alarm") {
+            } else if (currentIntent == "@app:clock" || currentIntent == "@app:kaiclock" || currentIntent == "@clock" || currentIntent == "@kaiclock" || currentIntent == "@alarm") {
                 activeScreen = "clock"
                 termInput = ""
                 textFieldValue = TextFieldValue("")
-            } else if (currentIntent != "@$parsedActiveApp") {
+            } else if (currentIntent.startsWith("@app:")) {
+                val appToOpen = currentIntent.substringAfter("@app:").trim().lowercase()
+                val app = availableApps.find { it.id.equals("app:$appToOpen", ignoreCase = true) || it.id.removePrefix("app:").equals(appToOpen, ignoreCase = true) }
+                if (app?.packageName != null) {
+                    try {
+                        val intent = packageManager.getLaunchIntentForPackage(app.packageName)
+                        if (intent != null) {
+                            context.startActivity(intent)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("Launcher", "Failed to launch app: ${app.packageName}", e)
+                    }
+                }
+                termInput = ""
+                textFieldValue = TextFieldValue("")
+            } else if (currentIntent != "@$parsedActiveApp" && currentIntent != "@$parsedActiveIntegration") {
                 val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
                     attachment.uploadedPath?.let { path ->
                         AttachmentInfo(
@@ -1046,7 +1069,7 @@ fun MindfulLauncherScreen(
                     if (isDeletion) {
                         val deletedIndex = newVal.selection.start
                         val oldText = oldVal.text
-                        val regex = Regex("@([a-zA-Z0-9\\-]+)")
+                        val regex = Regex("@((?:app:)?[a-zA-Z0-9\\-]+)")
                         val match = regex.findAll(oldText).find { m ->
                             deletedIndex >= m.range.first && deletedIndex <= m.range.last + 1
                         }
@@ -2320,7 +2343,7 @@ class MentionVisualTransformation(
 ) : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
         val originalText = text.text
-        val regex = Regex("@([a-zA-Z0-9\\-]+)")
+        val regex = Regex("@((?:app:)?[a-zA-Z0-9\\-]+)")
         val matches = regex.findAll(originalText).toList()
         
         val validStarts = mutableListOf<Int>()

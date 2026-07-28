@@ -183,8 +183,9 @@ fun DistractingAppsScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 items(installedApps, key = { it.id }) { app ->
-                    val appConfig = appConfigsMap[app.id.lowercase()]
-                    val isDistracting = distractingAppIds.contains(app.id.lowercase())
+                    val cleanId = app.id.removePrefix("app:").lowercase()
+                    val appConfig = appConfigsMap[cleanId]
+                    val isDistracting = distractingAppIds.contains(cleanId)
                     val isPending = appConfig?.pendingCategory != null
 
                     Row(
