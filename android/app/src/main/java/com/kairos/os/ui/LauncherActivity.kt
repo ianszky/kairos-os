@@ -457,14 +457,12 @@ fun MindfulLauncherScreen(
     
     var termInput by remember { mutableStateOf("") }
     
-    var isFrictionMode by remember { mutableStateOf(false) }
-    var selectedFrictionTime by remember { mutableStateOf<String?>(null) }
-    var frictionReason by remember { mutableStateOf("") }
-
     val intentViewModel: com.kairos.os.ui.viewmodels.IntentViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val userSettings by intentViewModel.userSettings.collectAsState()
+    val distractingAppIds by intentViewModel.distractingAppIds.collectAsState()
     
-    var frictionTargetApp by remember { mutableStateOf<AppConnection?>(null) }
+    var selectedFrictionTime by remember { mutableStateOf<String?>(null) }
+    var frictionReason by remember { mutableStateOf("") }
     var intentApproved by remember { mutableStateOf(false) }
     var isValidatingReason by remember { mutableStateOf(false) }
     var validationFeedback by remember { mutableStateOf<String?>(null) }
@@ -708,7 +706,7 @@ fun MindfulLauncherScreen(
         }
     }
     
-    val parsedActiveApp = remember(termInput) {
+    val parsedActiveApp = remember(termInput, availableApps) {
         val firstWord = termInput.substringBefore(' ')
         if (firstWord.startsWith("@app:")) {
             val slug = firstWord.drop(1)
@@ -716,7 +714,7 @@ fun MindfulLauncherScreen(
         } else null
     }
 
-    val parsedActiveIntegration = remember(termInput) {
+    val parsedActiveIntegration = remember(termInput, availableApps) {
         val firstWord = termInput.substringBefore(' ')
         if (firstWord.startsWith("@") && !firstWord.startsWith("@app:")) {
             val slug = firstWord.drop(1)
@@ -730,6 +728,17 @@ fun MindfulLauncherScreen(
         return clean == "kainotes" || clean == "notes" || clean == "kaicalendar" || clean == "calendar" || clean == "kaiclock" || clean == "clock" || clean == "alarm"
     }
 
+    val currentApp = remember(parsedActiveApp, availableApps) {
+        if (parsedActiveApp != null) {
+            availableApps.find { it.id.equals(parsedActiveApp, ignoreCase = true) }
+        } else null
+    }
+
+    val isFrictionMode = remember(currentApp, distractingAppIds) {
+        currentApp != null && !isKaiApp(currentApp.id) && intentViewModel.isDistractingApp(currentApp.id)
+    }
+
+    val frictionTargetApp = currentApp
 
     val imageLoader = remember {
         ImageLoader.Builder(context)
@@ -760,6 +769,9 @@ fun MindfulLauncherScreen(
             if (!query.contains(" ")) {
                 isAppDrawerOpen = true
                 searchQuery = query.lowercase()
+                if (query.startsWith("app:") || query.startsWith("app")) {
+                    selectedDrawerTab = "App"
+                }
             } else {
                 isAppDrawerOpen = false
             }
@@ -773,31 +785,10 @@ fun MindfulLauncherScreen(
     }
 
     LaunchedEffect(parsedActiveApp) {
-        if (parsedActiveApp != null) {
-            val app = availableApps.find { it.id.equals(parsedActiveApp, ignoreCase = true) }
-            if (app != null && intentViewModel.isDistractingApp(app.id)) {
-                frictionTargetApp = app
-                isFrictionMode = true
-                selectedFrictionTime = null
-                frictionReason = ""
-                intentApproved = false
-                validationFeedback = null
-            } else {
-                isFrictionMode = false
-                frictionTargetApp = null
-                selectedFrictionTime = null
-                frictionReason = ""
-                intentApproved = false
-                validationFeedback = null
-            }
-        } else {
-            isFrictionMode = false
-            frictionTargetApp = null
-            selectedFrictionTime = null
-            frictionReason = ""
-            intentApproved = false
-            validationFeedback = null
-        }
+        selectedFrictionTime = null
+        frictionReason = ""
+        intentApproved = false
+        validationFeedback = null
     }
 
     LaunchedEffect(frictionReason, selectedFrictionTime) {
@@ -852,8 +843,6 @@ fun MindfulLauncherScreen(
                             context.startActivity(launchIntent)
                         }
                     }
-                    isFrictionMode = false
-                    frictionTargetApp = null
                     selectedFrictionTime = null
                     frictionReason = ""
                     intentApproved = false
@@ -914,7 +903,7 @@ fun MindfulLauncherScreen(
                 activeScreen = "clock"
                 termInput = ""
                 textFieldValue = TextFieldValue("")
-            } else if (currentIntent.startsWith("@app:")) {
+            } else if (!isKaiApp(currentTarget) && currentIntent.startsWith("@app:")) {
                 val appToOpen = currentIntent.substringAfter("@app:").trim().lowercase()
                 val app = availableApps.find { it.id.equals("app:$appToOpen", ignoreCase = true) || it.id.removePrefix("app:").equals(appToOpen, ignoreCase = true) }
                 if (app?.packageName != null) {
@@ -1436,7 +1425,8 @@ fun MindfulLauncherScreen(
                 AnimatedVisibility(visible = isAppDrawerOpen) {
                     val filteredApps = currentTabApps.filter { 
                         it.id.contains(searchQuery, ignoreCase = true) || 
-                        it.displayName.contains(searchQuery, ignoreCase = true) 
+                        it.displayName.contains(searchQuery, ignoreCase = true) ||
+                        it.id.removePrefix("app:").contains(searchQuery.removePrefix("app:"), ignoreCase = true)
                     }
                     Column(
                         modifier = Modifier
@@ -1690,9 +1680,25 @@ fun MindfulLauncherScreen(
                                     val isKaiTarget = isKaiApp(activeTarget)
                                     val promptAfterTag = termInput.substringAfter(' ').trim()
                                     val hasPromptAfterTag = termInput.contains(' ') && promptAfterTag.isNotEmpty()
-                                    val currentApp = availableApps.find { it.id == parsedActiveApp }
 
-                                    if (isKaiTarget && !hasPromptAfterTag) {
+                                    if (isFrictionMode) {
+                                        val isCanOpen = intentApproved && !isValidatingReason && selectedFrictionTime != null
+                                        IconButton(
+                                            onClick = {
+                                                if (isCanOpen) {
+                                                    launchDistractingApp()
+                                                }
+                                            },
+                                            enabled = isCanOpen,
+                                            modifier = Modifier.size(36.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.OpenInNew,
+                                                contentDescription = "Open App",
+                                                tint = if (isCanOpen) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                            )
+                                        }
+                                    } else if (isKaiTarget && !hasPromptAfterTag) {
                                         IconButton(
                                             onClick = {
                                                 val clean = activeTarget?.removePrefix("app:")?.lowercase()
