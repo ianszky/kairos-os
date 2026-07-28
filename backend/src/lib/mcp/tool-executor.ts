@@ -302,6 +302,7 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
       try {
         const result = await provider.executeToolCall(userId, {
           name: toolName,
+          arguments: fc.args,
           args: fc.args,
         });
 
@@ -309,11 +310,13 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
         const parsedResult = typeof result === 'string' ? (runCatchingJson(result) || result) : result;
         lastToolResult = parsedResult;
 
+        const safeFunctionResponse = formatFunctionResponse(parsedResult);
+
         console.log(`[ToolExecutor] Executed tool: ${toolName}`);
         parts.push({
           functionResponse: { 
             name: toolName, 
-            response: parsedResult
+            response: safeFunctionResponse
           }
         });
       } catch (err: unknown) {
@@ -332,7 +335,12 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
     }
     
     if (parts.length > 0) {
-      response = await chat.sendMessage({ message: parts });
+      try {
+        response = await chat.sendMessage({ message: parts });
+      } catch (sendErr: unknown) {
+        console.error("[ToolExecutor] Error sending function responses to Gemini:", sendErr);
+        break;
+      }
     } else {
       break;
     }
@@ -364,4 +372,22 @@ function runCatchingJson(str: string) {
     return null;
   }
 }
+
+function formatFunctionResponse(result: any): Record<string, any> {
+  let parsed = result;
+  if (typeof result === 'string') {
+    try {
+      parsed = JSON.parse(result);
+    } catch {
+      parsed = { result: result };
+    }
+  }
+
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { result: parsed };
+  }
+
+  return parsed;
+}
+
 

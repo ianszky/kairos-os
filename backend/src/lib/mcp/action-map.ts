@@ -11,6 +11,8 @@ export const COMPOSIO_ACTION_MAP: Record<string, Record<string, string[]>> = {
     'send': ['GOOGLESUPER_SEND_EMAIL', 'GOOGLESUPER_CREATE_EMAIL_DRAFT'],
     'read': ['GOOGLESUPER_FETCH_EMAILS', 'GOOGLESUPER_GET_DRAFT', 'GOOGLESUPER_LIST_DRAFTS'],
     'search': ['GOOGLESUPER_FETCH_EMAILS'],
+    'list': ['GOOGLESUPER_FETCH_EMAILS', 'GOOGLESUPER_LIST_DRAFTS'],
+    'fetch': ['GOOGLESUPER_FETCH_EMAILS'],
   },
   'googlecalendar': {
     'default': [
@@ -289,10 +291,14 @@ export const COMPOSIO_ACTION_MAP: Record<string, Record<string, string[]>> = {
   },
   'youtube': {
     'default': [
+      'EXA_SEARCH',
       'YOUTUBE_CREATE_PLAYLIST',
       'YOUTUBE_ADD_VIDEO_TO_PLAYLIST',
       'YOUTUBE_GET_CHANNEL_STATISTICS'
-    ]
+    ],
+    'search': ['EXA_SEARCH'],
+    'read': ['EXA_SEARCH'],
+    'list': ['EXA_SEARCH']
   },
   'canvas': {
     'default': [
