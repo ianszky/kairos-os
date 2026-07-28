@@ -6,7 +6,7 @@ export function mapAppTargetToToolkitSlug(appTarget: string): string {
   // Google Workspace apps map to 'googlesuper'
   if (
     target.startsWith('google') || 
-    ['gmail', 'drive', 'calendar', 'sheets', 'docs', 'contacts', 'forms', 'tasks', 'maps', 'chat', 'classroom', 'slides', 'photos', 'meet'].includes(target)
+    ['gmail', 'drive', 'calendar', 'sheets', 'docs', 'contacts', 'forms', 'tasks', 'maps', 'chat', 'classroom', 'slides', 'photos', 'meet', 'youtube'].includes(target)
   ) {
     return 'googlesuper';
   }
