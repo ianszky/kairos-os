@@ -12,12 +12,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Brightness4
+import androidx.compose.material.icons.filled.Brightness7
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -34,7 +36,21 @@ import com.kairos.os.domain.models.ScheduledTask
 import com.kairos.os.domain.models.ScheduledTaskRun
 import com.kairos.os.ui.googleSansFont
 import com.kairos.os.ui.viewmodels.ScheduledViewModel
-import java.util.Calendar
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+private fun formatRunTimestamp(isoTimestamp: String): String {
+    return try {
+        val instant = Instant.parse(isoTimestamp)
+        val formatter = DateTimeFormatter.ofPattern("MMM d, yyyy h:mm a", Locale.getDefault())
+            .withZone(ZoneId.systemDefault())
+        "Ran on ${formatter.format(instant)}"
+    } catch (_: Exception) {
+        "Ran on ${isoTimestamp.take(16).replace("T", " ")}"
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +58,8 @@ fun ScheduledScreen(
     scheduledViewModel: ScheduledViewModel,
     onOpenConversation: (String) -> Unit,
     onBack: () -> Unit,
+    isDarkTheme: Boolean,
+    onThemeToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = RUNS, 1 = JOBS
@@ -72,31 +90,19 @@ fun ScheduledScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "SCHEDULED TASKS",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontFamily = googleSansFont,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.5.sp
-                        ),
-                        color = MaterialTheme.colorScheme.onBackground
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onBackground
                     )
                 }
 
-                IconButton(onClick = { scheduledViewModel.refreshAll() }) {
+                IconButton(onClick = onThemeToggle) {
                     Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        tint = MaterialTheme.colorScheme.primary
+                        imageVector = if (isDarkTheme) Icons.Default.Brightness4 else Icons.Default.Brightness7,
+                        contentDescription = "Toggle Theme",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -113,7 +119,7 @@ fun ScheduledScreen(
                     onClick = { selectedTab = 0 },
                     text = {
                         Text(
-                            text = "RUNS (${runs.size})",
+                            text = "RUNS",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontFamily = googleSansFont,
                                 fontWeight = FontWeight.Bold
@@ -126,7 +132,7 @@ fun ScheduledScreen(
                     onClick = { selectedTab = 1 },
                     text = {
                         Text(
-                            text = "JOBS (${tasks.size})",
+                            text = "JOBS",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontFamily = googleSansFont,
                                 fontWeight = FontWeight.Bold
@@ -683,7 +689,7 @@ fun ScheduledJobCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = task.title ?: task.prompt.take(45),
@@ -696,7 +702,7 @@ fun ScheduledJobCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
                 text = task.prompt,
@@ -706,7 +712,7 @@ fun ScheduledJobCard(
                 overflow = TextOverflow.Ellipsis
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Schedule info badge using Google Sans font
             val daysLabels = listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
@@ -790,7 +796,7 @@ fun ScheduledRunCard(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Ran on ${run.startedAt.take(16).replace("T", " ")}",
+                        text = formatRunTimestamp(run.startedAt),
                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -828,13 +834,30 @@ fun ScheduleEditModal(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                text = "Edit Scheduled Task",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontFamily = googleSansFont,
-                    fontWeight = FontWeight.Bold
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Edit Scheduled Task",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontFamily = googleSansFont,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    modifier = Modifier.weight(1f)
                 )
-            )
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Close",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -866,7 +889,12 @@ fun ScheduleEditModal(
                     Switch(
                         checked = isActive,
                         onCheckedChange = { isActive = it },
-                        colors = SwitchDefaults.colors(checkedThumbColor = MaterialTheme.colorScheme.primary)
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = MaterialTheme.colorScheme.primary,
+                            checkedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
                     )
                 }
             }
@@ -894,13 +922,19 @@ fun ScheduleEditModal(
             }
         },
         dismissButton = {
-            Row {
-                TextButton(onClick = onDelete) {
-                    Text("DELETE", color = MaterialTheme.colorScheme.error, fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
-                }
-                TextButton(onClick = onDismiss) {
-                    Text("CANCEL", fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
-                }
+            TextButton(
+                onClick = onDelete,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("DELETE", fontFamily = googleSansFont, fontWeight = FontWeight.Bold)
             }
         }
     )

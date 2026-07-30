@@ -1190,7 +1190,9 @@ fun MindfulLauncherScreen(
                                 isChatOpen = true
                                 activeScreen = "home"
                             },
-                            onBack = { activeScreen = "home" }
+                            onBack = { activeScreen = "home" },
+                            isDarkTheme = isDarkTheme,
+                            onThemeToggle = onThemeToggle
                         )
                     }
                     "distracting_apps" -> {
@@ -1285,7 +1287,8 @@ fun MindfulLauncherScreen(
                 )
             }
             // Header (Aligned to TopCenter, fading vertical gradient background)
-            Box(
+            // ScheduledScreen renders its own top bar — skip the global header to avoid overlap.
+            if (activeScreen != "scheduled") Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
@@ -1899,8 +1902,8 @@ fun MindfulLauncherScreen(
                             }
                         }
 
-                         val hasAppMention = parsedActiveApp != null || parsedActiveIntegration != null || termInput.contains("@")
-                         AnimatedVisibility(visible = activeScreen == "scheduled" && hasAppMention) {
+                         val hasSelectedAppMention = parsedActiveApp != null || parsedActiveIntegration != null
+                         AnimatedVisibility(visible = activeScreen == "scheduled" && hasSelectedAppMention) {
                              com.kairos.os.ui.screens.ScheduleConfigBelowInputPanel(
                                  promptText = termInput.trim(),
                                  onActivate = { frequency, daysOfWeek, timeOfDay ->
