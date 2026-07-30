@@ -14,7 +14,7 @@ export interface KairosResponse {
 export interface WidgetPayload {
   widgetType: 'EMAIL_LIST' | 'CALENDAR_EVENT' | 'ALARM_CONFIRM'
             | 'NOTE_CARD' | 'MUSIC_CARD' | 'SEARCH_RESULTS'
-            | 'DIGEST_SUMMARY' | 'GENERIC_CARD';
+            | 'DIGEST_SUMMARY' | 'GENERIC_CARD' | 'SCHEDULED_TASK';
   title?: string;
   items: WidgetItem[];
   actions?: WidgetAction[];

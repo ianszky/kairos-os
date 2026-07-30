@@ -251,7 +251,8 @@ data class AppConnection(
 val localKaiApps = listOf(
     AppConnection("app:kainotes", "Kai Notes", null, null, "app", null, "📝"),
     AppConnection("app:kaicalendar", "Kai Calendar", null, null, "app", null, "📅"),
-    AppConnection("app:kaiclock", "Kai Clock", null, null, "app", null, "⏰")
+    AppConnection("app:kaiclock", "Kai Clock", null, null, "app", null, "⏰"),
+    AppConnection("app:kaischeduled", "Kai Scheduled", null, null, "app", null, "🔄")
 )
 
 val composioApps = listOf(
@@ -458,6 +459,7 @@ fun MindfulLauncherScreen(
     var termInput by remember { mutableStateOf("") }
     
     val intentViewModel: com.kairos.os.ui.viewmodels.IntentViewModel = androidx.hilt.navigation.compose.hiltViewModel()
+    val scheduledViewModel: com.kairos.os.ui.viewmodels.ScheduledViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val userSettings by intentViewModel.userSettings.collectAsState()
     val distractingAppIds by intentViewModel.distractingAppIds.collectAsState()
     
@@ -709,7 +711,7 @@ fun MindfulLauncherScreen(
     fun isKaiApp(id: String?): Boolean {
         if (id == null) return false
         val clean = id.removePrefix("app:").lowercase()
-        return clean == "kainotes" || clean == "notes" || clean == "kaicalendar" || clean == "calendar" || clean == "kaiclock" || clean == "clock" || clean == "alarm"
+        return clean == "kainotes" || clean == "notes" || clean == "kaicalendar" || clean == "calendar" || clean == "kaiclock" || clean == "clock" || clean == "alarm" || clean == "kaischeduled" || clean == "scheduled" || clean == "schedule"
     }
 
     val parsedActiveApp = remember(termInput, availableApps) {
@@ -1203,7 +1205,17 @@ fun MindfulLauncherScreen(
                         SearchDummyScreen()
                     }
                     "scheduled" -> {
-                        ScheduledDummyScreen()
+                        com.kairos.os.ui.screens.ScheduledScreen(
+                            scheduledViewModel = scheduledViewModel,
+                            onOpenConversation = { conversationId ->
+                                chatViewModel.selectConversation(conversationId)
+                                isChatOpen = true
+                                activeScreen = "home"
+                            },
+                            onBack = { activeScreen = "home" },
+                            isDarkTheme = isDarkTheme,
+                            onThemeToggle = onThemeToggle
+                        )
                     }
                     "distracting_apps" -> {
                         com.kairos.os.ui.screens.DistractingAppsScreen(
@@ -1297,7 +1309,8 @@ fun MindfulLauncherScreen(
                 )
             }
             // Header (Aligned to TopCenter, fading vertical gradient background)
-            Box(
+            // ScheduledScreen renders its own top bar — skip the global header to avoid overlap.
+            if (activeScreen != "scheduled") Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .fillMaxWidth()
@@ -1336,7 +1349,6 @@ fun MindfulLauncherScreen(
                                     "calendar" -> "Kai Calendar"
                                     "clock" -> "Kai Clock"
                                     "search" -> "Search"
-                                    "scheduled" -> "Scheduled Tasks"
                                     "distracting_apps" -> "Distracting Apps"
                                     "notification_rules" -> "Notification Rules"
                                     else -> ""
@@ -1417,12 +1429,13 @@ fun MindfulLauncherScreen(
             }
 
             // Input box column (Aligned to BottomCenter, fading bottom gradient background)
-            if (activeScreen == "home") {
+            if (activeScreen == "home" || activeScreen == "scheduled") {
                 Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .navigationBarsPadding()
+                    .imePadding()
                     .padding(24.dp)
             ) {
                 if (!isChatOpen && runningAgents.isNotEmpty() && !isAgentsExpanded) {
@@ -1445,7 +1458,12 @@ fun MindfulLauncherScreen(
                 }
 
                 AnimatedVisibility(visible = isAppDrawerOpen) {
-                    val filteredApps = currentTabApps.filter { 
+                    val availableDrawerApps = if (activeScreen == "scheduled") {
+                        localKaiApps + composioApps
+                    } else {
+                        currentTabApps
+                    }
+                    val filteredApps = availableDrawerApps.filter { 
                         it.id.contains(searchQuery, ignoreCase = true) || 
                         it.displayName.contains(searchQuery, ignoreCase = true) ||
                         it.id.removePrefix("app:").contains(searchQuery.removePrefix("app:"), ignoreCase = true)
@@ -1458,39 +1476,40 @@ fun MindfulLauncherScreen(
                             .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                             .padding(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 4.dp, vertical = 4.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-                                .padding(4.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            listOf("Integrations", "App").forEach { tab ->
-                                val isSelected = selectedDrawerTab == tab
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSelected) Color(0xFFFF6B00) else Color.Transparent)
-                                        .clickable { selectedDrawerTab = tab }
-                                        .padding(vertical = 6.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = tab,
-                                        style = TextStyle(
-                                            fontFamily = googleSansFont,
-                                            fontSize = 13.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                        ),
-                                        color = if (isSelected) Color.White else Color(0xFF9E9E9E)
-                                    )
+                        if (activeScreen != "scheduled") {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 4.dp, vertical = 4.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                    .padding(4.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                listOf("Integrations", "App").forEach { tab ->
+                                    val isSelected = selectedDrawerTab == tab
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(if (isSelected) Color(0xFFFF6B00) else Color.Transparent)
+                                            .clickable { selectedDrawerTab = tab }
+                                            .padding(vertical = 6.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = tab,
+                                            style = TextStyle(
+                                                fontFamily = googleSansFont,
+                                                fontSize = 13.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                            ),
+                                            color = if (isSelected) Color.White else Color(0xFF9E9E9E)
+                                        )
+                                    }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(4.dp))
                         }
-
-                        Spacer(modifier = Modifier.height(4.dp))
 
                         androidx.compose.foundation.lazy.LazyColumn(
                             modifier = Modifier.heightIn(max = 200.dp)
@@ -1731,6 +1750,7 @@ fun MindfulLauncherScreen(
                                                 if (clean == "notes" || clean == "kainotes") activeScreen = "notes"
                                                 else if (clean == "calendar" || clean == "kaicalendar") activeScreen = "calendar"
                                                 else if (clean == "clock" || clean == "kaiclock" || clean == "alarm") activeScreen = "clock"
+                                                else if (clean == "scheduled" || clean == "kaischeduled" || clean == "schedule") activeScreen = "scheduled"
                                                 termInput = ""
                                                 textFieldValue = TextFieldValue("")
                                             },
@@ -1820,7 +1840,9 @@ fun MindfulLauncherScreen(
                                 val hasPromptAfterTag = termInput.contains(' ') && promptAfterTag.isNotEmpty()
                                 val currentApp = availableApps.find { it.id == parsedActiveApp } ?: frictionTargetApp
 
-                                if (isFrictionMode || (currentApp != null && intentViewModel.isDistractingApp(currentApp.id))) {
+                                if (activeScreen == "scheduled") {
+                                    // No send icon or open-in-new icon on scheduled screen - ACTIVATE on the config panel below is the CTA
+                                } else if (isFrictionMode || (currentApp != null && intentViewModel.isDistractingApp(currentApp.id))) {
                                     val isCanOpen = intentApproved && !isValidatingReason && selectedFrictionTime != null
                                     IconButton(
                                         onClick = {
@@ -1844,6 +1866,7 @@ fun MindfulLauncherScreen(
                                             if (clean == "notes" || clean == "kainotes") activeScreen = "notes"
                                             else if (clean == "calendar" || clean == "kaicalendar") activeScreen = "calendar"
                                             else if (clean == "clock" || clean == "kaiclock" || clean == "alarm") activeScreen = "clock"
+                                            else if (clean == "scheduled" || clean == "kaischeduled" || clean == "schedule") activeScreen = "scheduled"
                                             termInput = ""
                                             textFieldValue = TextFieldValue("")
                                         },
@@ -1904,6 +1927,27 @@ fun MindfulLauncherScreen(
                                 }
                             }
                         }
+
+                         val hasSelectedAppMention = parsedActiveApp != null || parsedActiveIntegration != null
+                         AnimatedVisibility(visible = activeScreen == "scheduled" && hasSelectedAppMention) {
+                             com.kairos.os.ui.screens.ScheduleConfigBelowInputPanel(
+                                 promptText = termInput.trim(),
+                                 onActivate = { frequency, daysOfWeek, timeOfDay ->
+                                     scheduledViewModel.createScheduledTask(
+                                         prompt = termInput.trim(),
+                                         appTarget = parsedActiveIntegration ?: parsedActiveApp,
+                                         frequency = frequency,
+                                         daysOfWeek = daysOfWeek,
+                                         timeOfDay = timeOfDay,
+                                         onSuccess = {
+                                             termInput = ""
+                                             textFieldValue = androidx.compose.ui.text.input.TextFieldValue("")
+                                             scheduledViewModel.refreshAll()
+                                         }
+                                     )
+                                 }
+                             )
+                         }
 
                          AnimatedVisibility(visible = isFrictionMode) {
                              Column(
@@ -2145,7 +2189,12 @@ fun MindfulLauncherScreen(
                                         )
                                         .padding(horizontal = 12.dp, vertical = 16.dp)
                                 ) {
-                                    val displayTitle = conv.title ?: "New Conversation"
+                                    val rawTitle = conv.title ?: "New Conversation"
+                                    val displayTitle = if (conv.source == "scheduled" || conv.scheduledTaskId != null) {
+                                        if (rawTitle.startsWith("🔄")) rawTitle else "🔄 $rawTitle"
+                                    } else {
+                                        rawTitle
+                                    }
                                     Text(displayTitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                     Spacer(modifier = Modifier.height(8.dp))
                                     val displayDate = conv.createdAt.take(10)

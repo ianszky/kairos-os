@@ -65,4 +65,9 @@ object DatabaseModule {
     fun provideRunningAgentDao(db: KairosDatabase): com.kairos.os.data.db.RunningAgentDao {
         return db.runningAgentDao()
     }
+
+    @Provides
+    fun provideScheduledTaskDao(db: KairosDatabase): com.kairos.os.data.db.ScheduledTaskDao {
+        return db.scheduledTaskDao()
+    }
 }

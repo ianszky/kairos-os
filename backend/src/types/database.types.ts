@@ -15,35 +15,43 @@ export interface Database {
           user_id: string
           created_at: string
           updated_at: string
+          source: string
+          scheduled_task_id: string | null
         }
         Insert: {
           id?: string
           user_id: string
           created_at?: string
           updated_at?: string
+          source?: string
+          scheduled_task_id?: string | null
         }
         Update: {
           id?: string
           user_id?: string
           created_at?: string
           updated_at?: string
+          source?: string
+          scheduled_task_id?: string | null
         }
       }
       messages: {
         Row: {
           id: string
           conversation_id: string
-          user_id: string
+          user_id?: string
           content: string
           role: 'user' | 'assistant'
+          app_target?: string | null
           created_at: string
         }
         Insert: {
           id?: string
           conversation_id: string
-          user_id: string
+          user_id?: string
           content: string
           role: 'user' | 'assistant'
+          app_target?: string | null
           created_at?: string
         }
         Update: {
@@ -52,6 +60,7 @@ export interface Database {
           user_id?: string
           content?: string
           role?: 'user' | 'assistant'
+          app_target?: string | null
           created_at?: string
         }
       }
@@ -215,6 +224,88 @@ export interface Database {
           pending_change_effective_at?: string | null
           created_at?: string
           updated_at?: string
+        }
+      }
+      scheduled_tasks: {
+        Row: {
+          id: string
+          user_id: string
+          prompt: string
+          app_target: string | null
+          title: string | null
+          frequency: 'daily' | 'weekly' | 'specific_days'
+          days_of_week: number[]
+          time_of_day: string
+          timezone: string
+          cron_expression: string | null
+          pg_cron_job_id: number | null
+          is_active: boolean
+          starts_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          prompt: string
+          app_target?: string | null
+          title?: string | null
+          frequency: 'daily' | 'weekly' | 'specific_days'
+          days_of_week?: number[]
+          time_of_day: string
+          timezone?: string
+          cron_expression?: string | null
+          pg_cron_job_id?: number | null
+          is_active?: boolean
+          starts_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          prompt?: string
+          app_target?: string | null
+          title?: string | null
+          frequency?: 'daily' | 'weekly' | 'specific_days'
+          days_of_week?: number[]
+          time_of_day?: string
+          timezone?: string
+          cron_expression?: string | null
+          pg_cron_job_id?: number | null
+          is_active?: boolean
+          starts_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      scheduled_task_runs: {
+        Row: {
+          id: string
+          task_id: string
+          conversation_id: string | null
+          status: 'pending' | 'running' | 'completed' | 'failed'
+          started_at: string
+          completed_at: string | null
+          error_message: string | null
+        }
+        Insert: {
+          id?: string
+          task_id: string
+          conversation_id?: string | null
+          status?: 'pending' | 'running' | 'completed' | 'failed'
+          started_at?: string
+          completed_at?: string | null
+          error_message?: string | null
+        }
+        Update: {
+          id?: string
+          task_id?: string
+          conversation_id?: string | null
+          status?: 'pending' | 'running' | 'completed' | 'failed'
+          started_at?: string
+          completed_at?: string | null
+          error_message?: string | null
         }
       }
     }
