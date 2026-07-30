@@ -104,6 +104,56 @@ CREATE POLICY "Users can manage their own notifications" ON public.notification_
 
 CREATE POLICY "Users can manage their own configs" ON public.user_app_configs
   FOR ALL USING (auth.uid() = user_id);
+
+-- 5. Leisure budget + intent logs (required for /api/settings and /api/intent/log)
+CREATE TABLE IF NOT EXISTS public.user_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  daily_leisure_minutes INTEGER NOT NULL DEFAULT 60
+    CHECK (daily_leisure_minutes >= 0 AND daily_leisure_minutes <= 1440),
+  daily_leisure_minutes_pending INTEGER NULL
+    CHECK (daily_leisure_minutes_pending IS NULL
+      OR (daily_leisure_minutes_pending >= 0 AND daily_leisure_minutes_pending <= 1440)),
+  pending_change_effective_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_settings_user_id ON public.user_settings (user_id);
+
+ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage their own settings" ON public.user_settings;
+CREATE POLICY "Users can manage their own settings"
+  ON public.user_settings FOR ALL
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE TABLE IF NOT EXISTS public.intent_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  app_identifier TEXT NOT NULL,
+  app_display_name TEXT,
+  reason TEXT NOT NULL,
+  time_limit_minutes INTEGER NOT NULL CHECK (time_limit_minutes > 0),
+  ai_approved BOOLEAN NOT NULL DEFAULT TRUE,
+  opened_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  closed_at TIMESTAMPTZ NULL,
+  exceeded_time BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_intent_logs_user_opened ON public.intent_logs (user_id, opened_at DESC);
+
+ALTER TABLE public.intent_logs ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can manage their own intent logs" ON public.intent_logs;
+CREATE POLICY "Users can manage their own intent logs"
+  ON public.intent_logs FOR ALL
+  USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+INSERT INTO public.user_settings (user_id, daily_leisure_minutes)
+SELECT id, 60 FROM auth.users
+ON CONFLICT (user_id) DO NOTHING;
 ```
 
 ---

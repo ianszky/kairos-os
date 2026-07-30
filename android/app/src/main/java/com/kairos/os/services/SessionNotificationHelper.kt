@@ -49,12 +49,14 @@ object SessionNotificationHelper {
     fun buildTimerNotification(context: Context, session: AppSession): Notification {
         ensureChannels(context)
         val endTimeText = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(session.expiresAtMs))
-        val launchIntent = Intent(context, LauncherActivity::class.java).apply {
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(session.packageName)?.apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        } ?: Intent(context, LauncherActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         val pendingIntent = PendingIntent.getActivity(
             context,
-            0,
+            session.packageName.hashCode(),
             launchIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

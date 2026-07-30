@@ -135,11 +135,10 @@ class IntentViewModel @Inject constructor(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Fetch settings
-                val settings = apiClient.getUserSettings()
-                _userSettings.value = settings
+                apiClient.getUserSettings()?.let { settings ->
+                    _userSettings.value = settings
+                }
 
-                // Fetch app configs if remote endpoint is reachable
                 val configs = apiClient.getAppConfigs()
                 if (configs.isNotEmpty()) {
                     val map = configs.associateBy { it.appIdentifier.lowercase() }
@@ -162,6 +161,12 @@ class IntentViewModel @Inject constructor(
             } finally {
                 _isLoading.value = false
             }
+        }
+    }
+
+    suspend fun refreshSettings() {
+        apiClient.getUserSettings()?.let { settings ->
+            _userSettings.value = settings
         }
     }
 
@@ -200,25 +205,28 @@ class IntentViewModel @Inject constructor(
     ): IntentLogResult {
         val result = apiClient.logIntent(appId, displayName, reason, minutes, aiApproved)
         if (result.logged) {
-            // Update local remaining leisure minutes
+            val daily = _userSettings.value.dailyLeisureMinutes
             _userSettings.value = _userSettings.value.copy(
-                remainingLeisureMinutes = result.remainingMinutes
+                remainingLeisureMinutes = result.remainingMinutes,
+                todayUsedMinutes = (daily - result.remainingMinutes).coerceAtLeast(0)
             )
         }
         return result
     }
 
-    fun updateDailyLeisureTime(newMinutes: Int, onResult: (String) -> Unit) {
-        // Update local settings state immediately
-        _userSettings.value = _userSettings.value.copy(dailyLeisureMinutes = newMinutes)
-        onResult("Leisure limit set to ${newMinutes}m")
-
+    fun updateDailyLeisureTime(newMinutes: Int, onResult: (success: Boolean, message: String) -> Unit) {
         viewModelScope.launch {
-            try {
-                apiClient.updateDailyLeisureTime(newMinutes)
-            } catch (e: Exception) {
-                // Ignore background sync failure as local is authoritative
+            val result = apiClient.updateDailyLeisureTime(newMinutes)
+            if (result.status == "ERROR") {
+                onResult(false, result.message)
+                return@launch
             }
+            val snap = result.settings
+            _userSettings.value = _userSettings.value.copy(
+                pendingLeisureMinutes = snap?.pendingLeisureMinutes ?: newMinutes,
+                pendingChangeEffectiveAt = snap?.pendingChangeEffectiveAt ?: result.effectiveAt
+            )
+            onResult(true, result.message)
         }
     }
 

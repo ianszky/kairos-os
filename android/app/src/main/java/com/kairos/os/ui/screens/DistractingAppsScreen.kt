@@ -38,7 +38,8 @@ import kotlin.math.roundToInt
 fun DistractingAppsScreen(
     intentViewModel: IntentViewModel,
     installedApps: List<AppConnection>,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onAdjustDailyLimit: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val googleSansFont = FontFamily(Font(R.font.google_sans_regular, FontWeight.Normal))
@@ -46,10 +47,6 @@ fun DistractingAppsScreen(
     val userSettings by intentViewModel.userSettings.collectAsState()
     val appConfigsMap by intentViewModel.appConfigsMap.collectAsState()
     val distractingAppIds by intentViewModel.distractingAppIds.collectAsState()
-
-    var sliderValue by remember(userSettings.dailyLeisureMinutes) {
-        mutableFloatStateOf(userSettings.dailyLeisureMinutes.toFloat())
-    }
 
     var toastMessage by remember { mutableStateOf<String?>(null) }
     var isAccessibilityEnabled by remember { mutableStateOf(AccessibilityUtils.isAccessibilityServiceEnabled(context)) }
@@ -60,6 +57,11 @@ fun DistractingAppsScreen(
                 android.content.pm.PackageManager.PERMISSION_GRANTED
         )
     }
+
+    val daily = userSettings.dailyLeisureMinutes.coerceAtLeast(1)
+    val remaining = userSettings.remainingLeisureMinutes ?: daily
+    val used = userSettings.todayUsedMinutes ?: (daily - remaining).coerceAtLeast(0)
+    val remainingPct = ((remaining.toFloat() / daily.toFloat()) * 100f).roundToInt().coerceIn(0, 100)
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -89,9 +91,7 @@ fun DistractingAppsScreen(
             .padding(top = 80.dp)
             .padding(horizontal = 24.dp)
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
+        Column(modifier = Modifier.fillMaxSize()) {
             Spacer(modifier = Modifier.height(8.dp))
 
             if (!isAccessibilityEnabled) {
@@ -100,9 +100,7 @@ fun DistractingAppsScreen(
                     body = context.getString(R.string.a11y_banner_body),
                     actionLabel = context.getString(R.string.a11y_banner_action),
                     googleSansFont = googleSansFont,
-                    onAction = {
-                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                    }
+                    onAction = { context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
@@ -133,66 +131,43 @@ fun DistractingAppsScreen(
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row(
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "${sliderValue.roundToInt()}",
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontFamily = googleSansFont,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 36.sp
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "minutes / day",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontFamily = googleSansFont
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 6.dp)
-                )
-            }
-
-            userSettings.remainingLeisureMinutes?.let { remaining ->
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = context.getString(R.string.remaining_leisure, remaining),
-                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Slider(
-                value = sliderValue,
-                onValueChange = { sliderValue = it },
-                onValueChangeFinished = {
-                    val minutes = sliderValue.roundToInt()
-                    intentViewModel.updateDailyLeisureTime(minutes) { msg ->
-                        toastMessage = msg
-                    }
-                },
-                valueRange = 15f..180f,
-                steps = 10,
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.primary,
-                    activeTrackColor = MaterialTheme.colorScheme.primary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                )
+            Text(
+                text = "$remainingPct%",
+                style = MaterialTheme.typography.headlineLarge.copy(
+                    fontFamily = googleSansFont,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 36.sp
+                ),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = context.getString(R.string.leisure_usage_remaining_label),
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = context.getString(R.string.leisure_minutes_per_day, daily),
+                style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = context.getString(R.string.leisure_used_and_left, used, remaining),
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                color = MaterialTheme.colorScheme.primary
             )
 
-            Text(
-                text = "Global time budget allocated for all distracting apps per day. Apps cannot be opened once limit is reached.",
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontFamily = googleSansFont,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+            Spacer(modifier = Modifier.height(12.dp))
+
+            LinearProgressIndicator(
+                progress = { remaining.toFloat() / daily.toFloat() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp)),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
 
             if (userSettings.pendingLeisureMinutes != null) {
@@ -215,11 +190,29 @@ fun DistractingAppsScreen(
                         modifier = Modifier.size(18.dp)
                     )
                     Text(
-                        text = "⏳ Increase to ${userSettings.pendingLeisureMinutes}m pending 12h cooling-off period.",
+                        text = context.getString(
+                            R.string.leisure_pending_tomorrow,
+                            userSettings.pendingLeisureMinutes!!
+                        ),
                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = onAdjustDailyLimit,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Adjust daily limit",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontFamily = googleSansFont,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                )
             }
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -305,11 +298,11 @@ fun DistractingAppsScreen(
                                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
                                         color = MaterialTheme.colorScheme.primary
                                     )
-                                } else {
+                                } else if (isDistracting) {
                                     Text(
-                                        text = if (isDistracting) "Distracting (Intent Gate active)" else "Utility",
+                                        text = "Distracting (Intent Gate active)",
                                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
-                                        color = if (isDistracting) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }

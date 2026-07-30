@@ -18,4 +18,10 @@
     <string name="notif_banner_body">The countdown timer appears in your notification shade while a session is active.</string>
     <string name="notif_banner_action">Allow</string>
     <string name="remaining_leisure">%1$d min remaining today</string>
+
+    <string name="leisure_usage_remaining_label">Leisure Time Usage Remaining</string>
+    <string name="leisure_minutes_per_day">%1$d minutes / day</string>
+    <string name="leisure_used_and_left">%1$dm used · %2$dm left</string>
+    <string name="leisure_pending_tomorrow">New limit of %1$dm starts tomorrow.</string>
+    <string name="leisure_limit_tomorrow_notice">Changes take effect tomorrow.</string>
 </resources>

@@ -843,6 +843,28 @@ fun MindfulLauncherScreen(
         validationFeedback = null
     }
 
+    val frictionTimeOptions = remember {
+        listOf("5m" to 5, "10m" to 10, "15m" to 15, "30m" to 30, "45m" to 45, "1hr" to 60)
+    }
+    val remainingBudget = userSettings.remainingLeisureMinutes ?: userSettings.dailyLeisureMinutes
+    val budgetExhausted = remainingBudget <= 0
+    val selectedFrictionMinutes = frictionTimeOptions.find { it.first == selectedFrictionTime }?.second
+    val isFrictionOpenAllowed = intentApproved && !isValidatingReason && selectedFrictionTime != null &&
+        !budgetExhausted && selectedFrictionMinutes != null && selectedFrictionMinutes <= remainingBudget
+
+    LaunchedEffect(isFrictionMode) {
+        if (isFrictionMode) {
+            intentViewModel.refreshSettings()
+        }
+    }
+
+    LaunchedEffect(remainingBudget, selectedFrictionTime) {
+        val selectedMinutes = frictionTimeOptions.find { it.first == selectedFrictionTime }?.second
+        if (selectedMinutes != null && selectedMinutes > remainingBudget) {
+            selectedFrictionTime = null
+        }
+    }
+
     LaunchedEffect(frictionReason, selectedFrictionTime) {
         if (isFrictionMode && selectedFrictionTime != null && frictionReason.trim().length >= 4) {
             delay(800)
@@ -881,14 +903,10 @@ fun MindfulLauncherScreen(
             return@launchDistractingApp
         }
         if (app != null && timeStr != null && intentApproved) {
-            val minutes = when(timeStr) {
-                "5m" -> 5
-                "10m" -> 10
-                "15m" -> 15
-                "30m" -> 30
-                "45m" -> 45
-                "1hr" -> 60
-                else -> 15
+            val minutes = frictionTimeOptions.find { it.first == timeStr }?.second ?: 15
+            if (minutes > remainingBudget) {
+                validationFeedback = "Not enough leisure time remaining ($remainingBudget m left)."
+                return@launchDistractingApp
             }
             coroutineScope.launch {
                 val logRes = intentViewModel.logIntent(
@@ -898,7 +916,7 @@ fun MindfulLauncherScreen(
                     minutes = minutes,
                     aiApproved = intentApproved
                 )
-                if (logRes.budgetExceeded) {
+                if (logRes.budgetExceeded || !logRes.logged) {
                     validationFeedback = logRes.message ?: "Daily leisure limit reached (${logRes.remainingMinutes}m remaining)."
                 } else {
                     val packageName = app.packageName
@@ -1275,7 +1293,14 @@ fun MindfulLauncherScreen(
                         com.kairos.os.ui.screens.DistractingAppsScreen(
                             intentViewModel = intentViewModel,
                             installedApps = installedApps,
-                            onBack = { activeScreen = "home" }
+                            onBack = { activeScreen = "home" },
+                            onAdjustDailyLimit = { activeScreen = "leisure_limit" }
+                        )
+                    }
+                    "leisure_limit" -> {
+                        com.kairos.os.ui.screens.LeisureLimitScreen(
+                            intentViewModel = intentViewModel,
+                            onBack = { activeScreen = "distracting_apps" }
                         )
                     }
                     "notification_rules" -> {
@@ -1391,8 +1416,9 @@ fun MindfulLauncherScreen(
                             IconButton(onClick = {
                                 if (activeScreen == "notes" && noteIsEditing) {
                                     noteCancelAction?.invoke()
-                                } else {
-                                    activeScreen = "home"
+                                } else when (activeScreen) {
+                                    "leisure_limit" -> activeScreen = "distracting_apps"
+                                    else -> activeScreen = "home"
                                 }
                             }) {
                                 Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurface)
@@ -1404,6 +1430,7 @@ fun MindfulLauncherScreen(
                                     "clock" -> "Kai Clock"
                                     "search" -> "Search"
                                     "distracting_apps" -> "Distracting Apps"
+                                    "leisure_limit" -> "Daily Leisure Limit"
                                     "notification_rules" -> "Notification Rules"
                                     else -> ""
                                 },
@@ -1781,7 +1808,7 @@ fun MindfulLauncherScreen(
                                     val hasPromptAfterTag = termInput.contains(' ') && promptAfterTag.isNotEmpty()
 
                                     if (isFrictionMode) {
-                                        val isCanOpen = intentApproved && !isValidatingReason && selectedFrictionTime != null
+                                        val isCanOpen = isFrictionOpenAllowed
                                         IconButton(
                                             onClick = {
                                                 if (isCanOpen) {
@@ -1897,7 +1924,7 @@ fun MindfulLauncherScreen(
                                 if (activeScreen == "scheduled") {
                                     // No send icon or open-in-new icon on scheduled screen - ACTIVATE on the config panel below is the CTA
                                 } else if (isFrictionMode || (currentApp != null && intentViewModel.isDistractingApp(currentApp.id))) {
-                                    val isCanOpen = intentApproved && !isValidatingReason && selectedFrictionTime != null
+                                    val isCanOpen = isFrictionOpenAllowed
                                     IconButton(
                                         onClick = {
                                             if (isCanOpen) {
@@ -2025,8 +2052,9 @@ fun MindfulLauncherScreen(
                                  Spacer(modifier = Modifier.height(16.dp))
                                  
                                  Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                     listOf("5m", "10m", "15m", "30m", "45m", "1hr").forEach { time ->
+                                     frictionTimeOptions.forEach { (time, minutes) ->
                                          val isSelected = selectedFrictionTime == time
+                                         val isChipEnabled = minutes <= remainingBudget
                                          Box(
                                              modifier = Modifier
                                                  .weight(1f)
@@ -2035,17 +2063,31 @@ fun MindfulLauncherScreen(
                                                      RoundedCornerShape(8.dp)
                                                  )
                                                  .border(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                                                 .clickable { selectedFrictionTime = time }
+                                                 .clickable(enabled = isChipEnabled) {
+                                                     if (isChipEnabled) selectedFrictionTime = time
+                                                 }
                                                  .padding(vertical = 10.dp),
                                              contentAlignment = Alignment.Center
                                          ) {
                                              Text(
-                                                 time, 
-                                                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground, 
+                                                 time,
+                                                 color = when {
+                                                     isSelected -> MaterialTheme.colorScheme.primary
+                                                     isChipEnabled -> MaterialTheme.colorScheme.onBackground
+                                                     else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                                                 },
                                                  style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
                                              )
                                          }
                                      }
+                                 }
+                                 if (budgetExhausted) {
+                                     Spacer(modifier = Modifier.height(8.dp))
+                                     Text(
+                                         text = "Daily leisure budget used up.",
+                                         style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                                         color = MaterialTheme.colorScheme.error
+                                     )
                                  }
                                  Spacer(modifier = Modifier.height(16.dp))
                                  
@@ -2073,11 +2115,10 @@ fun MindfulLauncherScreen(
                                      horizontalArrangement = Arrangement.SpaceBetween,
                                      verticalAlignment = Alignment.CenterVertically
                                  ) {
-                                     val remaining = userSettings.remainingLeisureMinutes
                                      Text(
-                                         text = if (remaining != null) "Daily budget: ${remaining}m remaining" else "",
-                                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
-                                         color = MaterialTheme.colorScheme.onSurfaceVariant
+                                         text = "${remainingBudget}m leisure left today",
+                                         style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont, fontWeight = FontWeight.SemiBold),
+                                         color = if (budgetExhausted) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
                                      )
                                      Text(
                                          text = "${frictionReason.length}/80",
@@ -2430,7 +2471,13 @@ fun MindfulLauncherScreen(
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
-                        Text("LOGOUT")
+                        Text(
+                            text = "LOGOUT",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontFamily = googleSansFont,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
                     }
                 }
             }

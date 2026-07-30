@@ -108,7 +108,7 @@ fun AppSettingsScreen(
                 onValueChange = { sliderValue = it },
                 onValueChangeFinished = {
                     val minutes = sliderValue.roundToInt()
-                    intentViewModel.updateDailyLeisureTime(minutes) { msg ->
+                    intentViewModel.updateDailyLeisureTime(minutes) { _, msg ->
                         toastMessage = msg
                     }
                 },

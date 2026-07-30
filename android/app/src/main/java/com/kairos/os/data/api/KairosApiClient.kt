@@ -68,9 +68,18 @@ data class UpdateLeisureRequest(
 
 @Serializable
 data class SettingsUpdateResult(
-    val status: String = "APPLIED",
+    val status: String = "PENDING",
     val message: String = "",
-    val effectiveAt: String? = null
+    val effectiveAt: String? = null,
+    val settings: SettingsSnapshot? = null,
+    val error: String? = null
+)
+
+@Serializable
+data class SettingsSnapshot(
+    val dailyLeisureMinutes: Int = 60,
+    val pendingLeisureMinutes: Int? = null,
+    val pendingChangeEffectiveAt: String? = null
 )
 
 @Serializable
@@ -220,14 +229,26 @@ class KairosApiClient @Inject constructor(
                     )
                 )
             }
-            response.body<IntentLogResult>()
+            if (!response.status.isSuccess()) {
+                IntentLogResult(
+                    logged = false,
+                    budgetExceeded = true,
+                    message = "Could not verify leisure budget (server ${response.status.value})."
+                )
+            } else {
+                response.body<IntentLogResult>()
+            }
         } catch (e: Exception) {
             e.printStackTrace()
-            IntentLogResult(logged = true, remainingMinutes = 60, budgetExceeded = false)
+            IntentLogResult(
+                logged = false,
+                budgetExceeded = true,
+                message = "Could not verify leisure budget. Check your connection."
+            )
         }
     }
 
-    suspend fun getUserSettings(): UserSettingsResponse {
+    suspend fun getUserSettings(): UserSettingsResponse? {
         val session = supabaseClient.auth.currentSessionOrNull()
         val token = session?.accessToken
 
@@ -235,10 +256,14 @@ class KairosApiClient @Inject constructor(
             val response = client.get("api/settings") {
                 if (token != null) bearerAuth(token)
             }
-            response.body<UserSettingsResponse>()
+            if (!response.status.isSuccess()) {
+                null
+            } else {
+                response.body<UserSettingsResponse>()
+            }
         } catch (e: Exception) {
             e.printStackTrace()
-            UserSettingsResponse(dailyLeisureMinutes = 60)
+            null
         }
     }
 
@@ -251,10 +276,22 @@ class KairosApiClient @Inject constructor(
                 if (token != null) bearerAuth(token)
                 setBody(UpdateLeisureRequest(dailyLeisureMinutes))
             }
-            response.body<SettingsUpdateResult>()
+            if (!response.status.isSuccess()) {
+                SettingsUpdateResult(
+                    status = "ERROR",
+                    message = "Failed to save leisure limit (${response.status.value}).",
+                    error = response.status.description
+                )
+            } else {
+                response.body<SettingsUpdateResult>()
+            }
         } catch (e: Exception) {
             e.printStackTrace()
-            SettingsUpdateResult(status = "APPLIED", message = "Updated locally")
+            SettingsUpdateResult(
+                status = "ERROR",
+                message = "Could not reach server. Leisure limit was not saved.",
+                error = e.message
+            )
         }
     }
 

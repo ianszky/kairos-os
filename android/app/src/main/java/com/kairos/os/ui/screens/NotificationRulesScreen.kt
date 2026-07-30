@@ -82,34 +82,6 @@ fun NotificationRulesScreen(
                 style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Explanation cards
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-                    .padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = "• Allowed (Whitelisted): Always delivered directly on-device.",
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "• Blocked (Blacklisted): Silently dismissed without saving to digest.",
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "• Kai Decides: On-device Gemma AI classifies as CRITICAL or DIGEST.",
-                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = googleSansFont),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-
             Spacer(modifier = Modifier.height(16.dp))
 
             // Search Bar
@@ -279,7 +251,7 @@ private fun RuleOptionSegment(
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 fontSize = 11.sp
             ),
-            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

@@ -6,6 +6,14 @@ export interface UserSettingsData {
   pending_change_effective_at: string | null;
 }
 
+/** Tomorrow 00:00:00.000 — same day boundary as intent-log usage totals. */
+function getNextDayStart(): Date {
+  const next = new Date();
+  next.setHours(0, 0, 0, 0);
+  next.setDate(next.getDate() + 1);
+  return next;
+}
+
 export async function getUserSettings(
   supabase: SupabaseClient<any>,
   userId: string
@@ -17,7 +25,6 @@ export async function getUserSettings(
     .single();
 
   if (error && error.code === 'PGRST116') {
-    // Record does not exist, insert default settings (60 minutes)
     const { data: newSettings, error: insertError } = await supabase
       .from('user_settings')
       .insert({
@@ -33,7 +40,6 @@ export async function getUserSettings(
 
   if (error) throw error;
 
-  // Check if a pending increase has matured (12 hour cooling-off period passed)
   if (
     data.daily_leisure_minutes_pending !== null &&
     data.pending_change_effective_at &&
@@ -64,51 +70,28 @@ export async function updateDailyLeisureTime(
   supabase: SupabaseClient<any>,
   userId: string,
   newMinutes: number
-): Promise<{ status: 'APPLIED' | 'PENDING'; message: string; effectiveAt?: string; settings: UserSettingsData }> {
-  const current = await getUserSettings(supabase, userId);
+): Promise<{ status: 'PENDING'; message: string; effectiveAt: string; settings: UserSettingsData }> {
+  await getUserSettings(supabase, userId);
 
-  // Decreasing or keeping budget same applies immediately (no bypass vulnerability)
-  if (newMinutes <= current.daily_leisure_minutes) {
-    const { data: updated, error } = await supabase
-      .from('user_settings')
-      .update({
-        daily_leisure_minutes: newMinutes,
-        daily_leisure_minutes_pending: null,
-        pending_change_effective_at: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .select()
-      .single();
+  const effectiveAtDate = getNextDayStart();
+  const effectiveAtIso = effectiveAtDate.toISOString();
 
-    if (error) throw error;
-    return {
-      status: 'APPLIED',
-      message: 'Daily leisure time updated immediately.',
-      settings: updated,
-    };
-  } else {
-    // Increasing budget requires a 12-hour cooling-off period
-    const effectiveAtDate = new Date(Date.now() + 12 * 60 * 60 * 1000);
-    const effectiveAtIso = effectiveAtDate.toISOString();
+  const { data: updated, error } = await supabase
+    .from('user_settings')
+    .update({
+      daily_leisure_minutes_pending: newMinutes,
+      pending_change_effective_at: effectiveAtIso,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId)
+    .select()
+    .single();
 
-    const { data: updated, error } = await supabase
-      .from('user_settings')
-      .update({
-        daily_leisure_minutes_pending: newMinutes,
-        pending_change_effective_at: effectiveAtIso,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('user_id', userId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return {
-      status: 'PENDING',
-      message: 'Increase in daily leisure time will take effect in 12 hours (cooling-off period).',
-      effectiveAt: effectiveAtIso,
-      settings: updated,
-    };
-  }
+  if (error) throw error;
+  return {
+    status: 'PENDING',
+    message: 'Daily leisure limit change will take effect tomorrow.',
+    effectiveAt: effectiveAtIso,
+    settings: updated,
+  };
 }
