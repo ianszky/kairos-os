@@ -183,6 +183,9 @@ class LauncherActivity : ComponentActivity() {
     @Inject
     lateinit var localAlarmController: com.kairos.os.domain.tools.LocalAlarmController
 
+    @Inject
+    lateinit var appSessionManager: com.kairos.os.domain.session.AppSessionManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         supabaseClient.handleDeeplinks(intent)
@@ -211,7 +214,8 @@ class LauncherActivity : ComponentActivity() {
                             localTitleGenerator = localTitleGenerator,
                             localNotesController = localNotesController,
                             localCalendarController = localCalendarController,
-                            localAlarmController = localAlarmController
+                            localAlarmController = localAlarmController,
+                            appSessionManager = appSessionManager
                         )
                     } else {
                         var currentAuthScreen by remember { mutableStateOf("login") }
@@ -430,7 +434,8 @@ fun MindfulLauncherScreen(
     localTitleGenerator: com.kairos.os.domain.usecases.LocalTitleGenerator,
     localNotesController: com.kairos.os.domain.tools.LocalNotesController,
     localCalendarController: com.kairos.os.domain.tools.LocalCalendarController,
-    localAlarmController: com.kairos.os.domain.tools.LocalAlarmController
+    localAlarmController: com.kairos.os.domain.tools.LocalAlarmController,
+    appSessionManager: com.kairos.os.domain.session.AppSessionManager
 ) {
     val chatViewModel: com.kairos.os.ui.viewmodels.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val conversations by chatViewModel.conversations.collectAsState()
@@ -462,6 +467,7 @@ fun MindfulLauncherScreen(
     val scheduledViewModel: com.kairos.os.ui.viewmodels.ScheduledViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val userSettings by intentViewModel.userSettings.collectAsState()
     val distractingAppIds by intentViewModel.distractingAppIds.collectAsState()
+    val activeSession by appSessionManager.activeSession.collectAsState()
     
     var selectedFrictionTime by remember { mutableStateOf<String?>(null) }
     var frictionReason by remember { mutableStateOf("") }
@@ -511,6 +517,33 @@ fun MindfulLauncherScreen(
     }
 
     val availableApps = remember { (localKaiApps + composioApps + installedApps) }
+
+    LaunchedEffect(availableApps, distractingAppIds) {
+        intentViewModel.syncDistractingPackages(installedApps)
+    }
+
+    LaunchedEffect(Unit) {
+        val activity = context as? LauncherActivity
+        activity?.intent?.let { launchIntent ->
+            if (launchIntent.getBooleanExtra(
+                    com.kairos.os.services.SessionNotificationHelper.EXTRA_SESSION_EXPIRED,
+                    false
+                )
+            ) {
+                val appName = launchIntent.getStringExtra(
+                    com.kairos.os.services.SessionNotificationHelper.EXTRA_EXPIRED_APP_NAME
+                )
+                validationFeedback = if (appName != null) {
+                    "Leisure time ended for $appName."
+                } else {
+                    "Leisure time ended."
+                }
+                launchIntent.removeExtra(com.kairos.os.services.SessionNotificationHelper.EXTRA_SESSION_EXPIRED)
+                launchIntent.removeExtra(com.kairos.os.services.SessionNotificationHelper.EXTRA_EXPIRED_APP_NAME)
+            }
+        }
+    }
+
     var selectedDrawerTab by remember { mutableStateOf("Integrations") }
     val currentTabApps = remember(selectedDrawerTab, localKaiApps, composioApps, installedApps) {
         if (selectedDrawerTab == "App") {
@@ -749,8 +782,10 @@ fun MindfulLauncherScreen(
         } else null
     }
 
-    val isFrictionMode = remember(currentApp, distractingAppIds) {
-        currentApp != null && !isKaiApp(currentApp.id) && intentViewModel.isDistractingApp(currentApp.id)
+    val isFrictionMode = remember(currentApp, distractingAppIds, activeSession) {
+        val pkg = currentApp?.packageName
+        val hasActiveGrant = pkg != null && appSessionManager.hasValidGrant(pkg)
+        currentApp != null && !isKaiApp(currentApp.id) && intentViewModel.isDistractingApp(currentApp.id) && !hasActiveGrant
     }
 
     val frictionTargetApp = currentApp
@@ -829,9 +864,22 @@ fun MindfulLauncherScreen(
         }
     }
 
-    val launchDistractingApp: () -> Unit = {
+    val launchDistractingApp: () -> Unit = launchDistractingApp@ {
         val app = frictionTargetApp
         val timeStr = selectedFrictionTime
+        val pkg = app?.packageName
+        if (app != null && pkg != null && appSessionManager.hasValidGrant(pkg)) {
+            val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
+            if (launchIntent != null) {
+                context.startActivity(launchIntent)
+            }
+            selectedFrictionTime = null
+            frictionReason = ""
+            intentApproved = false
+            termInput = ""
+            textFieldValue = androidx.compose.ui.text.input.TextFieldValue("")
+            return@launchDistractingApp
+        }
         if (app != null && timeStr != null && intentApproved) {
             val minutes = when(timeStr) {
                 "5m" -> 5
@@ -853,9 +901,15 @@ fun MindfulLauncherScreen(
                 if (logRes.budgetExceeded) {
                     validationFeedback = logRes.message ?: "Daily leisure limit reached (${logRes.remainingMinutes}m remaining)."
                 } else {
-                    val pkg = app.packageName
-                    if (pkg != null) {
-                        val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
+                    val packageName = app.packageName
+                    if (packageName != null) {
+                        appSessionManager.startSession(
+                            packageName = packageName,
+                            displayName = app.displayName,
+                            appSlug = app.id.removePrefix("app:").lowercase(),
+                            minutes = minutes
+                        )
+                        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
                         if (launchIntent != null) {
                             context.startActivity(launchIntent)
                         }

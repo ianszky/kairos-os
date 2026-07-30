@@ -254,7 +254,7 @@ fun AppSettingsScreen(
                         Switch(
                             checked = isDistracting,
                             onCheckedChange = { checked ->
-                                intentViewModel.toggleAppDistracting(app.id, checked) { msg ->
+                                intentViewModel.toggleAppDistracting(app.id, app.packageName, checked) { msg ->
                                     toastMessage = msg
                                 }
                             },

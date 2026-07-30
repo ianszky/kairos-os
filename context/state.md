@@ -1,18 +1,27 @@
 # KAIROS OS Project State
 
-## Current Task: Scheduled Tasks / CRON Jobs — MERGED TO `main`
+## Current Task: App Session Timer — IN PROGRESS on `feature/app-session-timer`
 
-### Status: COMPLETED & MERGED TO `main`
+### Status: IMPLEMENTATION COMPLETE (pending device verification)
 
-### Scheduled Tasks Feature (merged from `feature/scheduled-cron-tasks`):
-- Full scheduled tasks subsystem: Supabase schema, Next.js CRUD/execute/runs APIs, Android two-tab UI (RUNS / JOBS), native chatbox integration, Material3 time picker, manual run triggers, and agent card dispatch.
-- UI polish: title-free header with back + theme toggle, schedule config gated on selected app mention, local-timezone run timestamps, job card spacing, edit modal with X close and destructive DELETE styling.
+### App Session Timer Feature:
+- **Absolute wall-clock sessions**: Grant N minutes from approval time; expires at `grantedAt + N` regardless of actual usage.
+- **Ongoing notification countdown**: `AppSessionTimerService` FGS shows app name, chronometer countdown, and exact end time in notification shade.
+- **Daily leisure budget wired**: Existing server-side budget check at grant time; re-entry within active session skips re-log/re-charge.
+- **Accessibility enforcement**: `KairosAccessibilityService` redirects HOME when a trap app is foreground without a valid grant (covers Recents/notification taps).
+- **Persistence**: Session survives process death; restored on boot via `SessionBootReceiver` + `KairosApplication`.
+- **Settings UX**: `DistractingAppsScreen` shows Accessibility + notification permission banners; remaining leisure minutes display.
 
-### Prior Completed Work (Chatbox & Local Agent):
-1. **Local KAI App Prompt Routing & Classification** — KAI apps route to `LocalAgentEngine`; deterministic pre-classifier prevents cloud fallthrough.
-2. **Cursor Session App Drawer Re-Triggering** — Synchronous mention insertion, trailing-space cleanup on pill deletion, `trimStart` in drawer trigger logic.
-3. **Input Blocker & IME Composition Clearing** — Installed non-KAI apps block further input; composition cleared on mention deletion.
+### Key files added:
+- `domain/session/AppSession.kt`, `AppSessionStore.kt`, `AppSessionManager.kt`
+- `data/TrapAppStore.kt`
+- `services/AppSessionTimerService.kt`, `SessionExpiryReceiver.kt`, `SessionBootReceiver.kt`, `KairosAccessibilityService.kt`, `SessionNotificationHelper.kt`
+- `util/AccessibilityUtils.kt`
+- `res/xml/kairos_accessibility_service.xml`, `res/drawable/ic_session_timer.xml`
 
 ### Verification:
-- `./gradlew assembleDebug`: **BUILD SUCCESSFUL**
-- Scheduled tasks feature merged cleanly into `main`.
+- `./gradlew assembleDebug` in worktree: **BUILD SUCCESSFUL**
+
+### Prior Completed Work:
+- Scheduled Tasks / CRON Jobs — merged to `main`
+- Local KAI App Prompt Routing, chatbox polish, intent friction + Gemma validator

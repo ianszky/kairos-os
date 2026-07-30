@@ -1,13 +1,18 @@
 package com.kairos.os.ui.screens
 
+import android.Manifest
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,10 +25,12 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import coil.compose.AsyncImage
 import com.kairos.os.R
 import com.kairos.os.ui.AppConnection
 import com.kairos.os.ui.viewmodels.IntentViewModel
+import com.kairos.os.util.AccessibilityUtils
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,7 +42,7 @@ fun DistractingAppsScreen(
 ) {
     val context = LocalContext.current
     val googleSansFont = FontFamily(Font(R.font.google_sans_regular, FontWeight.Normal))
-    
+
     val userSettings by intentViewModel.userSettings.collectAsState()
     val appConfigsMap by intentViewModel.appConfigsMap.collectAsState()
     val distractingAppIds by intentViewModel.distractingAppIds.collectAsState()
@@ -45,6 +52,29 @@ fun DistractingAppsScreen(
     }
 
     var toastMessage by remember { mutableStateOf<String?>(null) }
+    var isAccessibilityEnabled by remember { mutableStateOf(AccessibilityUtils.isAccessibilityServiceEnabled(context)) }
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                android.content.pm.PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasNotificationPermission = granted
+    }
+
+    LaunchedEffect(Unit) {
+        intentViewModel.loadData()
+        intentViewModel.syncDistractingPackages(installedApps)
+    }
+
+    LaunchedEffect(installedApps, distractingAppIds) {
+        intentViewModel.syncDistractingPackages(installedApps)
+    }
 
     LaunchedEffect(toastMessage) {
         toastMessage?.let {
@@ -64,7 +94,34 @@ fun DistractingAppsScreen(
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // === SECTION 1: Daily Leisure Time ===
+            if (!isAccessibilityEnabled) {
+                EnforcementBanner(
+                    title = context.getString(R.string.a11y_banner_title),
+                    body = context.getString(R.string.a11y_banner_body),
+                    actionLabel = context.getString(R.string.a11y_banner_action),
+                    googleSansFont = googleSansFont,
+                    onAction = {
+                        context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                    }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            if (!hasNotificationPermission) {
+                EnforcementBanner(
+                    title = context.getString(R.string.notif_banner_title),
+                    body = context.getString(R.string.notif_banner_body),
+                    actionLabel = context.getString(R.string.notif_banner_action),
+                    googleSansFont = googleSansFont,
+                    onAction = {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             Text(
                 text = "DAILY LEISURE TIME",
                 style = MaterialTheme.typography.labelSmall.copy(
@@ -96,6 +153,15 @@ fun DistractingAppsScreen(
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 6.dp)
+                )
+            }
+
+            userSettings.remainingLeisureMinutes?.let { remaining ->
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = context.getString(R.string.remaining_leisure, remaining),
+                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 
@@ -160,7 +226,6 @@ fun DistractingAppsScreen(
             HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(20.dp))
 
-            // === SECTION 2: App Classification ===
             Text(
                 text = "DISTRACTING APPS",
                 style = MaterialTheme.typography.labelSmall.copy(
@@ -253,7 +318,7 @@ fun DistractingAppsScreen(
                         Switch(
                             checked = isDistracting,
                             onCheckedChange = { checked ->
-                                intentViewModel.toggleAppDistracting(app.id, checked) { msg ->
+                                intentViewModel.toggleAppDistracting(app.id, app.packageName, checked) { msg ->
                                     toastMessage = msg
                                 }
                             },
@@ -269,6 +334,46 @@ fun DistractingAppsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EnforcementBanner(
+    title: String,
+    body: String,
+    actionLabel: String,
+    googleSansFont: FontFamily,
+    onAction: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f),
+                RoundedCornerShape(8.dp)
+            )
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontFamily = googleSansFont,
+                    fontWeight = FontWeight.SemiBold
+                ),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = body,
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = googleSansFont),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        TextButton(onClick = onAction) {
+            Text(actionLabel)
         }
     }
 }

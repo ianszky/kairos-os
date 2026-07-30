@@ -1,3 +1,21 @@
 <resources>
     <string name="app_name">Kairos OS</string>
+
+    <string name="session_timer_channel_name">App session timer</string>
+    <string name="session_timer_channel_desc">Shows countdown while a distracting app session is active</string>
+    <string name="session_expired_channel_name">Session ended</string>
+    <string name="session_expired_channel_desc">Alerts when leisure app access expires</string>
+    <string name="session_timer_until">Access until %1$s</string>
+    <string name="session_timer_subtitle">%1$d min grant</string>
+    <string name="session_expired_title">Leisure time ended</string>
+    <string name="session_expired_body">Your access to %1$s has expired. Pass the intent gate to open it again.</string>
+    <string name="accessibility_service_description">KAIROS uses accessibility to block distracting apps when your leisure session expires or you open them without approval.</string>
+
+    <string name="a11y_banner_title">Accessibility required for full enforcement</string>
+    <string name="a11y_banner_body">Without this, apps opened from Recents or notifications can bypass the timer gate.</string>
+    <string name="a11y_banner_action">Enable</string>
+    <string name="notif_banner_title">Notifications required for session timer</string>
+    <string name="notif_banner_body">The countdown timer appears in your notification shade while a session is active.</string>
+    <string name="notif_banner_action">Allow</string>
+    <string name="remaining_leisure">%1$d min remaining today</string>
 </resources>

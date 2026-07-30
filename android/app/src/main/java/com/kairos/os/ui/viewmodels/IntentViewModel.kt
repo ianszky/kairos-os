@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kairos.os.ai.IntentValidationResult
 import com.kairos.os.ai.OnDeviceIntentValidator
+import com.kairos.os.data.TrapAppStore
 import com.kairos.os.data.api.AppConfigItemResponse
 import com.kairos.os.data.api.IntentLogResult
 import com.kairos.os.data.api.KairosApiClient
@@ -27,6 +28,7 @@ class IntentViewModel @Inject constructor(
     private val apiClient: KairosApiClient,
     private val validator: OnDeviceIntentValidator,
     private val appNotificationRuleDao: AppNotificationRuleDao,
+    private val trapAppStore: TrapAppStore,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -169,6 +171,22 @@ class IntentViewModel @Inject constructor(
         return _distractingAppIds.value.contains(cleanId)
     }
 
+    fun isDistractingPackage(packageName: String?): Boolean {
+        if (packageName.isNullOrBlank()) return false
+        return trapAppStore.isDistractingPackage(packageName)
+    }
+
+    fun syncDistractingPackages(installedApps: List<com.kairos.os.ui.AppConnection>) {
+        val packages = installedApps
+            .filter { app ->
+                val cleanId = app.id.removePrefix("app:").lowercase()
+                _distractingAppIds.value.contains(cleanId) && app.packageName != null
+            }
+            .mapNotNull { it.packageName }
+            .toSet()
+        trapAppStore.setDistractingPackages(packages)
+    }
+
     suspend fun validateReason(reason: String, appName: String): IntentValidationResult {
         return validator.validateReason(reason, appName)
     }
@@ -204,13 +222,20 @@ class IntentViewModel @Inject constructor(
         }
     }
 
-    fun toggleAppDistracting(appId: String, isDistracting: Boolean, onResult: (String) -> Unit) {
+    fun toggleAppDistracting(
+        appId: String,
+        packageName: String?,
+        isDistracting: Boolean,
+        onResult: (String) -> Unit
+    ) {
         val cleanId = appId.removePrefix("app:").lowercase()
         val currentSet = _distractingAppIds.value.toMutableSet()
         if (isDistracting) {
             currentSet.add(cleanId)
+            packageName?.let { trapAppStore.addPackage(it) }
         } else {
             currentSet.remove(cleanId)
+            packageName?.let { trapAppStore.removePackage(it) }
         }
         _distractingAppIds.value = currentSet.toSet()
         prefs.edit().putStringSet("distracting_app_ids", currentSet).apply()
