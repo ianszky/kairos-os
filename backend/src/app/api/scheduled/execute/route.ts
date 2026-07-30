@@ -82,7 +82,6 @@ export async function POST(request: Request) {
       .from('messages')
       .insert({
         conversation_id: conversationId,
-        user_id: user.id,
         role: 'user',
         content: task.prompt,
         app_target: task.app_target,

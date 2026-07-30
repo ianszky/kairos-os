@@ -39,17 +39,19 @@ export interface Database {
         Row: {
           id: string
           conversation_id: string
-          user_id: string
+          user_id?: string
           content: string
           role: 'user' | 'assistant'
+          app_target?: string | null
           created_at: string
         }
         Insert: {
           id?: string
           conversation_id: string
-          user_id: string
+          user_id?: string
           content: string
           role: 'user' | 'assistant'
+          app_target?: string | null
           created_at?: string
         }
         Update: {
@@ -58,6 +60,7 @@ export interface Database {
           user_id?: string
           content?: string
           role?: 'user' | 'assistant'
+          app_target?: string | null
           created_at?: string
         }
       }
