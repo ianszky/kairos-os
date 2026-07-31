@@ -88,7 +88,7 @@ export async function processIntent(
     
     const unconnectedTargets: string[] = [];
     for (const target of appTargets) {
-      if (['alarm', 'system', 'launcher', 'installed', 'generic', 'search'].includes(target)) continue;
+      if (['alarm', 'system', 'launcher', 'installed', 'generic', 'search', 'browser', 'composio_search'].includes(target)) continue;
       const connStatus = await getConnectionStatus(userId, target);
       if (!connStatus.connected) {
         unconnectedTargets.push(target);

@@ -17,6 +17,8 @@
 
     - Implemented strict separation of entities: Installed/Local Apps use `@app:<slug>` (e.g. `@app:youtube`, `@app:kainotes`) and Composio Integrations use `@<slug>` (e.g. `@youtube`, `@gmail`).
     - Fixed Intent Friction Layer execution so selecting YouTube from the **App** tab inserts `@app:youtube` and triggers app usage limits / launcher UI, while `@youtube` from the **Integrations** tab is strictly reserved for AI prompt tasks.
+    - Renamed Twitter integration mention to `@x` (Composio toolkit remains `twitter`); installed X app friction only triggers on `@app:x`, not bare `@x`.
+    - Mapped `@browser` to Composio Search (`composio_search` toolkit: `COMPOSIO_SEARCH_WEB`, etc.) instead of stale EXA tool slugs.
 
 ## Next Steps
 - Implement end-to-end testing between the Android Auth flow, proxy server, and Supabase cloud.

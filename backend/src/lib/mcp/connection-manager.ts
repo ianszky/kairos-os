@@ -15,7 +15,10 @@ export function mapAppTargetToToolkitSlug(appTarget: string): string {
   const mappings: Record<string, string> = {
     'microsoftteams': 'microsoft_teams',
     'teams': 'microsoft_teams',
-    'onedrive': 'one_drive'
+    'onedrive': 'one_drive',
+    'x': 'twitter',
+    'browser': 'composio_search',
+    'search': 'composio_search',
   };
   
   return mappings[target] || target;
@@ -32,7 +35,7 @@ export async function getConnectionStatus(
     const toolkitSlug = mapAppTargetToToolkitSlug(appTarget);
     
     // Non-composio targets don't need authentication
-    if (['clock', 'generic', 'browser', 'none'].includes(toolkitSlug)) {
+    if (['clock', 'generic', 'browser', 'search', 'composio_search', 'none'].includes(toolkitSlug)) {
       return { connected: true };
     }
 

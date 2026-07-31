@@ -142,12 +142,32 @@ export const COMPOSIO_ACTION_MAP: Record<string, Record<string, string[]>> = {
       'GITHUB_FIND_REPOSITORIES'
     ],
   },
+  'composio_search': {
+    'default': [
+      'COMPOSIO_SEARCH_WEB',
+      'COMPOSIO_SEARCH_DUCK_DUCK_GO',
+      'COMPOSIO_SEARCH_NEWS',
+      'COMPOSIO_SEARCH_FETCH_URL_CONTENT',
+      'COMPOSIO_SEARCH_TAVILY'
+    ],
+    'search': [
+      'COMPOSIO_SEARCH_WEB',
+      'COMPOSIO_SEARCH_DUCK_DUCK_GO',
+      'COMPOSIO_SEARCH_TAVILY'
+    ]
+  },
   'search': {
     'default': [
-      'EXA_SEARCH',
-      'EXA_ANSWER',
-      'EXA_GET_CONTENTS_ACTION',
-      'EXA_FIND_SIMILAR'
+      'COMPOSIO_SEARCH_WEB',
+      'COMPOSIO_SEARCH_DUCK_DUCK_GO',
+      'COMPOSIO_SEARCH_NEWS',
+      'COMPOSIO_SEARCH_FETCH_URL_CONTENT',
+      'COMPOSIO_SEARCH_TAVILY'
+    ],
+    'search': [
+      'COMPOSIO_SEARCH_WEB',
+      'COMPOSIO_SEARCH_DUCK_DUCK_GO',
+      'COMPOSIO_SEARCH_TAVILY'
     ]
   },
   'composio': {

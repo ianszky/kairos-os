@@ -282,7 +282,7 @@ val composioApps = listOf(
     AppConnection("slack", "Slack", "https://logos.composio.dev/api/slack", null, "communication"),
     AppConnection("supabase", "Supabase", "https://logos.composio.dev/api/supabase", null, "developer"),
     AppConnection("outlook", "Outlook", "https://logos.composio.dev/api/outlook", null, "productivity"),
-    AppConnection("twitter", "Twitter", "https://logos.composio.dev/api/twitter", null, "social"),
+    AppConnection("x", "X", "https://logos.composio.dev/api/twitter", null, "social"),
     AppConnection("hubspot", "HubSpot", "https://logos.composio.dev/api/hubspot", null, "crm"),
     AppConnection("linear", "Linear", "https://logos.composio.dev/api/linear", null, "productivity"),
     AppConnection("airtable", "Airtable", "https://logos.composio.dev/api/airtable", null, "productivity"),
@@ -750,17 +750,25 @@ fun MindfulLauncherScreen(
     val parsedActiveApp = remember(termInput, availableApps) {
         val cleanInput = termInput.trimStart()
         val firstWord = cleanInput.substringBefore(' ')
-        if (firstWord.startsWith("@")) {
-            val rawSlug = firstWord.drop(1).lowercase()
-            val cleanSlug = rawSlug.removePrefix("app:")
-            val matchedApp = availableApps.find { 
-                it.id.equals(rawSlug, ignoreCase = true) ||
+        if (firstWord.startsWith("@app:")) {
+            val cleanSlug = firstWord.drop(1).removePrefix("app:").lowercase()
+            val matchedApp = availableApps.find {
                 it.id.equals("app:$cleanSlug", ignoreCase = true) ||
                 it.id.removePrefix("app:").equals(cleanSlug, ignoreCase = true)
             }
-            if (matchedApp != null && (matchedApp.packageName != null || isKaiApp(matchedApp.id) || matchedApp.category == "installed" || matchedApp.id.startsWith("app:"))) {
+            if (matchedApp != null && (matchedApp.packageName != null || matchedApp.category == "installed" || matchedApp.id.startsWith("app:"))) {
                 matchedApp.id.lowercase()
             } else null
+        } else if (firstWord.startsWith("@")) {
+            val rawSlug = firstWord.drop(1).lowercase()
+            val matchedKaiApp = availableApps.find {
+                isKaiApp(it.id) && (
+                    it.id.equals(rawSlug, ignoreCase = true) ||
+                    it.id.equals("app:$rawSlug", ignoreCase = true) ||
+                    it.id.removePrefix("app:").equals(rawSlug, ignoreCase = true)
+                )
+            }
+            matchedKaiApp?.id?.lowercase()
         } else null
     }
 

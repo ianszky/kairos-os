@@ -38,6 +38,15 @@ describe('COMPOSIO_ACTION_MAP', () => {
     });
   });
 
+  it('should map search and composio_search to COMPOSIO_SEARCH tools', () => {
+    for (const key of ['search', 'composio_search']) {
+      expect(COMPOSIO_ACTION_MAP[key].default).toEqual(
+        expect.arrayContaining(['COMPOSIO_SEARCH_WEB', 'COMPOSIO_SEARCH_DUCK_DUCK_GO'])
+      );
+      expect(COMPOSIO_ACTION_MAP[key].default.every((slug) => slug.startsWith('COMPOSIO_SEARCH_'))).toBe(true);
+    }
+  });
+
   it('should not contain any empty default action mappings', () => {
     Object.keys(COMPOSIO_ACTION_MAP).forEach(key => {
       const mapping = COMPOSIO_ACTION_MAP[key];
