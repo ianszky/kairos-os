@@ -6,6 +6,27 @@ import { getUserMemory, updateUserMemoryAsync } from '../ai/user-memory';
 import { KairosResponse } from '@/types/kairos';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
+const LOCAL_APP_TARGETS = new Set([
+  'kai', 'kairos',
+  'kainotes', 'notes', 'note',
+  'kaicalendar', 'calendar', 'event', 'meeting',
+  'kaiclock', 'clock', 'alarm', 'timer', 'kaialarm',
+  'kaischeduled', 'scheduled', 'schedule',
+]);
+
+export function normalizeAppTargetSlug(appTarget: string): string {
+  return appTarget.replace(/^app:/, '').toLowerCase();
+}
+
+export function isLocalAppTarget(appTarget: string | null): boolean {
+  if (!appTarget) return false;
+  return LOCAL_APP_TARGETS.has(normalizeAppTargetSlug(appTarget));
+}
+
+export function shouldForceComplexTier(explicitAppTarget: string | null): boolean {
+  return explicitAppTarget != null && !isLocalAppTarget(explicitAppTarget);
+}
+
 async function fetchAttachmentParts(attachments: any[], token: string) {
   const supabase = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -60,6 +81,10 @@ export async function processIntent(
   if (explicitAppTarget) {
     console.log(`[IntentRouter] Overriding classified appTarget '${classification.appTarget}' with explicit target '${explicitAppTarget}'`);
     classification.appTarget = explicitAppTarget;
+    if (shouldForceComplexTier(explicitAppTarget)) {
+      console.log(`[IntentRouter] Forcing COMPLEX tier for explicit integration target '${explicitAppTarget}'`);
+      classification.tier = 'COMPLEX';
+    }
   }
 
   // Find all app targets by scanning for @app tags in the prompt
