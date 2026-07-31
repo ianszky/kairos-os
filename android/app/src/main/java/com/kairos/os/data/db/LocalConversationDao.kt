@@ -25,4 +25,16 @@ interface LocalConversationDao {
 
     @Query("DELETE FROM local_conversations WHERE id = :id")
     fun deleteById(id: String)
+
+    @Query(
+        """
+        SELECT id AS conversationId, title AS title, COALESCE(title, '') AS matchedText,
+               NULL AS messageId, updatedAt AS sortTimestamp
+        FROM local_conversations
+        WHERE title LIKE '%' || :query || '%' COLLATE NOCASE
+        ORDER BY updatedAt DESC
+        LIMIT :limit
+        """
+    )
+    fun searchConversationsByTitle(query: String, limit: Int = 50): List<LocalChatSearchRow>
 }
