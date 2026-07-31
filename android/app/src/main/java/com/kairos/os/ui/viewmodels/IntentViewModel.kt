@@ -36,7 +36,7 @@ class IntentViewModel @Inject constructor(
 
     // Default built-in distracting app slugs as initial fallback
     private val defaultDistractingApps = setOf(
-        "youtube", "facebook", "instagram", "twitter", "tiktok", "reddit", "discord"
+        "youtube", "facebook", "instagram", "twitter", "x", "tiktok", "reddit", "discord"
     )
 
     // Core essential system apps default to ALLOWED on initial launch

@@ -6,6 +6,27 @@ import { getUserMemory, updateUserMemoryAsync } from '../ai/user-memory';
 import { KairosResponse } from '@/types/kairos';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
+const LOCAL_APP_TARGETS = new Set([
+  'kai', 'kairos',
+  'kainotes', 'notes', 'note',
+  'kaicalendar', 'calendar', 'event', 'meeting',
+  'kaiclock', 'clock', 'alarm', 'timer', 'kaialarm',
+  'kaischeduled', 'scheduled', 'schedule',
+]);
+
+export function normalizeAppTargetSlug(appTarget: string): string {
+  return appTarget.replace(/^app:/, '').toLowerCase();
+}
+
+export function isLocalAppTarget(appTarget: string | null): boolean {
+  if (!appTarget) return false;
+  return LOCAL_APP_TARGETS.has(normalizeAppTargetSlug(appTarget));
+}
+
+export function shouldForceComplexTier(explicitAppTarget: string | null): boolean {
+  return explicitAppTarget != null && !isLocalAppTarget(explicitAppTarget);
+}
+
 async function fetchAttachmentParts(attachments: any[], token: string) {
   const supabase = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -60,6 +81,10 @@ export async function processIntent(
   if (explicitAppTarget) {
     console.log(`[IntentRouter] Overriding classified appTarget '${classification.appTarget}' with explicit target '${explicitAppTarget}'`);
     classification.appTarget = explicitAppTarget;
+    if (shouldForceComplexTier(explicitAppTarget)) {
+      console.log(`[IntentRouter] Forcing COMPLEX tier for explicit integration target '${explicitAppTarget}'`);
+      classification.tier = 'COMPLEX';
+    }
   }
 
   // Find all app targets by scanning for @app tags in the prompt
@@ -84,11 +109,11 @@ export async function processIntent(
     rawResponseText = `User asked for a simple task. Intent was classified as simple. Action: ${prompt}`;
   } else {
     // 5. Check connection status for all target toolkit slugs
-    const { getConnectionStatus, initiateConnection } = await import('../mcp/connection-manager');
+    const { getConnectionStatus } = await import('../mcp/connection-manager');
     
     const unconnectedTargets: string[] = [];
     for (const target of appTargets) {
-      if (['alarm', 'system', 'launcher', 'installed', 'generic', 'search'].includes(target)) continue;
+      if (['alarm', 'system', 'launcher', 'installed', 'generic', 'search', 'browser', 'composio_search'].includes(target)) continue;
       const connStatus = await getConnectionStatus(userId, target);
       if (!connStatus.connected) {
         unconnectedTargets.push(target);
@@ -97,41 +122,59 @@ export async function processIntent(
     
     if (unconnectedTargets.length > 0) {
       const targetToConnect = unconnectedTargets[0];
-      const connectData = await initiateConnection(userId, targetToConnect);
-      
-      const displayNameMap: Record<string, string> = {
-        'googlesuper': 'Google',
-        'googlecalendar': 'Google Calendar',
-        'googlesheets': 'Google Sheets',
-        'googledocs': 'Google Docs',
-        'googledrive': 'Google Drive',
-        'microsoftteams': 'Microsoft Teams',
-        'slackbot': 'Slackbot',
-        'hackernews': 'Hacker News',
-        'discordbot': 'Discord Bot',
-      };
-      const displayName = displayNameMap[targetToConnect.toLowerCase()] || 
-                          (targetToConnect.charAt(0).toUpperCase() + targetToConnect.slice(1));
-      
-      return {
-        type: 'WIDGET',
-        text: `Please connect your ${displayName} account to use this feature.`,
-        widget: {
-          widgetType: 'GENERIC_CARD',
-          title: 'Connection Required',
-          items: [
-            { id: 'auth_msg', primary: `KAIROS OS needs access to your ${displayName} account to perform this action.` }
-          ],
-          actions: [
-            { label: `Connect ${displayName}`, actionType: 'DEEP_LINK', target: connectData.connectUrl }
-          ]
-        },
-        meta: {
-          conversationId,
-          timestamp: new Date().toISOString(),
-          model: 'system'
+      const { ConnectionSetupRequiredError, getIntegrationDisplayName, initiateConnection } = await import('../mcp/connection-manager');
+
+      try {
+        const connectData = await initiateConnection(userId, targetToConnect);
+        const displayName = getIntegrationDisplayName(targetToConnect);
+
+        return {
+          type: 'WIDGET',
+          text: `Please connect your ${displayName} account to use this feature.`,
+          widget: {
+            widgetType: 'GENERIC_CARD',
+            title: 'Connection Required',
+            items: [
+              { id: 'auth_msg', primary: `KAIROS OS needs access to your ${displayName} account to perform this action.` }
+            ],
+            actions: [
+              { label: `Connect ${displayName}`, actionType: 'DEEP_LINK', target: connectData.connectUrl }
+            ]
+          },
+          meta: {
+            conversationId,
+            timestamp: new Date().toISOString(),
+            model: 'system'
+          }
+        } as KairosResponse;
+      } catch (error) {
+        if (error instanceof ConnectionSetupRequiredError) {
+          return {
+            type: 'WIDGET',
+            text: error.message,
+            widget: {
+              widgetType: 'GENERIC_CARD',
+              title: `${error.displayName} Setup Required`,
+              items: [
+                {
+                  id: 'setup_msg',
+                  primary: error.message,
+                  secondary: error.reason === 'custom_credentials_required'
+                    ? 'Composio no longer provides managed X credentials. Configure TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET in the backend, then try again.'
+                    : 'Please retry the connection flow or check your Composio configuration.'
+                }
+              ],
+              actions: []
+            },
+            meta: {
+              conversationId,
+              timestamp: new Date().toISOString(),
+              model: 'system'
+            }
+          } as KairosResponse;
         }
-      } as KairosResponse;
+        throw error;
+      }
     }
 
     // Download attachments from Supabase and format them as Gemini parts
