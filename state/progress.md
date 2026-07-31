@@ -7,6 +7,15 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 31. On-Device Gemma Voice Input (STT)
+**Status:** DONE
+**Branch:** `feature-gemma-voice-stt`
+**Summary:** Replaced platform-only mic STT with Gemma 4 E2B on-device ASR via LiteRT-LM, with Android SpeechRecognizer / system voice UI fallback:
+- **`LocalLlmClient`**: Enables `audioBackend = Backend.CPU()` with GPU→CPU→text-only init cascade; exposes `isAudioReady()`.
+- **`AudioRecorder` + `GemmaSttClient`**: Captures 16 kHz mono WAV (≤28s), runs Gemma ASR via `Content.AudioBytes`.
+- **`LauncherActivity`**: Mic uses Gemma when model audio backend is ready; falls back to `SpeechRecognizer` and `RecognizerIntent` (including `ERROR_CLIENT`).
+- **Verification**: `./gradlew :app:compileDebugKotlin` — BUILD SUCCESSFUL.
+
 ### 30. Running Agents ↔ Android Notification Two-Way Sync
 **Status:** DONE
 **Branch:** `feature/agent-notification-sync`
@@ -53,7 +62,6 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 - **Cloud API Client (`KairosApiClient.kt`)**: Added `currentDate` field to `PromptRequest` and auto-populated client-side formatted timestamp so cloud requests carry the exact local date & time.
 - **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 24s.
 
-<<<<<<< HEAD
 ### 25. KaiCalendar Visual Polish & Event Edit/Delete Dialog
 **Status:** DONE
 **Branch:** `main`
