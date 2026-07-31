@@ -1274,7 +1274,14 @@ fun MindfulLauncherScreen(
                 // Main Content
                 when (activeScreen) {
                     "search" -> {
-                        SearchDummyScreen()
+                        com.kairos.os.ui.screens.SearchChatScreen(
+                            chatViewModel = chatViewModel,
+                            onOpenConversation = { conversationId ->
+                                chatViewModel.selectConversation(conversationId)
+                                isChatOpen = true
+                                activeScreen = "home"
+                            }
+                        )
                     }
                     "scheduled" -> {
                         com.kairos.os.ui.screens.ScheduledScreen(
@@ -3166,37 +3173,6 @@ fun SidebarButton(
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             ),
             color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
-        )
-    }
-}
-
-@Composable
-fun SearchDummyScreen() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = androidx.compose.material.icons.Icons.Default.Search,
-            contentDescription = "Search",
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(64.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "Search Chat Histories",
-            style = MaterialTheme.typography.titleLarge.copy(fontFamily = googleSansFont),
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Dummy Page — Search UI will be integrated here.",
-            style = MaterialTheme.typography.bodyMedium.copy(fontFamily = googleSansFont),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
     }
 }

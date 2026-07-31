@@ -6,8 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.kairos.os.data.db.LocalConversationDao
 import com.kairos.os.data.db.LocalMessageDao
 import com.kairos.os.domain.models.ChatMessage
+import com.kairos.os.domain.models.ChatSearchMatchKind
+import com.kairos.os.domain.models.ChatSearchResult
 import com.kairos.os.domain.models.Conversation
 import com.kairos.os.domain.models.WidgetPayload
+import com.kairos.os.domain.usecases.ChatSearchHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
@@ -46,8 +49,19 @@ class ChatViewModel @Inject constructor(
     private val _currentConversationId = MutableStateFlow<String?>(null)
     val currentConversationId: StateFlow<String?> = _currentConversationId.asStateFlow()
 
+    private val _searchResults = MutableStateFlow<List<ChatSearchResult>>(emptyList())
+    val searchResults: StateFlow<List<ChatSearchResult>> = _searchResults.asStateFlow()
+
+    private val _isSearching = MutableStateFlow(false)
+    val isSearching: StateFlow<Boolean> = _isSearching.asStateFlow()
+
     private var realtimeJob: Job? = null
     private var localFlowJob: Job? = null
+    private var searchJob: Job? = null
+
+    companion object {
+        private const val SEARCH_RESULT_LIMIT = 50
+    }
 
     /**
      * 1. Fetch & merge both cloud (Supabase) and local (Room DB) conversations.
@@ -110,6 +124,156 @@ class ChatViewModel @Inject constructor(
             loadMessages(conversationId)
         } else {
             _currentMessages.value = emptyList()
+        }
+    }
+
+    fun searchChats(query: String) {
+        searchJob?.cancel()
+        val trimmed = query.trim()
+        if (trimmed.isBlank()) {
+            _searchResults.value = emptyList()
+            _isSearching.value = false
+            return
+        }
+
+        searchJob = viewModelScope.launch {
+            _isSearching.value = true
+            try {
+                val localResults = withContext(Dispatchers.IO) {
+                    searchLocal(trimmed)
+                }
+                val cloudResults = searchCloud(trimmed)
+                _searchResults.value = ChatSearchHelper.mergeResults(localResults + cloudResults)
+            } catch (e: Exception) {
+                Log.e(TAG, "searchChats failed", e)
+            } finally {
+                _isSearching.value = false
+            }
+        }
+    }
+
+    fun clearSearch() {
+        searchJob?.cancel()
+        _searchResults.value = emptyList()
+        _isSearching.value = false
+    }
+
+    private fun searchLocal(query: String): List<ChatSearchResult> {
+        val titleHits = localConversationDao.searchConversationsByTitle(query, SEARCH_RESULT_LIMIT)
+            .map { row ->
+                ChatSearchHelper.toSearchResult(
+                    conversationId = row.conversationId,
+                    title = row.title,
+                    matchedSource = row.matchedText,
+                    matchKind = ChatSearchMatchKind.TITLE,
+                    messageId = null,
+                    sortTimestamp = row.sortTimestamp,
+                    query = query
+                )
+            }
+
+        val messageHits = localMessageDao.searchMessagesByContent(query, SEARCH_RESULT_LIMIT)
+            .map { row ->
+                ChatSearchHelper.toSearchResult(
+                    conversationId = row.conversationId,
+                    title = row.title,
+                    matchedSource = row.matchedText,
+                    matchKind = ChatSearchMatchKind.MESSAGE,
+                    messageId = row.messageId,
+                    sortTimestamp = row.sortTimestamp,
+                    query = query
+                )
+            }
+
+        return titleHits + messageHits
+    }
+
+    private suspend fun searchCloud(query: String): List<ChatSearchResult> {
+        val pattern = "%$query%"
+        val titleLookup = _conversations.value.associateBy { it.id }
+
+        val titleHits = try {
+            supabaseClient.postgrest["conversations"]
+                .select {
+                    filter {
+                        ilike("title", pattern)
+                    }
+                    order("updated_at", Order.DESCENDING)
+                    limit(SEARCH_RESULT_LIMIT.toLong())
+                }
+                .decodeList<Conversation>()
+                .map { conversation ->
+                    ChatSearchHelper.toSearchResult(
+                        conversationId = conversation.id,
+                        title = conversation.title,
+                        matchedSource = conversation.title.orEmpty(),
+                        matchKind = ChatSearchMatchKind.TITLE,
+                        messageId = null,
+                        sortTimestamp = conversation.updatedAt,
+                        query = query
+                    )
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Cloud title search failed", e)
+            emptyList()
+        }
+
+        val messageHits = try {
+            val messages = supabaseClient.postgrest["messages"]
+                .select {
+                    filter {
+                        ilike("content", pattern)
+                    }
+                    order("created_at", Order.DESCENDING)
+                    limit(SEARCH_RESULT_LIMIT.toLong())
+                }
+                .decodeList<ChatMessage>()
+
+            val missingConversationIds = messages
+                .map { it.conversationId }
+                .distinct()
+                .filter { it !in titleLookup }
+
+            val fetchedTitles = if (missingConversationIds.isEmpty()) {
+                emptyMap()
+            } else {
+                fetchConversationTitles(missingConversationIds)
+            }
+
+            val resolvedTitles = titleLookup.mapValues { (_, conversation) -> conversation.title } + fetchedTitles
+
+            messages.map { message ->
+                ChatSearchHelper.toSearchResult(
+                    conversationId = message.conversationId,
+                    title = resolvedTitles[message.conversationId],
+                    matchedSource = message.content,
+                    matchKind = ChatSearchMatchKind.MESSAGE,
+                    messageId = message.id,
+                    sortTimestamp = message.createdAt,
+                    query = query
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Cloud message search failed", e)
+            emptyList()
+        }
+
+        return titleHits + messageHits
+    }
+
+    private suspend fun fetchConversationTitles(conversationIds: List<String>): Map<String, String?> {
+        return try {
+            supabaseClient.postgrest["conversations"]
+                .select {
+                    filter {
+                        isIn("id", conversationIds)
+                    }
+                }
+                .decodeList<Conversation>()
+                .associate { it.id to it.title }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to fetch conversation titles for search", e)
+            emptyMap()
         }
     }
 
@@ -212,6 +376,7 @@ class ChatViewModel @Inject constructor(
         super.onCleared()
         realtimeJob?.cancel()
         localFlowJob?.cancel()
+        searchJob?.cancel()
         viewModelScope.launch {
             runCatching { supabaseClient.realtime.removeAllChannels() }
         }

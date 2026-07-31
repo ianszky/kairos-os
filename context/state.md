@@ -1,17 +1,17 @@
 # KAIROS OS Project State
 
-## Current Task: Leisure Budget UI + Cloud Authority — IN PROGRESS on `feature/app-session-timer`
+## Current Task: Search Chat (Android) — COMPLETE on `feature/search-chat`
 
-### Status: IMPLEMENTATION COMPLETE (requires Supabase SQL + device verification)
+### Status: IMPLEMENTATION COMPLETE (requires device verification)
 
-### Leisure Budget Feature:
-- **Progress UI** on Distracting Apps: remaining %, progress bar, used/left, minutes/day; slider moved to separate Daily Leisure Limit screen.
-- **Next-day pending**: all limit changes apply tomorrow (backend + client; cloud is source of truth).
-- **Friction enforcement**: refresh budget from cloud; disable duration chips over remaining; fail-closed logIntent offline.
-- **Supabase**: `user_settings` + `intent_logs` SQL documented in [`context/supabase_setup.md`](context/supabase_setup.md) — **must be pasted in Supabase SQL Editor** to fix PUT `/api/settings` 500.
-
-### Prior: App Session Timer (absolute wall-clock, notification countdown, Accessibility enforcement)
+### Search Chat Feature:
+- **Search screen** replaces dummy sidebar page: search bar + result cards (title + highlighted match snippet).
+- **Dual-source search**: Room (local titles + messages) and Supabase (`ilike` on cloud titles + message content).
+- **Navigation**: tapping a result opens the conversation via `ChatViewModel.selectConversation` (same as Scheduled / HISTORY).
+- **Files**: `SearchChatScreen.kt`, `ChatSearchResult.kt`, `ChatSearchHelper.kt`, DAO search queries, `ChatViewModel.searchChats()`.
 
 ### Verification:
-- Paste Supabase SQL, then PUT `/api/settings` returns 200
-- `./gradlew assembleDebug`: **BUILD SUCCESSFUL**
+- `./gradlew assembleDebug`: **BUILD SUCCESSFUL** (worktree `.worktrees/feature-search-chat`)
+- Manual: local title hit, local message hit + highlight, cloud title/message hit (signed in), tap opens chat, empty states
+
+### Prior: Leisure Budget UI + Cloud Authority — on `feature/app-session-timer`
