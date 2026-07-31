@@ -35,6 +35,23 @@ describe('connection-manager', () => {
     expect(mapAppTargetToToolkitSlug('search')).toBe('composio_search');
   });
 
+  it('maps Google Workspace apps with GOOGLESUPER coverage to googlesuper', () => {
+    expect(mapAppTargetToToolkitSlug('gmail')).toBe('googlesuper');
+    expect(mapAppTargetToToolkitSlug('googledocs')).toBe('googlesuper');
+    expect(mapAppTargetToToolkitSlug('googlemaps')).toBe('googlesuper');
+    expect(mapAppTargetToToolkitSlug('googleslides')).toBe('googlesuper');
+    expect(mapAppTargetToToolkitSlug('googlephotos')).toBe('googlesuper');
+    expect(mapAppTargetToToolkitSlug('googlemeet')).toBe('googlesuper');
+  });
+
+  it('maps standalone Google toolkits to their own Composio toolkit slugs', () => {
+    expect(mapAppTargetToToolkitSlug('googlecontacts')).toBe('googlecontacts');
+    expect(mapAppTargetToToolkitSlug('googleforms')).toBe('googleforms');
+    expect(mapAppTargetToToolkitSlug('googlechat')).toBe('google_chat');
+    expect(mapAppTargetToToolkitSlug('googleclassroom')).toBe('google_classroom');
+    expect(mapAppTargetToToolkitSlug('youtube')).toBe('youtube');
+  });
+
   it('passes through known toolkit slugs unchanged', () => {
     expect(mapAppTargetToToolkitSlug('twitter')).toBe('twitter');
     expect(mapAppTargetToToolkitSlug('github')).toBe('github');

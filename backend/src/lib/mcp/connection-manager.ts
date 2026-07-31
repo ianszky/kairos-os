@@ -26,11 +26,31 @@ export class ConnectionSetupRequiredError extends Error {
 
 export function mapAppTargetToToolkitSlug(appTarget: string): string {
   const target = appTarget.toLowerCase();
-  
-  // Google Workspace apps map to 'googlesuper'
+
+  // Standalone Google toolkits with no GOOGLESUPER tool equivalents
+  const standaloneGoogleToolkits: Record<string, string> = {
+    'googlecontacts': 'googlecontacts',
+    'google_contacts': 'googlecontacts',
+    'contacts': 'googlecontacts',
+    'googleforms': 'googleforms',
+    'google_forms': 'googleforms',
+    'forms': 'googleforms',
+    'googlechat': 'google_chat',
+    'google_chat': 'google_chat',
+    'chat': 'google_chat',
+    'googleclassroom': 'google_classroom',
+    'google_classroom': 'google_classroom',
+    'classroom': 'google_classroom',
+    'youtube': 'youtube',
+  };
+  if (standaloneGoogleToolkits[target]) {
+    return standaloneGoogleToolkits[target];
+  }
+
+  // Google Workspace apps with GOOGLESUPER tool coverage map to 'googlesuper'
   if (
-    target.startsWith('google') || 
-    ['gmail', 'drive', 'calendar', 'sheets', 'docs', 'contacts', 'forms', 'tasks', 'maps', 'chat', 'classroom', 'slides', 'photos', 'meet', 'youtube'].includes(target)
+    target.startsWith('google') ||
+    ['gmail', 'drive', 'calendar', 'sheets', 'docs', 'tasks', 'maps', 'slides', 'photos', 'meet'].includes(target)
   ) {
     return 'googlesuper';
   }

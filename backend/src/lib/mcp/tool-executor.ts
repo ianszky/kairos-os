@@ -90,7 +90,9 @@ export async function executeComplexIntent(
   const functionDeclarations: any[] = [];
   const validToolNames = new Set<string>();
 
-  // Schema cleanup utility to satisfy Gemini API constraints
+  // Schema cleanup utility to satisfy Gemini API constraints.
+  // Gemini function schemas are an OpenAPI 3.0 subset — keywords like `const`
+  // (common in Composio/Notion discriminated unions) are rejected with 400.
   const cleanSchema = (obj: any, isPropertiesObject: boolean = false): any => {
     if (Array.isArray(obj)) {
       return obj.map(item => cleanSchema(item, false));
@@ -100,15 +102,34 @@ export async function executeComplexIntent(
       for (const key of Object.keys(obj)) {
         if (isPropertiesObject) {
           newObj[key] = cleanSchema(obj[key], false);
-        } else {
-          const forbiddenKeywords = [
-            'examples', 'title', 'default', 'file_uploadable', 
-            'exclusiveMinimum', 'exclusiveMaximum', 'format',
-            'minLength', 'maxLength', 'pattern', 'minimum', 'maximum'
-          ];
-          if (!forbiddenKeywords.includes(key)) {
-            newObj[key] = cleanSchema(obj[key], key === 'properties');
+          continue;
+        }
+
+        // `const` is not supported; preserve the constraint via single-value enum.
+        if (key === 'const') {
+          if (newObj.enum === undefined) {
+            newObj.enum = [obj[key]];
           }
+          continue;
+        }
+
+        // Gemini documents anyOf support; remap oneOf to avoid another rejection.
+        if (key === 'oneOf') {
+          newObj.anyOf = cleanSchema(obj[key], false);
+          continue;
+        }
+
+        const forbiddenKeywords = [
+          'examples', 'title', 'default', 'file_uploadable',
+          'exclusiveMinimum', 'exclusiveMaximum', 'format',
+          'minLength', 'maxLength', 'pattern', 'minimum', 'maximum',
+          '$schema', '$id', '$comment', 'not', 'if', 'then', 'else',
+          'dependentRequired', 'dependentSchemas', 'unevaluatedProperties',
+          'propertyNames', 'uniqueItems', 'contentMediaType', 'contentEncoding',
+          'deprecated', 'readOnly', 'writeOnly', 'additionalProperties',
+        ];
+        if (!forbiddenKeywords.includes(key)) {
+          newObj[key] = cleanSchema(obj[key], key === 'properties');
         }
       }
       return newObj;
@@ -325,6 +346,12 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
         let errorMessage = 'Unknown error';
         if (err instanceof Error) {
           errorMessage = err.message;
+          const cause = (err as Error & { cause?: unknown }).cause;
+          if (cause instanceof Error) {
+            errorMessage += ` (cause: ${cause.message})`;
+          } else if (cause != null) {
+            errorMessage += ` (cause: ${String(cause)})`;
+          }
         }
         console.log(`[ToolExecutor] Tool execution error (${toolName}):`, errorMessage);
         parts.push({
