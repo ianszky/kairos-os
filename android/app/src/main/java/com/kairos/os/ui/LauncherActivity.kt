@@ -186,9 +186,16 @@ class LauncherActivity : ComponentActivity() {
     @Inject
     lateinit var appSessionManager: com.kairos.os.domain.session.AppSessionManager
 
+    @Inject
+    lateinit var sessionCardHideStore: com.kairos.os.domain.session.SessionCardHideStore
+
+    @Inject
+    lateinit var agentNotificationNavigationStore: com.kairos.os.domain.navigation.AgentNotificationNavigationStore
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         supabaseClient.handleDeeplinks(intent)
+        handleAgentNotificationIntent(intent)
         
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContent {
@@ -215,7 +222,9 @@ class LauncherActivity : ComponentActivity() {
                             localNotesController = localNotesController,
                             localCalendarController = localCalendarController,
                             localAlarmController = localAlarmController,
-                            appSessionManager = appSessionManager
+                            appSessionManager = appSessionManager,
+                            sessionCardHideStore = sessionCardHideStore,
+                            agentNotificationNavigationStore = agentNotificationNavigationStore
                         )
                     } else {
                         var currentAuthScreen by remember { mutableStateOf("login") }
@@ -238,7 +247,16 @@ class LauncherActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         supabaseClient.handleDeeplinks(intent)
+        handleAgentNotificationIntent(intent)
+    }
+
+    private fun handleAgentNotificationIntent(intent: android.content.Intent) {
+        intent.getStringExtra(com.kairos.os.services.AgentNotificationHelper.EXTRA_OPEN_AGENT_ID)?.let { agentId ->
+            agentNotificationNavigationStore.requestOpen(agentId)
+            intent.removeExtra(com.kairos.os.services.AgentNotificationHelper.EXTRA_OPEN_AGENT_ID)
+        }
     }
 }
 
@@ -435,7 +453,9 @@ fun MindfulLauncherScreen(
     localNotesController: com.kairos.os.domain.tools.LocalNotesController,
     localCalendarController: com.kairos.os.domain.tools.LocalCalendarController,
     localAlarmController: com.kairos.os.domain.tools.LocalAlarmController,
-    appSessionManager: com.kairos.os.domain.session.AppSessionManager
+    appSessionManager: com.kairos.os.domain.session.AppSessionManager,
+    sessionCardHideStore: com.kairos.os.domain.session.SessionCardHideStore,
+    agentNotificationNavigationStore: com.kairos.os.domain.navigation.AgentNotificationNavigationStore
 ) {
     val chatViewModel: com.kairos.os.ui.viewmodels.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val conversations by chatViewModel.conversations.collectAsState()
@@ -468,6 +488,15 @@ fun MindfulLauncherScreen(
     val userSettings by intentViewModel.userSettings.collectAsState()
     val distractingAppIds by intentViewModel.distractingAppIds.collectAsState()
     val activeSession by appSessionManager.activeSession.collectAsState()
+    val hiddenSessionKeys by sessionCardHideStore.hiddenKeysFlow.collectAsState()
+    val homeActivityItems = remember(runningAgents, activeSession, hiddenSessionKeys) {
+        com.kairos.os.domain.models.buildHomeActivityItems(
+            agents = runningAgents,
+            session = activeSession,
+            hideStore = sessionCardHideStore
+        )
+    }
+    val pendingAgentId by agentNotificationNavigationStore.pendingAgentId.collectAsState()
     
     var selectedFrictionTime by remember { mutableStateOf<String?>(null) }
     var frictionReason by remember { mutableStateOf("") }
@@ -541,6 +570,18 @@ fun MindfulLauncherScreen(
                 launchIntent.removeExtra(com.kairos.os.services.SessionNotificationHelper.EXTRA_SESSION_EXPIRED)
                 launchIntent.removeExtra(com.kairos.os.services.SessionNotificationHelper.EXTRA_EXPIRED_APP_NAME)
             }
+            launchIntent.getStringExtra(
+                com.kairos.os.services.AgentNotificationHelper.EXTRA_OPEN_AGENT_ID
+            )?.let { agentId ->
+                agentNotificationNavigationStore.requestOpen(agentId)
+                launchIntent.removeExtra(com.kairos.os.services.AgentNotificationHelper.EXTRA_OPEN_AGENT_ID)
+            }
+        }
+    }
+
+    LaunchedEffect(activeSession) {
+        if (activeSession == null) {
+            sessionCardHideStore.clearAll()
         }
     }
 
@@ -944,6 +985,22 @@ fun MindfulLauncherScreen(
 
     val interactions = remember { mutableStateListOf<com.kairos.os.domain.models.Interaction>() }
     var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pendingAgentId, runningAgents) {
+        val agentId = agentNotificationNavigationStore.consumePending() ?: return@LaunchedEffect
+        isAgentsExpanded = false
+        chatViewModel.selectConversation(agentId)
+        val agent = runningAgents.find { it.id == agentId }
+        interactions.clear()
+        interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(agent?.prompt ?: ""))
+        if (agent?.response != null) {
+            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(agent.response))
+        } else if (agent?.status == com.kairos.os.domain.models.AgentStatus.PROCESSING) {
+            isLoading = true
+            interactions.add(com.kairos.os.domain.models.Interaction.Loading())
+        }
+        isChatOpen = true
+    }
 
     val onSendPrompt = {
         if (termInput.isNotBlank()) {
@@ -1365,9 +1422,9 @@ fun MindfulLauncherScreen(
                 .statusBarsPadding()
                 .imePadding()
         ) {
-            if (isAgentsExpanded && runningAgents.isNotEmpty()) {
+            if (isAgentsExpanded && homeActivityItems.isNotEmpty()) {
                 com.kairos.os.ui.components.ExpandedAgentList(
-                    agents = runningAgents,
+                    items = homeActivityItems,
                     onCollapse = { isAgentsExpanded = false },
                     onViewAgent = { id ->
                         isAgentsExpanded = false
@@ -1383,7 +1440,13 @@ fun MindfulLauncherScreen(
                         }
                         isChatOpen = true
                     },
+                    onViewGrant = { session ->
+                        context.packageManager.getLaunchIntentForPackage(session.packageName)?.apply {
+                            addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }?.let { context.startActivity(it) }
+                    },
                     onDismissAgent = { runningAgentsViewModel.cancel(it) },
+                    onDismissGrant = { sessionCardHideStore.hide(it) },
                     hazeState = hazeState
                 )
             }
@@ -1519,10 +1582,10 @@ fun MindfulLauncherScreen(
                     .imePadding()
                     .padding(24.dp)
             ) {
-                if (!isChatOpen && runningAgents.isNotEmpty() && !isAgentsExpanded) {
+                if (!isChatOpen && homeActivityItems.isNotEmpty() && !isAgentsExpanded) {
                     com.kairos.os.ui.components.CollapsedAgentStack(
-                        agents = runningAgents.take(3),
-                        totalCount = runningAgents.size,
+                        items = homeActivityItems.take(3),
+                        totalCount = homeActivityItems.size,
                         onTapStack = { isAgentsExpanded = true },
                         onViewAgent = { id ->
                             chatViewModel.selectConversation(id)
@@ -1534,7 +1597,13 @@ fun MindfulLauncherScreen(
                             }
                             isChatOpen = true
                         },
-                        onDismissAgent = { runningAgentsViewModel.cancel(it) }
+                        onViewGrant = { session ->
+                            context.packageManager.getLaunchIntentForPackage(session.packageName)?.apply {
+                                addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                            }?.let { context.startActivity(it) }
+                        },
+                        onDismissAgent = { runningAgentsViewModel.cancel(it) },
+                        onDismissGrant = { sessionCardHideStore.hide(it) }
                     )
                 }
 

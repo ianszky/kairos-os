@@ -1,11 +1,5 @@
 package com.kairos.os.ui.components
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -32,22 +26,55 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
-import com.kairos.os.domain.models.RunningAgent
+import com.kairos.os.domain.models.HomeActivityItem
+import com.kairos.os.domain.session.AppSession
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeChild
 
+private fun HomeActivityItem.itemKey(): String = when (this) {
+    is HomeActivityItem.Agent -> "agent:${agent.id}"
+    is HomeActivityItem.AppGrant -> "grant:${session.packageName}:${session.grantedAtMs}"
+}
+
+@Composable
+private fun HomeActivityCard(
+    item: HomeActivityItem,
+    onViewAgent: (String) -> Unit,
+    onViewGrant: (AppSession) -> Unit,
+    onDismissAgent: (String) -> Unit,
+    onDismissGrant: (AppSession) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    when (item) {
+        is HomeActivityItem.Agent -> RunningAgentCard(
+            agent = item.agent,
+            onView = onViewAgent,
+            onDismiss = onDismissAgent,
+            modifier = modifier
+        )
+        is HomeActivityItem.AppGrant -> AppGrantCard(
+            session = item.session,
+            onView = onViewGrant,
+            onDismiss = onDismissGrant,
+            modifier = modifier
+        )
+    }
+}
+
 @Composable
 fun CollapsedAgentStack(
-    agents: List<RunningAgent>,
+    items: List<HomeActivityItem>,
     totalCount: Int,
     onTapStack: () -> Unit,
     onViewAgent: (String) -> Unit,
+    onViewGrant: (AppSession) -> Unit,
     onDismissAgent: (String) -> Unit,
+    onDismissGrant: (AppSession) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    if (agents.isEmpty()) return
+    if (items.isEmpty()) return
 
-    val topPadding = ((agents.size - 1) * 20).dp
+    val topPadding = ((items.size - 1) * 20).dp
 
     Column(modifier = modifier.padding(bottom = 12.dp)) {
         Row(
@@ -76,16 +103,18 @@ fun CollapsedAgentStack(
                 .padding(top = topPadding)
                 .clickable { onTapStack() }
         ) {
-            agents.reversed().forEachIndexed { index, agent ->
-                val reverseIndex = agents.size - 1 - index
+            items.reversed().forEachIndexed { index, item ->
+                val reverseIndex = items.size - 1 - index
                 val scale = 1f - (reverseIndex * 0.04f)
                 val yOffset = (reverseIndex * 20).dp
                 val alphaVal = if (reverseIndex == 0) 1f else 0.8f - (reverseIndex * 0.15f)
 
-                RunningAgentCard(
-                    agent = agent,
-                    onView = onViewAgent,
-                    onDismiss = onDismissAgent,
+                HomeActivityCard(
+                    item = item,
+                    onViewAgent = onViewAgent,
+                    onViewGrant = onViewGrant,
+                    onDismissAgent = onDismissAgent,
+                    onDismissGrant = onDismissGrant,
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer {
@@ -102,10 +131,12 @@ fun CollapsedAgentStack(
 
 @Composable
 fun ExpandedAgentList(
-    agents: List<RunningAgent>,
+    items: List<HomeActivityItem>,
     onCollapse: () -> Unit,
     onViewAgent: (String) -> Unit,
+    onViewGrant: (AppSession) -> Unit,
     onDismissAgent: (String) -> Unit,
+    onDismissGrant: (AppSession) -> Unit,
     hazeState: HazeState,
     modifier: Modifier = Modifier
 ) {
@@ -117,7 +148,6 @@ fun ExpandedAgentList(
                 interactionSource = remember { MutableInteractionSource() }
             ) { onCollapse() }
     ) {
-        // Backdrop Blur Layer (Haze blur applied ONLY to background)
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -125,7 +155,6 @@ fun ExpandedAgentList(
                 .background(MaterialTheme.colorScheme.background.copy(alpha = 0.75f))
         )
 
-        // Crisp Content Layer (Rendered unblurred on top)
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -161,16 +190,21 @@ fun ExpandedAgentList(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(
-                    items = agents,
-                    key = { it.id }
-                ) { agent ->
-                    RunningAgentCard(
-                        agent = agent,
-                        onView = { id ->
+                    items = items,
+                    key = { it.itemKey() }
+                ) { item ->
+                    HomeActivityCard(
+                        item = item,
+                        onViewAgent = { id ->
                             onCollapse()
                             onViewAgent(id)
                         },
-                        onDismiss = onDismissAgent
+                        onViewGrant = { session ->
+                            onCollapse()
+                            onViewGrant(session)
+                        },
+                        onDismissAgent = onDismissAgent,
+                        onDismissGrant = onDismissGrant
                     )
                 }
             }

@@ -7,6 +7,15 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 30. Running Agents ↔ Android Notification Two-Way Sync
+**Status:** DONE
+**Branch:** `feature/agent-notification-sync`
+**Summary:** Two-way sync between home Running Agents stack and Android status-bar notifications:
+- **Agent → Android**: `AgentNotificationSync` observes Room `running_agents` and posts system notifications mirroring card title/status. Processing uses low-importance ongoing channel; complete/fail re-posts on high-importance channel with heads-up alert. Swipe-dismiss on card or clearing shade notification deletes the Room row.
+- **Session → Home**: Active intentional-app grants appear as `AppGrantCard` in the Running Agents stack with live countdown. Swipe hides in-app card only (`SessionCardHideStore`); Android timer FGS and access grant keep running.
+- **Deep links**: Tapping agent notifications opens the conversation in chat via `AgentNotificationNavigationStore`.
+- **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in ~3m.
+
 ### 29. Agent Card ID Parity & Kai Apps Hybrid UI/UX Overhaul
 **Status:** DONE
 **Branch:** `feature/agent-card-id-sync-fix`

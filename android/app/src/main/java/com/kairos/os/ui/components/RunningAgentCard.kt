@@ -29,8 +29,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -38,11 +40,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.kairos.os.R
 import com.kairos.os.domain.models.AgentStatus
 import com.kairos.os.domain.models.RunningAgent
+import com.kairos.os.domain.session.AppSession
+import java.text.DateFormat
+import java.util.Date
 import kotlin.math.roundToInt
 
 @Composable
@@ -144,6 +151,140 @@ fun RunningAgentCard(
             }
         }
     }
+}
+
+@Composable
+fun AppGrantCard(
+    session: AppSession,
+    onView: (AppSession) -> Unit,
+    onDismiss: (AppSession) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var offsetX by remember { mutableFloatStateOf(0f) }
+    val animatedOffsetX by animateFloatAsState(
+        targetValue = offsetX,
+        animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+        label = "grantCardSwipeOffset"
+    )
+    var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
+    LaunchedEffect(session.expiresAtMs) {
+        while (nowMs < session.expiresAtMs) {
+            kotlinx.coroutines.delay(1000)
+            nowMs = System.currentTimeMillis()
+        }
+    }
+
+    val remainingMs = (session.expiresAtMs - nowMs).coerceAtLeast(0)
+    val remainingMinutes = remainingMs / 60_000
+    val remainingSeconds = (remainingMs / 1000) % 60
+    val endTimeText = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(session.expiresAtMs))
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .offset { IntOffset(animatedOffsetX.roundToInt(), 0) }
+            .pointerInput(session.packageName, session.grantedAtMs) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (offsetX > 200f) {
+                            offsetX = 1000f
+                            onDismiss(session)
+                        } else {
+                            offsetX = 0f
+                        }
+                    },
+                    onDragCancel = { offsetX = 0f },
+                    onHorizontalDrag = { _, dragAmount ->
+                        if (dragAmount > 0 || offsetX > 0) {
+                            offsetX = (offsetX + dragAmount).coerceAtLeast(0f)
+                        }
+                    }
+                )
+            }
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                    RoundedCornerShape(12.dp)
+                )
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(
+                    1.dp,
+                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                    RoundedCornerShape(12.dp)
+                )
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            GrantStatusDot()
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = session.displayName,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = stringResource(
+                        R.string.session_grant_remaining,
+                        remainingMinutes,
+                        remainingSeconds
+                    ),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = stringResource(R.string.session_grant_until, endTimeText),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            TextButton(
+                onClick = { onView(session) },
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp)
+            ) {
+                Text(
+                    text = "Open",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun GrantStatusDot() {
+    val infiniteTransition = rememberInfiniteTransition(label = "grantPulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(700, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "grantPulseAlpha"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(8.dp)
+            .clip(CircleShape)
+            .background(Color(0xFF42A5F5).copy(alpha = alpha))
+    )
 }
 
 @Composable

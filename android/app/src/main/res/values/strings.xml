@@ -9,6 +9,16 @@
     <string name="session_timer_subtitle">%1$d min grant</string>
     <string name="session_expired_title">Leisure time ended</string>
     <string name="session_expired_body">Your access to %1$s has expired. Pass the intent gate to open it again.</string>
+
+    <string name="agent_running_channel_name">Running agents</string>
+    <string name="agent_running_channel_desc">Shows progress while an agent task is running</string>
+    <string name="agent_complete_channel_name">Agent results</string>
+    <string name="agent_complete_channel_desc">Alerts when an agent task completes or fails</string>
+    <string name="agent_status_processing">Processing…</string>
+    <string name="agent_status_complete">Complete</string>
+    <string name="agent_status_failed">Failed</string>
+    <string name="session_grant_remaining">%1$dm %2$ds left</string>
+    <string name="session_grant_until">Access until %1$s</string>
     <string name="accessibility_service_description">KAIROS uses accessibility to block distracting apps when your leisure session expires or you open them without approval.</string>
 
     <string name="a11y_banner_title">Accessibility required for full enforcement</string>

@@ -17,6 +17,7 @@
 
     - Implemented strict separation of entities: Installed/Local Apps use `@app:<slug>` (e.g. `@app:youtube`, `@app:kainotes`) and Composio Integrations use `@<slug>` (e.g. `@youtube`, `@gmail`).
     - Fixed Intent Friction Layer execution so selecting YouTube from the **App** tab inserts `@app:youtube` and triggers app usage limits / launcher UI, while `@youtube` from the **Integrations** tab is strictly reserved for AI prompt tasks.
+    - **Running Agents ↔ Android notification sync** (`feature/agent-notification-sync`): agents mirror to status-bar notifications with complete/fail alerts; intentional app session grants appear in the home Running Agents stack with hide-only dismiss.
 
 ## Next Steps
 - Implement end-to-end testing between the Android Auth flow, proxy server, and Supabase cloud.

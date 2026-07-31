@@ -1,17 +1,14 @@
 # KAIROS OS Project State
 
-## Current Task: Leisure Budget UI + Cloud Authority — IN PROGRESS on `feature/app-session-timer`
+## Current Task: Running Agents ↔ Android Notification Sync — DONE on `feature/agent-notification-sync`
 
-### Status: IMPLEMENTATION COMPLETE (requires Supabase SQL + device verification)
+### Status: IMPLEMENTATION COMPLETE (requires device verification)
 
-### Leisure Budget Feature:
-- **Progress UI** on Distracting Apps: remaining %, progress bar, used/left, minutes/day; slider moved to separate Daily Leisure Limit screen.
-- **Next-day pending**: all limit changes apply tomorrow (backend + client; cloud is source of truth).
-- **Friction enforcement**: refresh budget from cloud; disable duration chips over remaining; fail-closed logIntent offline.
-- **Supabase**: `user_settings` + `intent_logs` SQL documented in [`context/supabase_setup.md`](context/supabase_setup.md) — **must be pasted in Supabase SQL Editor** to fix PUT `/api/settings` 500.
-
-### Prior: App Session Timer (absolute wall-clock, notification countdown, Accessibility enforcement)
+### Notification Sync Feature:
+- **Agent → Android**: Room-backed running agents mirror to status-bar notifications (`AgentNotificationHelper`, `AgentNotificationSync`). Complete/fail heads-up on high-importance channel.
+- **Session → Home**: Intentional app session timer appears as in-app grant card in Running Agents stack; swipe hides card only.
+- **Two-way dismiss**: Agent card swipe or shade clear deletes Room row; session card swipe hides in-app only.
 
 ### Verification:
-- Paste Supabase SQL, then PUT `/api/settings` returns 200
 - `./gradlew assembleDebug`: **BUILD SUCCESSFUL**
+- Device: dispatch agent → shade notification; complete → heads-up; swipe card → shade clears; grant app → home card with countdown; swipe grant card → shade timer remains
