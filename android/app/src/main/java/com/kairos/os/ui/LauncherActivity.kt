@@ -186,6 +186,12 @@ class LauncherActivity : ComponentActivity() {
     @Inject
     lateinit var appSessionManager: com.kairos.os.domain.session.AppSessionManager
 
+    @Inject
+    lateinit var localLlmClient: com.kairos.os.domain.usecases.LocalLlmClient
+
+    @Inject
+    lateinit var gemmaSttClient: com.kairos.os.domain.usecases.GemmaSttClient
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         supabaseClient.handleDeeplinks(intent)
@@ -215,7 +221,9 @@ class LauncherActivity : ComponentActivity() {
                             localNotesController = localNotesController,
                             localCalendarController = localCalendarController,
                             localAlarmController = localAlarmController,
-                            appSessionManager = appSessionManager
+                            appSessionManager = appSessionManager,
+                            localLlmClient = localLlmClient,
+                            gemmaSttClient = gemmaSttClient
                         )
                     } else {
                         var currentAuthScreen by remember { mutableStateOf("login") }
@@ -435,7 +443,9 @@ fun MindfulLauncherScreen(
     localNotesController: com.kairos.os.domain.tools.LocalNotesController,
     localCalendarController: com.kairos.os.domain.tools.LocalCalendarController,
     localAlarmController: com.kairos.os.domain.tools.LocalAlarmController,
-    appSessionManager: com.kairos.os.domain.session.AppSessionManager
+    appSessionManager: com.kairos.os.domain.session.AppSessionManager,
+    localLlmClient: com.kairos.os.domain.usecases.LocalLlmClient,
+    gemmaSttClient: com.kairos.os.domain.usecases.GemmaSttClient
 ) {
     val chatViewModel: com.kairos.os.ui.viewmodels.ChatViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val conversations by chatViewModel.conversations.collectAsState()
@@ -628,15 +638,174 @@ fun MindfulLauncherScreen(
     }
 
     var isVoiceInputActive by remember { mutableStateOf(false) }
+    var isUsingGemmaVoice by remember { mutableStateOf(false) }
+    var isTranscribing by remember { mutableStateOf(false) }
+    var pendingVoiceAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var rmsDbValue by remember { mutableStateOf(0f) }
-    var speechTextResult by remember { mutableStateOf("") }
 
+    val audioRecorder = remember { com.kairos.os.domain.usecases.AudioRecorder() }
     val speechRecognizer = remember { SpeechRecognizer.createSpeechRecognizer(context) }
-    
+
     DisposableEffect(Unit) {
         onDispose {
+            audioRecorder.cancel()
             speechRecognizer.destroy()
         }
+    }
+
+    val systemSpeechLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            val text = matches?.firstOrNull() ?: ""
+            if (text.isNotBlank()) {
+                termInput = processVoiceText(text, availableApps)
+            }
+        }
+        isVoiceInputActive = false
+        isUsingGemmaVoice = false
+        isTranscribing = false
+        rmsDbValue = 0f
+    }
+
+    fun launchSystemSpeechFallback() {
+        val fallbackIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        }
+        try {
+            isVoiceInputActive = true
+            systemSpeechLauncher.launch(fallbackIntent)
+        } catch (e: Exception) {
+            isVoiceInputActive = false
+            coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+                android.widget.Toast.makeText(
+                    context,
+                    "Voice input is not supported on this device.",
+                    android.widget.Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    fun startPlatformSpeechRecognition() {
+        isUsingGemmaVoice = false
+        isVoiceInputActive = true
+        rmsDbValue = 0f
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
+        }
+        speechRecognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) {}
+            override fun onBeginningOfSpeech() {}
+            override fun onRmsChanged(rmsdB: Float) {
+                rmsDbValue = rmsdB
+            }
+            override fun onBufferReceived(buffer: ByteArray?) {}
+            override fun onEndOfSpeech() {}
+            override fun onError(error: Int) {
+                android.util.Log.e("Speech", "Speech recognizer error: $error")
+                isVoiceInputActive = false
+                rmsDbValue = 0f
+                launchSystemSpeechFallback()
+            }
+            override fun onResults(results: Bundle?) {
+                val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                val text = matches?.firstOrNull() ?: ""
+                if (text.isNotBlank()) {
+                    termInput = processVoiceText(text, availableApps)
+                }
+                isVoiceInputActive = false
+                rmsDbValue = 0f
+            }
+            override fun onPartialResults(partialResults: Bundle?) {
+                val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                val text = matches?.firstOrNull() ?: ""
+                if (text.isNotBlank()) {
+                    termInput = processVoiceText(text, availableApps)
+                }
+            }
+            override fun onEvent(eventType: Int, params: Bundle?) {}
+        })
+        speechRecognizer.startListening(intent)
+    }
+
+    fun startGemmaVoiceCapture() {
+        isUsingGemmaVoice = true
+        isVoiceInputActive = true
+        rmsDbValue = 0f
+        val started = audioRecorder.start(coroutineScope) { rmsDbValue = it }
+        if (!started) {
+            isUsingGemmaVoice = false
+            isVoiceInputActive = false
+            startPlatformSpeechRecognition()
+        }
+    }
+
+    fun confirmVoiceInput() {
+        if (isTranscribing) return
+        if (isUsingGemmaVoice) {
+            isTranscribing = true
+            coroutineScope.launch {
+                val wav = audioRecorder.stopAndGetWav()
+                isVoiceInputActive = false
+                isUsingGemmaVoice = false
+                rmsDbValue = 0f
+                val text = if (wav != null) {
+                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        gemmaSttClient.transcribe(wav)
+                    }
+                } else {
+                    null
+                }
+                isTranscribing = false
+                if (!text.isNullOrBlank()) {
+                    termInput = processVoiceText(text, availableApps)
+                } else {
+                    android.widget.Toast.makeText(
+                        context,
+                        "On-device transcription failed. Trying system voice input…",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                    launchSystemSpeechFallback()
+                }
+            }
+        } else {
+            speechRecognizer.stopListening()
+            isVoiceInputActive = false
+            rmsDbValue = 0f
+        }
+    }
+
+    fun cancelVoiceInput() {
+        if (isTranscribing) return
+        if (isUsingGemmaVoice) {
+            audioRecorder.cancel()
+            isUsingGemmaVoice = false
+        } else {
+            speechRecognizer.cancel()
+        }
+        isVoiceInputActive = false
+        rmsDbValue = 0f
+    }
+
+    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            pendingVoiceAction?.invoke()
+        }
+        pendingVoiceAction = null
+    }
+
+    fun onMicButtonClick(useGemma: Boolean) {
+        pendingVoiceAction = if (useGemma) {
+            { startGemmaVoiceCapture() }
+        } else {
+            { startPlatformSpeechRecognition() }
+        }
+        recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
     }
 
     val currentLineCount = textLayoutResult?.lineCount ?: 1
@@ -654,90 +823,6 @@ fun MindfulLauncherScreen(
             focusRequester.requestFocus()
         } catch (e: Exception) {
             // ignore
-        }
-    }
-
-    val systemSpeechLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
-            val matches = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-            val text = matches?.firstOrNull() ?: ""
-            if (text.isNotBlank()) {
-                termInput = processVoiceText(text, availableApps)
-            }
-        }
-        isVoiceInputActive = false
-        rmsDbValue = 0f
-    }
-
-    val recordAudioPermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            isVoiceInputActive = true
-            rmsDbValue = 0f
-            speechTextResult = ""
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            }
-            speechRecognizer.setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) {}
-                override fun onBeginningOfSpeech() {}
-                override fun onRmsChanged(rmsdB: Float) {
-                    rmsDbValue = rmsdB
-                }
-                override fun onBufferReceived(buffer: ByteArray?) {}
-                override fun onEndOfSpeech() {}
-                override fun onError(error: Int) {
-                    android.util.Log.e("Speech", "Speech recognizer error: $error")
-                    isVoiceInputActive = false
-                    rmsDbValue = 0f
-                    if (error == SpeechRecognizer.ERROR_CLIENT) {
-                        coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main) {
-                            android.widget.Toast.makeText(
-                                context,
-                                "No voice recognition service is selected in device settings.",
-                                android.widget.Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    } else {
-                        val fallbackIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                        }
-                        try {
-                            systemSpeechLauncher.launch(fallbackIntent)
-                        } catch (e: Exception) {
-                            coroutineScope.launch(kotlinx.coroutines.Dispatchers.Main) {
-                                android.widget.Toast.makeText(
-                                    context,
-                                    "Voice input is not supported on this device.",
-                                    android.widget.Toast.LENGTH_LONG
-                                ).show()
-                            }
-                        }
-                    }
-                }
-                override fun onResults(results: Bundle?) {
-                    val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    val text = matches?.firstOrNull() ?: ""
-                    if (text.isNotBlank()) {
-                        termInput = processVoiceText(text, availableApps)
-                    }
-                    isVoiceInputActive = false
-                    rmsDbValue = 0f
-                }
-                override fun onPartialResults(partialResults: Bundle?) {
-                    val matches = partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    val text = matches?.firstOrNull() ?: ""
-                    if (text.isNotBlank()) {
-                        termInput = processVoiceText(text, availableApps)
-                    }
-                }
-                override fun onEvent(eventType: Int, params: Bundle?) {}
-            })
-            speechRecognizer.startListening(intent)
         }
     }
     
@@ -1761,11 +1846,7 @@ fun MindfulLauncherScreen(
                             ) {
                                 if (isVoiceInputActive) {
                                     IconButton(
-                                        onClick = {
-                                            speechRecognizer.cancel()
-                                            isVoiceInputActive = false
-                                            rmsDbValue = 0f
-                                        },
+                                        onClick = { cancelVoiceInput() },
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Icon(Icons.Default.Close, contentDescription = "Cancel Voice", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1776,11 +1857,8 @@ fun MindfulLauncherScreen(
                                     }
 
                                     IconButton(
-                                        onClick = {
-                                            speechRecognizer.stopListening()
-                                            isVoiceInputActive = false
-                                            rmsDbValue = 0f
-                                        },
+                                        onClick = { confirmVoiceInput() },
+                                        enabled = !isTranscribing,
                                         modifier = Modifier
                                             .size(36.dp)
                                             .background(Color(0xFFFF6B00), CircleShape)
@@ -1871,7 +1949,12 @@ fun MindfulLauncherScreen(
                                         } else {
                                             IconButton(
                                                 onClick = {
-                                                    recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                                    coroutineScope.launch {
+                                                        val useGemma = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                                            localLlmClient.isAudioReady()
+                                                        }
+                                                        onMicButtonClick(useGemma)
+                                                    }
                                                 },
                                                 modifier = Modifier.size(36.dp)
                                             ) {
@@ -1987,7 +2070,12 @@ fun MindfulLauncherScreen(
                                     } else {
                                         IconButton(
                                             onClick = {
-                                                recordAudioPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+                                                coroutineScope.launch {
+                                                    val useGemma = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                                        localLlmClient.isAudioReady()
+                                                    }
+                                                    onMicButtonClick(useGemma)
+                                                }
                                             },
                                             modifier = Modifier.size(36.dp)
                                         ) {

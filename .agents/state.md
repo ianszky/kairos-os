@@ -17,6 +17,7 @@
 
     - Implemented strict separation of entities: Installed/Local Apps use `@app:<slug>` (e.g. `@app:youtube`, `@app:kainotes`) and Composio Integrations use `@<slug>` (e.g. `@youtube`, `@gmail`).
     - Fixed Intent Friction Layer execution so selecting YouTube from the **App** tab inserts `@app:youtube` and triggers app usage limits / launcher UI, while `@youtube` from the **Integrations** tab is strictly reserved for AI prompt tasks.
+    - Implemented on-device voice input in the chat bar using Gemma 4 E2B ASR via LiteRT-LM (`GemmaSttClient`, `AudioRecorder`), with Android SpeechRecognizer / system voice UI fallback when the local model is unavailable.
 
 ## Next Steps
 - Implement end-to-end testing between the Android Auth flow, proxy server, and Supabase cloud.

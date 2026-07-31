@@ -7,6 +7,15 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 30. On-Device Gemma Voice Input (STT)
+**Status:** DONE
+**Branch:** `feature-gemma-voice-stt`
+**Summary:** Replaced platform-only mic STT with Gemma 4 E2B on-device ASR via LiteRT-LM, with Android SpeechRecognizer / system voice UI fallback:
+- **`LocalLlmClient`**: Enables `audioBackend = Backend.CPU()` with GPU→CPU→text-only init cascade; exposes `isAudioReady()`.
+- **`AudioRecorder` + `GemmaSttClient`**: Captures 16 kHz mono WAV (≤28s), runs Gemma ASR via `Content.AudioBytes`.
+- **`LauncherActivity`**: Mic uses Gemma when model audio backend is ready; falls back to `SpeechRecognizer` and `RecognizerIntent` (including `ERROR_CLIENT`).
+- **Verification**: `./gradlew :app:compileDebugKotlin` — BUILD SUCCESSFUL.
+
 ### 29. Agent Card ID Parity & Kai Apps Hybrid UI/UX Overhaul
 **Status:** DONE
 **Branch:** `feature/agent-card-id-sync-fix`

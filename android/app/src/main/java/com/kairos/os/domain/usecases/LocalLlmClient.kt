@@ -15,8 +15,9 @@ class LocalLlmClient @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val TAG = "LocalLlmClient"
-    
+
     private var engine: Engine? = null
+    private var audioEnabled: Boolean = false
 
     private fun preloadOpenClDriver(): Boolean {
         val openClPaths = listOf(
@@ -41,6 +42,19 @@ class LocalLlmClient @Inject constructor(
         return false
     }
 
+    private fun tryInitializeEngine(config: EngineConfig, label: String, enableAudio: Boolean): Engine? {
+        return try {
+            val newEngine = Engine(config)
+            newEngine.initialize()
+            audioEnabled = enableAudio
+            Log.i(TAG, "✅ LiteRT-LM Engine initialized successfully ($label, audio=$enableAudio)")
+            newEngine
+        } catch (e: Exception) {
+            Log.w(TAG, "⚠️ LiteRT-LM initialization failed ($label): ${e.message}")
+            null
+        }
+    }
+
     @Synchronized
     fun getEngine(): Engine? {
         if (engine == null) {
@@ -59,49 +73,56 @@ class LocalLlmClient @Inject constructor(
             if (modelFile != null) {
                 val modelPath = modelFile.absolutePath
                 Log.i(TAG, "🔍 Gemma On-Device model detected at: $modelPath")
-                
-                val hasOpenCl = preloadOpenClDriver()
 
-                // 1. Attempt GPU acceleration if OpenCL driver preloaded or available
+                val hasOpenCl = preloadOpenClDriver()
+                val cacheDir = context.cacheDir.path
+
                 if (hasOpenCl) {
-                    try {
-                        Log.i(TAG, "Initializing LiteRT-LM Engine with GPU backend for Snapdragon Adreno...")
-                        val gpuConfig = EngineConfig(
+                    engine = tryInitializeEngine(
+                        EngineConfig(
                             modelPath = modelPath,
                             backend = Backend.GPU(),
-                            cacheDir = context.cacheDir.path
-                        )
-                        val newEngine = Engine(gpuConfig)
-                        newEngine.initialize()
-                        Log.i(TAG, "🚀 LiteRT-LM Engine initialized successfully with GPU backend!")
-                        engine = newEngine
-                        return engine
-                    } catch (gpuError: Exception) {
-                        Log.w(TAG, "⚠️ LiteRT-LM GPU backend initialization failed (${gpuError.message}). Falling back to CPU backend...")
-                    }
+                            audioBackend = Backend.CPU(),
+                            cacheDir = cacheDir
+                        ),
+                        label = "GPU + audio",
+                        enableAudio = true
+                    )
+                    if (engine != null) return engine
                 }
 
-                // 2. CPU backend fallback
-                try {
-                    Log.i(TAG, "Initializing LiteRT-LM Engine with CPU backend...")
-                    val cpuConfig = EngineConfig(
+                engine = tryInitializeEngine(
+                    EngineConfig(
                         modelPath = modelPath,
                         backend = Backend.CPU(),
-                        cacheDir = context.cacheDir.path
-                    )
-                    val newEngine = Engine(cpuConfig)
-                    newEngine.initialize()
-                    Log.i(TAG, "✅ LiteRT-LM Engine initialized successfully with CPU backend.")
-                    engine = newEngine
-                    return engine
-                } catch (cpuError: Exception) {
-                    Log.e(TAG, "❌ LiteRT-LM CPU backend initialization failed", cpuError)
-                }
+                        audioBackend = Backend.CPU(),
+                        cacheDir = cacheDir
+                    ),
+                    label = "CPU + audio",
+                    enableAudio = true
+                )
+                if (engine != null) return engine
+
+                engine = tryInitializeEngine(
+                    EngineConfig(
+                        modelPath = modelPath,
+                        backend = Backend.CPU(),
+                        cacheDir = cacheDir
+                    ),
+                    label = "CPU text-only",
+                    enableAudio = false
+                )
             } else {
                 Log.w(TAG, "❌ Gemma model file NOT found or unreadable at expected paths. Intent gate will use rule-based intent evaluation.")
             }
         }
         return engine
+    }
+
+    @Synchronized
+    fun isAudioReady(): Boolean {
+        getEngine()
+        return audioEnabled
     }
 
     @Synchronized
@@ -112,5 +133,6 @@ class LocalLlmClient @Inject constructor(
             Log.w(TAG, "Error closing engine during reset: ${e.message}")
         }
         engine = null
+        audioEnabled = false
     }
 }
