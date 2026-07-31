@@ -19,6 +19,7 @@
     - Fixed Intent Friction Layer execution so selecting YouTube from the **App** tab inserts `@app:youtube` and triggers app usage limits / launcher UI, while `@youtube` from the **Integrations** tab is strictly reserved for AI prompt tasks.
     - Renamed Twitter integration mention to `@x` (Composio toolkit remains `twitter`); installed X app friction only triggers on `@app:x`, not bare `@x`.
     - Mapped `@browser` to Composio Search (`composio_search` toolkit: `COMPOSIO_SEARCH_WEB`, etc.) instead of stale EXA tool slugs.
+    - X/Twitter integration requires custom OAuth (`TWITTER_CLIENT_ID` / `TWITTER_CLIENT_SECRET`) because Composio removed managed credentials; backend returns a setup widget instead of 500 when missing.
 
 ## Next Steps
 - Implement end-to-end testing between the Android Auth flow, proxy server, and Supabase cloud.

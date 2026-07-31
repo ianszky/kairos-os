@@ -14,6 +14,16 @@ vi.mock('../ai/user-memory');
 vi.mock('../mcp/connection-manager', () => ({
   getConnectionStatus: vi.fn().mockResolvedValue({ connected: true }),
   initiateConnection: vi.fn(),
+  getIntegrationDisplayName: (target: string) => target,
+  ConnectionSetupRequiredError: class ConnectionSetupRequiredError extends Error {
+    reason = 'custom_credentials_required';
+    displayName = 'X';
+    constructor(public appTarget: string, displayName: string, reason: string, message: string) {
+      super(message);
+      this.displayName = displayName;
+      this.reason = reason;
+    }
+  },
   mapAppTargetToToolkitSlug: (target: string) => target,
 }));
 
@@ -85,5 +95,33 @@ describe('processIntent tier routing', () => {
       [],
       null
     );
+  });
+
+  it('returns setup widget instead of throwing when x connection needs custom credentials', async () => {
+    const { getConnectionStatus, initiateConnection, ConnectionSetupRequiredError } = await import('../mcp/connection-manager');
+
+    vi.mocked(classifyIntent).mockResolvedValue({
+      tier: 'COMPLEX',
+      appTarget: 'x',
+      taskType: 'read',
+      inferredDetails: '',
+      reason: 'Needs X integration',
+    });
+    vi.mocked(getConnectionStatus).mockResolvedValue({ connected: false });
+    vi.mocked(initiateConnection).mockRejectedValue(
+      new ConnectionSetupRequiredError(
+        'x',
+        'X',
+        'custom_credentials_required',
+        'X requires your own X Developer OAuth credentials.'
+      )
+    );
+
+    const response = await processIntent('@x show my latest mentions', 'x', 'user-1', 'conv-1', 'token-1');
+
+    expect(response.type).toBe('WIDGET');
+    expect(response.text).toContain('X Developer OAuth credentials');
+    expect(response.widget?.title).toBe('X Setup Required');
+    expect(executeComplexIntent).not.toHaveBeenCalled();
   });
 });
