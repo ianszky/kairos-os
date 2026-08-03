@@ -1,0 +1,3860 @@
+<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:wp14="http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:w10="urn:schemas-microsoft-com:office:word" xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml" xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk" xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:cx="http://schemas.microsoft.com/office/drawing/2014/chartex" xmlns:cx1="http://schemas.microsoft.com/office/drawing/2015/9/8/chartex" xmlns:cx2="http://schemas.microsoft.com/office/drawing/2015/10/21/chartex" xmlns:cx3="http://schemas.microsoft.com/office/drawing/2016/5/9/chartex" xmlns:cx4="http://schemas.microsoft.com/office/drawing/2016/5/10/chartex" xmlns:cx5="http://schemas.microsoft.com/office/drawing/2016/5/11/chartex" xmlns:cx6="http://schemas.microsoft.com/office/drawing/2016/5/12/chartex" xmlns:cx7="http://schemas.microsoft.com/office/drawing/2016/5/13/chartex" xmlns:cx8="http://schemas.microsoft.com/office/drawing/2016/5/14/chartex" xmlns:aink="http://schemas.microsoft.com/office/drawing/2016/ink" xmlns:am3d="http://schemas.microsoft.com/office/drawing/2017/model3d" xmlns:w16cex="http://schemas.microsoft.com/office/word/2018/wordml/cex" xmlns:w16cid="http://schemas.microsoft.com/office/word/2016/wordml/cid" xmlns:w16="http://schemas.microsoft.com/office/word/2018/wordml" xmlns:w16sdtdh="http://schemas.microsoft.com/office/word/2020/wordml/sdtdatahash" xmlns:w16se="http://schemas.microsoft.com/office/word/2015/wordml/symex" mc:Ignorable="w14 w15 wp14">
+  <w:body>
+    <w:p>
+      <w:pPr>
+        <w:tabs>
+          <w:tab w:val="right" w:pos="10080"/>
+        </w:tabs>
+        <w:spacing w:after="200"/>
+      </w:pPr>
+      <w:r>
+        <w:drawing>
+          <wp:inline distT="0" distB="0" distL="0" distR="0">
+            <wp:extent cx="342900" cy="342900"/>
+            <wp:effectExtent t="0" r="0" b="0" l="0"/>
+            <wp:docPr id="1" name="KAIROS logomark" descr="KAIROS logomark" title="KAIROS logomark"/>
+            <wp:cNvGraphicFramePr>
+              <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+            </wp:cNvGraphicFramePr>
+            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+              <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                  <pic:nvPicPr>
+                    <pic:cNvPr id="0" name="" descr=""/>
+                    <pic:cNvPicPr>
+                      <a:picLocks noChangeAspect="1" noChangeArrowheads="1"/>
+                    </pic:cNvPicPr>
+                  </pic:nvPicPr>
+                  <pic:blipFill>
+                    <a:blip r:embed="rId9" cstate="none"/>
+                    <a:srcRect/>
+                    <a:stretch>
+                      <a:fillRect/>
+                    </a:stretch>
+                  </pic:blipFill>
+                  <pic:spPr bwMode="auto">
+                    <a:xfrm>
+                      <a:off x="0" y="0"/>
+                      <a:ext cx="342900" cy="342900"/>
+                    </a:xfrm>
+                    <a:prstGeom prst="rect">
+                      <a:avLst/>
+                    </a:prstGeom>
+                  </pic:spPr>
+                </pic:pic>
+              </a:graphicData>
+            </a:graphic>
+          </wp:inline>
+        </w:drawing>
+      <w:t xml:space="preserve">  </w:t></w:r>
+      
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="36"/>
+          <w:szCs w:val="36"/>
+        </w:rPr>
+        <w:t xml:space="preserve">KAIROS OS</w:t>
+      </w:r>
+      <w:r>
+        <w:t xml:space="preserve">	</w:t>
+      </w:r>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:color w:val="6E6E6E"/>
+          <w:sz w:val="18"/>
+          <w:szCs w:val="18"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Application Document</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="single" w:color="FF6B00" w:sz="12" w:space="4"/>
+        </w:pBdr>
+        <w:spacing w:after="120" w:before="0"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="FF6B00"/>
+          <w:sz w:val="16"/>
+          <w:szCs w:val="16"/>
+        </w:rPr>
+        <w:t xml:space="preserve">VISION</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1"/>
+        <w:spacing w:after="160" w:before="80"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="36"/>
+          <w:szCs w:val="36"/>
+        </w:rPr>
+        <w:t xml:space="preserve">An operating system for intentional action.</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="200" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i/>
+          <w:iCs/>
+          <w:color w:val="6E6E6E"/>
+          <w:sz w:val="21"/>
+          <w:szCs w:val="21"/>
+        </w:rPr>
+        <w:t xml:space="preserve">True connection requires the space to think. KAIROS OS replaces the overwhelming grid of apps with a single line of intent - transforming the smartphone from a landscape of distraction into an instrument of narrow, deep, and uncompromised focus.</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="5544"/>
+        <w:gridCol w:w="4536"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="5544"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+          </w:tcPr>
+          <w:tbl>
+            <w:tblPr>
+              <w:tblW w:type="dxa" w:w="5504"/>
+              <w:tblBorders>
+                <w:top w:val="single" w:color="auto" w:sz="4"/>
+                <w:left w:val="single" w:color="auto" w:sz="4"/>
+                <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+                <w:right w:val="single" w:color="auto" w:sz="4"/>
+                <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+                <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+              </w:tblBorders>
+            </w:tblPr>
+            <w:tblGrid>
+              <w:gridCol w:w="5504"/>
+            </w:tblGrid>
+            <w:tr>
+              <w:tc>
+                <w:tcPr>
+                  <w:tcW w:type="dxa" w:w="5504"/>
+                  <w:tcBorders>
+                    <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+                    <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+                    <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+                    <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+                  </w:tcBorders>
+                  <w:shd w:fill="F5F5F5" w:val="clear"/>
+                  <w:tcMar>
+                    <w:top w:type="dxa" w:w="100"/>
+                    <w:left w:type="dxa" w:w="140"/>
+                    <w:bottom w:type="dxa" w:w="100"/>
+                    <w:right w:type="dxa" w:w="140"/>
+                  </w:tcMar>
+                </w:tcPr>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b/>
+                      <w:bCs/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="FF6B00"/>
+                      <w:sz w:val="16"/>
+                      <w:szCs w:val="16"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">APP</w:t>
+                  </w:r>
+                </w:p>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b w:val="false"/>
+                      <w:bCs w:val="false"/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="17"/>
+                      <w:szCs w:val="17"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">A text-first Android launcher. One cursor. No icon grid. No ambient noise.</w:t>
+                  </w:r>
+                </w:p>
+              </w:tc>
+            </w:tr>
+            <w:tr>
+              <w:tc>
+                <w:tcPr>
+                  <w:tcW w:type="dxa" w:w="5504"/>
+                  <w:tcBorders>
+                    <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+                    <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+                    <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+                    <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+                  </w:tcBorders>
+                  <w:shd w:fill="F5F5F5" w:val="clear"/>
+                  <w:tcMar>
+                    <w:top w:type="dxa" w:w="100"/>
+                    <w:left w:type="dxa" w:w="140"/>
+                    <w:bottom w:type="dxa" w:w="100"/>
+                    <w:right w:type="dxa" w:w="140"/>
+                  </w:tcMar>
+                </w:tcPr>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b/>
+                      <w:bCs/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="FF6B00"/>
+                      <w:sz w:val="16"/>
+                      <w:szCs w:val="16"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">SOLUTION</w:t>
+                  </w:r>
+                </w:p>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b w:val="false"/>
+                      <w:bCs w:val="false"/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="17"/>
+                      <w:szCs w:val="17"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">Intentional friction that makes the phone impossible to use unintentionally.</w:t>
+                  </w:r>
+                </w:p>
+              </w:tc>
+            </w:tr>
+            <w:tr>
+              <w:tc>
+                <w:tcPr>
+                  <w:tcW w:type="dxa" w:w="5504"/>
+                  <w:tcBorders>
+                    <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+                    <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+                    <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+                    <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+                  </w:tcBorders>
+                  <w:shd w:fill="F5F5F5" w:val="clear"/>
+                  <w:tcMar>
+                    <w:top w:type="dxa" w:w="100"/>
+                    <w:left w:type="dxa" w:w="140"/>
+                    <w:bottom w:type="dxa" w:w="100"/>
+                    <w:right w:type="dxa" w:w="140"/>
+                  </w:tcMar>
+                </w:tcPr>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b/>
+                      <w:bCs/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="FF6B00"/>
+                      <w:sz w:val="16"/>
+                      <w:szCs w:val="16"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">VISION</w:t>
+                  </w:r>
+                </w:p>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b w:val="false"/>
+                      <w:bCs w:val="false"/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="17"/>
+                      <w:szCs w:val="17"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">Rescue attention from Chronos - endless scrolling - and restore Kairos: the right moment to act.</w:t>
+                  </w:r>
+                </w:p>
+              </w:tc>
+            </w:tr>
+          </w:tbl>
+          <w:p>
+            <w:pPr>
+              <w:shd w:fill="FFF4EC" w:val="clear"/>
+              <w:spacing w:after="0" w:before="160"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">  DISCONNECTED BY DESIGN  </w:t>
+            </w:r>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">  Intent over impulse  ·  Depth over noise</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4536"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+            <w:vAlign w:val="center"/>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="80"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:drawing>
+                <wp:inline distT="0" distB="0" distL="0" distR="0">
+                  <wp:extent cx="1828800" cy="4000500"/>
+                  <wp:effectExtent t="0" r="0" b="0" l="0"/>
+                  <wp:docPr id="1" name="KAIROS home screen" descr="KAIROS home screen" title="KAIROS home screen"/>
+                  <wp:cNvGraphicFramePr>
+                    <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+                  </wp:cNvGraphicFramePr>
+                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:nvPicPr>
+                          <pic:cNvPr id="0" name="" descr=""/>
+                          <pic:cNvPicPr>
+                            <a:picLocks noChangeAspect="1" noChangeArrowheads="1"/>
+                          </pic:cNvPicPr>
+                        </pic:nvPicPr>
+                        <pic:blipFill>
+                          <a:blip r:embed="rId10" cstate="none"/>
+                          <a:srcRect/>
+                          <a:stretch>
+                            <a:fillRect/>
+                          </a:stretch>
+                        </pic:blipFill>
+                        <pic:spPr bwMode="auto">
+                          <a:xfrm>
+                            <a:off x="0" y="0"/>
+                            <a:ext cx="1828800" cy="4000500"/>
+                          </a:xfrm>
+                          <a:prstGeom prst="rect">
+                            <a:avLst/>
+                          </a:prstGeom>
+                        </pic:spPr>
+                      </pic:pic>
+                    </a:graphicData>
+                  </a:graphic>
+                </wp:inline>
+              </w:drawing>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:r>
+        <w:br w:type="page"/>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="single" w:color="FF6B00" w:sz="12" w:space="4"/>
+        </w:pBdr>
+        <w:spacing w:after="120" w:before="0"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="FF6B00"/>
+          <w:sz w:val="16"/>
+          <w:szCs w:val="16"/>
+        </w:rPr>
+        <w:t xml:space="preserve">01  ·  CORE FUNCTIONALITY</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1"/>
+        <w:spacing w:after="160" w:before="80"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="36"/>
+          <w:szCs w:val="36"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Command the phone. Don't browse it.</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="200" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="6E6E6E"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve">KAIROS OS centers every interaction on a blinking cursor. You name the app, state the intent, and receive a focused result - as a widget, a deep link, or a quiet confirmation.</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="4980"/>
+        <w:gridCol w:w="4980"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="100"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="100"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">01</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="22"/>
+                <w:szCs w:val="22"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Text-first command interface</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">A blank home screen with one input. Use @app mentions to route work to Gmail, Calendar, Slack, Notes, Spotify, and more - the same mental model as attaching connectors in a desktop AI app.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="100"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="100"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">02</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="22"/>
+                <w:szCs w:val="22"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Tiered AI intent routing</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Simple /open utilities dispatch in milliseconds. Lightweight on-device models handle routine intent. Cloud models take complex tool-calling - so the OS feels fast when it should, and smart when it must.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="100"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="100"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">03</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="22"/>
+                <w:szCs w:val="22"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Server-driven widgets</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Responses render as interactive cards inside the stream: prioritized emails, today's schedule, digests. Read via widgets. Execute via deep links only when you choose to enter the native app.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="100"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="100"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">04</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="22"/>
+                <w:szCs w:val="22"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Background agents</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Delegate longer work - news digests, research, recurring jobs - then stay present. Running agents surface status without pulling you into another feed.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading2"/>
+        <w:spacing w:after="100" w:before="200"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="26"/>
+          <w:szCs w:val="26"/>
+        </w:rPr>
+        <w:t xml:space="preserve">How it sounds in practice</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:shd w:fill="0A0A0A" w:val="clear"/>
+        <w:spacing w:after="80" w:before="40"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:cs="Consolas" w:eastAsia="Consolas" w:hAnsi="Consolas"/>
+          <w:color w:val="FF8A3D"/>
+          <w:sz w:val="16"/>
+          <w:szCs w:val="16"/>
+        </w:rPr>
+        <w:t xml:space="preserve">  @gmail show my important emails  </w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:shd w:fill="0A0A0A" w:val="clear"/>
+        <w:spacing w:after="80" w:before="40"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:cs="Consolas" w:eastAsia="Consolas" w:hAnsi="Consolas"/>
+          <w:color w:val="FF8A3D"/>
+          <w:sz w:val="16"/>
+          <w:szCs w:val="16"/>
+        </w:rPr>
+        <w:t xml:space="preserve">  @googlecalendar show today's schedule  </w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:shd w:fill="0A0A0A" w:val="clear"/>
+        <w:spacing w:after="80" w:before="40"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:cs="Consolas" w:eastAsia="Consolas" w:hAnsi="Consolas"/>
+          <w:color w:val="FF8A3D"/>
+          <w:sz w:val="16"/>
+          <w:szCs w:val="16"/>
+        </w:rPr>
+        <w:t xml:space="preserve">  @slack summarize unread highlights  </w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:shd w:fill="0A0A0A" w:val="clear"/>
+        <w:spacing w:after="80" w:before="40"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Consolas" w:cs="Consolas" w:eastAsia="Consolas" w:hAnsi="Consolas"/>
+          <w:color w:val="FF8A3D"/>
+          <w:sz w:val="16"/>
+          <w:szCs w:val="16"/>
+        </w:rPr>
+        <w:t xml:space="preserve">  @alarm set an alarm for 6am tomorrow  </w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading2"/>
+        <w:spacing w:after="100" w:before="200"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="26"/>
+          <w:szCs w:val="26"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Widgets in the command stream</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="4980"/>
+        <w:gridCol w:w="4980"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="80"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:drawing>
+                <wp:inline distT="0" distB="0" distL="0" distR="0">
+                  <wp:extent cx="1743075" cy="3810000"/>
+                  <wp:effectExtent t="0" r="0" b="0" l="0"/>
+                  <wp:docPr id="1" name="Gmail widget" descr="Gmail widget" title="Gmail widget"/>
+                  <wp:cNvGraphicFramePr>
+                    <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+                  </wp:cNvGraphicFramePr>
+                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:nvPicPr>
+                          <pic:cNvPr id="0" name="" descr=""/>
+                          <pic:cNvPicPr>
+                            <a:picLocks noChangeAspect="1" noChangeArrowheads="1"/>
+                          </pic:cNvPicPr>
+                        </pic:nvPicPr>
+                        <pic:blipFill>
+                          <a:blip r:embed="rId11" cstate="none"/>
+                          <a:srcRect/>
+                          <a:stretch>
+                            <a:fillRect/>
+                          </a:stretch>
+                        </pic:blipFill>
+                        <pic:spPr bwMode="auto">
+                          <a:xfrm>
+                            <a:off x="0" y="0"/>
+                            <a:ext cx="1743075" cy="3810000"/>
+                          </a:xfrm>
+                          <a:prstGeom prst="rect">
+                            <a:avLst/>
+                          </a:prstGeom>
+                        </pic:spPr>
+                      </pic:pic>
+                    </a:graphicData>
+                  </a:graphic>
+                </wp:inline>
+              </w:drawing>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="120" w:before="0" w:line="276"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Gmail - important emails widget</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="80"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:drawing>
+                <wp:inline distT="0" distB="0" distL="0" distR="0">
+                  <wp:extent cx="1743075" cy="3810000"/>
+                  <wp:effectExtent t="0" r="0" b="0" l="0"/>
+                  <wp:docPr id="1" name="Calendar widget" descr="Calendar widget" title="Calendar widget"/>
+                  <wp:cNvGraphicFramePr>
+                    <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+                  </wp:cNvGraphicFramePr>
+                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:nvPicPr>
+                          <pic:cNvPr id="0" name="" descr=""/>
+                          <pic:cNvPicPr>
+                            <a:picLocks noChangeAspect="1" noChangeArrowheads="1"/>
+                          </pic:cNvPicPr>
+                        </pic:nvPicPr>
+                        <pic:blipFill>
+                          <a:blip r:embed="rId12" cstate="none"/>
+                          <a:srcRect/>
+                          <a:stretch>
+                            <a:fillRect/>
+                          </a:stretch>
+                        </pic:blipFill>
+                        <pic:spPr bwMode="auto">
+                          <a:xfrm>
+                            <a:off x="0" y="0"/>
+                            <a:ext cx="1743075" cy="3810000"/>
+                          </a:xfrm>
+                          <a:prstGeom prst="rect">
+                            <a:avLst/>
+                          </a:prstGeom>
+                        </pic:spPr>
+                      </pic:pic>
+                    </a:graphicData>
+                  </a:graphic>
+                </wp:inline>
+              </w:drawing>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="120" w:before="0" w:line="276"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Calendar - today's schedule widget</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:r>
+        <w:br w:type="page"/>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="single" w:color="FF6B00" w:sz="12" w:space="4"/>
+        </w:pBdr>
+        <w:spacing w:after="120" w:before="0"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="FF6B00"/>
+          <w:sz w:val="16"/>
+          <w:szCs w:val="16"/>
+        </w:rPr>
+        <w:t xml:space="preserve">01  ·  CORE FUNCTIONALITY</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1"/>
+        <w:spacing w:after="160" w:before="80"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="36"/>
+          <w:szCs w:val="36"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Guardrails that protect attention.</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="200" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="6E6E6E"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Convenience without boundaries becomes capture. KAIROS OS adds deliberate friction where distraction thrives - and stays quiet where urgency is real.</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="5241"/>
+        <w:gridCol w:w="4838"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="5241"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">INTENT GATE</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="160" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Trap apps (Instagram, TikTok, and anything you mark) refuse a casual open. State a reason, pick a timebox, then go in with a mission. Leisure budgets make the cost of distraction visible before you spend it.</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">NOTIFICATION INTERCEPTOR</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="160" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Push noise is captured silently. Critical signals - calls, calendar, VIP contacts - pass through. Everything else waits for an intentional pull: your daily digest, on your terms.</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">PERSISTENT CONTEXT ANCHOR</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="160" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">When a native app opens, a floating bubble keeps the mission visible - countdown included - and one tap returns you to the command line without losing the thread.</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">CONFIGURABLE, NOT IMPULSIVE</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">You set Utility vs Trap apps and strictness during onboarding. Softening guardrails later takes friction (cooling-off), so a weak moment can't erase a clear-minded decision.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4838"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="80"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:drawing>
+                <wp:inline distT="0" distB="0" distL="0" distR="0">
+                  <wp:extent cx="1485900" cy="3238500"/>
+                  <wp:effectExtent t="0" r="0" b="0" l="0"/>
+                  <wp:docPr id="1" name="Intent Gate" descr="Intent Gate" title="Intent Gate"/>
+                  <wp:cNvGraphicFramePr>
+                    <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+                  </wp:cNvGraphicFramePr>
+                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:nvPicPr>
+                          <pic:cNvPr id="0" name="" descr=""/>
+                          <pic:cNvPicPr>
+                            <a:picLocks noChangeAspect="1" noChangeArrowheads="1"/>
+                          </pic:cNvPicPr>
+                        </pic:nvPicPr>
+                        <pic:blipFill>
+                          <a:blip r:embed="rId13" cstate="none"/>
+                          <a:srcRect/>
+                          <a:stretch>
+                            <a:fillRect/>
+                          </a:stretch>
+                        </pic:blipFill>
+                        <pic:spPr bwMode="auto">
+                          <a:xfrm>
+                            <a:off x="0" y="0"/>
+                            <a:ext cx="1485900" cy="3238500"/>
+                          </a:xfrm>
+                          <a:prstGeom prst="rect">
+                            <a:avLst/>
+                          </a:prstGeom>
+                        </pic:spPr>
+                      </pic:pic>
+                    </a:graphicData>
+                  </a:graphic>
+                </wp:inline>
+              </w:drawing>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="80"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:drawing>
+                <wp:inline distT="0" distB="0" distL="0" distR="0">
+                  <wp:extent cx="1485900" cy="3238500"/>
+                  <wp:effectExtent t="0" r="0" b="0" l="0"/>
+                  <wp:docPr id="1" name="Running Agents" descr="Running Agents" title="Running Agents"/>
+                  <wp:cNvGraphicFramePr>
+                    <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+                  </wp:cNvGraphicFramePr>
+                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:nvPicPr>
+                          <pic:cNvPr id="0" name="" descr=""/>
+                          <pic:cNvPicPr>
+                            <a:picLocks noChangeAspect="1" noChangeArrowheads="1"/>
+                          </pic:cNvPicPr>
+                        </pic:nvPicPr>
+                        <pic:blipFill>
+                          <a:blip r:embed="rId10" cstate="none"/>
+                          <a:srcRect/>
+                          <a:stretch>
+                            <a:fillRect/>
+                          </a:stretch>
+                        </pic:blipFill>
+                        <pic:spPr bwMode="auto">
+                          <a:xfrm>
+                            <a:off x="0" y="0"/>
+                            <a:ext cx="1485900" cy="3238500"/>
+                          </a:xfrm>
+                          <a:prstGeom prst="rect">
+                            <a:avLst/>
+                          </a:prstGeom>
+                        </pic:spPr>
+                      </pic:pic>
+                    </a:graphicData>
+                  </a:graphic>
+                </wp:inline>
+              </w:drawing>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:r>
+        <w:br w:type="page"/>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="single" w:color="FF6B00" w:sz="12" w:space="4"/>
+        </w:pBdr>
+        <w:spacing w:after="120" w:before="0"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="FF6B00"/>
+          <w:sz w:val="16"/>
+          <w:szCs w:val="16"/>
+        </w:rPr>
+        <w:t xml:space="preserve">02  ·  TARGET USERS</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1"/>
+        <w:spacing w:after="160" w:before="80"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="36"/>
+          <w:szCs w:val="36"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Built for people who want their phone back.</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="200" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="6E6E6E"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve">KAIROS OS is not for everyone who wants a prettier launcher. It is for people ready to trade autopilot for agency - professionals, teams, and minimalists who feel the cost of shallow attention.</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="10080"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="10080"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="FF6B00" w:sz="24"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="120"/>
+              <w:left w:type="dxa" w:w="160"/>
+              <w:bottom w:type="dxa" w:w="120"/>
+              <w:right w:type="dxa" w:w="160"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">PRIMARY</w:t>
+            </w:r>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">	</w:t>
+            </w:r>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Ages 22-40</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="100" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="26"/>
+                <w:szCs w:val="26"/>
+              </w:rPr>
+              <w:t xml:space="preserve">The Overwhelmed Professional</w:t>
+            </w:r>
+          </w:p>
+          <w:tbl>
+            <w:tblPr>
+              <w:tblW w:type="dxa" w:w="9680"/>
+              <w:tblBorders>
+                <w:top w:val="single" w:color="auto" w:sz="4"/>
+                <w:left w:val="single" w:color="auto" w:sz="4"/>
+                <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+                <w:right w:val="single" w:color="auto" w:sz="4"/>
+                <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+                <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+              </w:tblBorders>
+            </w:tblPr>
+            <w:tblGrid>
+              <w:gridCol w:w="4840"/>
+              <w:gridCol w:w="4840"/>
+            </w:tblGrid>
+            <w:tr>
+              <w:tc>
+                <w:tcPr>
+                  <w:tcW w:type="dxa" w:w="4840"/>
+                  <w:tcBorders>
+                    <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+                  </w:tcBorders>
+                  <w:shd w:fill="F5F5F5" w:val="clear"/>
+                  <w:tcMar>
+                    <w:top w:type="dxa" w:w="100"/>
+                    <w:left w:type="dxa" w:w="140"/>
+                    <w:bottom w:type="dxa" w:w="100"/>
+                    <w:right w:type="dxa" w:w="140"/>
+                  </w:tcMar>
+                </w:tcPr>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b/>
+                      <w:bCs/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="14"/>
+                      <w:szCs w:val="14"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">WHO</w:t>
+                  </w:r>
+                </w:p>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b w:val="false"/>
+                      <w:bCs w:val="false"/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="17"/>
+                      <w:szCs w:val="17"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">Knowledge workers, students, and creatives who know their phone usage is excessive but lack tools that change the habit - not just track it.</w:t>
+                  </w:r>
+                </w:p>
+              </w:tc>
+              <w:tc>
+                <w:tcPr>
+                  <w:tcW w:type="dxa" w:w="4840"/>
+                  <w:tcBorders>
+                    <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+                  </w:tcBorders>
+                  <w:shd w:fill="F5F5F5" w:val="clear"/>
+                  <w:tcMar>
+                    <w:top w:type="dxa" w:w="100"/>
+                    <w:left w:type="dxa" w:w="140"/>
+                    <w:bottom w:type="dxa" w:w="100"/>
+                    <w:right w:type="dxa" w:w="140"/>
+                  </w:tcMar>
+                </w:tcPr>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b/>
+                      <w:bCs/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="14"/>
+                      <w:szCs w:val="14"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">PAIN</w:t>
+                  </w:r>
+                </w:p>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b w:val="false"/>
+                      <w:bCs w:val="false"/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="17"/>
+                      <w:szCs w:val="17"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">Doomscrolling, notification anxiety, broken deep-work blocks, guilt after unproductive sessions.</w:t>
+                  </w:r>
+                </w:p>
+              </w:tc>
+            </w:tr>
+          </w:tbl>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="80" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="14"/>
+                <w:szCs w:val="14"/>
+              </w:rPr>
+              <w:t xml:space="preserve">GOAL  </w:t>
+            </w:r>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i/>
+                <w:iCs/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">A phone that serves intention instead of exploiting impulse.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="120" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve"/>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="10080"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="10080"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="FF6B00" w:sz="24"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="120"/>
+              <w:left w:type="dxa" w:w="160"/>
+              <w:bottom w:type="dxa" w:w="120"/>
+              <w:right w:type="dxa" w:w="160"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">SECONDARY</w:t>
+            </w:r>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">	</w:t>
+            </w:r>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Ages 25-45</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="100" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="26"/>
+                <w:szCs w:val="26"/>
+              </w:rPr>
+              <w:t xml:space="preserve">The Enterprise User</w:t>
+            </w:r>
+          </w:p>
+          <w:tbl>
+            <w:tblPr>
+              <w:tblW w:type="dxa" w:w="9680"/>
+              <w:tblBorders>
+                <w:top w:val="single" w:color="auto" w:sz="4"/>
+                <w:left w:val="single" w:color="auto" w:sz="4"/>
+                <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+                <w:right w:val="single" w:color="auto" w:sz="4"/>
+                <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+                <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+              </w:tblBorders>
+            </w:tblPr>
+            <w:tblGrid>
+              <w:gridCol w:w="4840"/>
+              <w:gridCol w:w="4840"/>
+            </w:tblGrid>
+            <w:tr>
+              <w:tc>
+                <w:tcPr>
+                  <w:tcW w:type="dxa" w:w="4840"/>
+                  <w:tcBorders>
+                    <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+                  </w:tcBorders>
+                  <w:shd w:fill="F5F5F5" w:val="clear"/>
+                  <w:tcMar>
+                    <w:top w:type="dxa" w:w="100"/>
+                    <w:left w:type="dxa" w:w="140"/>
+                    <w:bottom w:type="dxa" w:w="100"/>
+                    <w:right w:type="dxa" w:w="140"/>
+                  </w:tcMar>
+                </w:tcPr>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b/>
+                      <w:bCs/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="14"/>
+                      <w:szCs w:val="14"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">WHO</w:t>
+                  </w:r>
+                </w:p>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b w:val="false"/>
+                      <w:bCs w:val="false"/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="17"/>
+                      <w:szCs w:val="17"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">Employees on company-issued devices who need Workspace, Slack, and calendars without social media as the default landscape.</w:t>
+                  </w:r>
+                </w:p>
+              </w:tc>
+              <w:tc>
+                <w:tcPr>
+                  <w:tcW w:type="dxa" w:w="4840"/>
+                  <w:tcBorders>
+                    <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+                  </w:tcBorders>
+                  <w:shd w:fill="F5F5F5" w:val="clear"/>
+                  <w:tcMar>
+                    <w:top w:type="dxa" w:w="100"/>
+                    <w:left w:type="dxa" w:w="140"/>
+                    <w:bottom w:type="dxa" w:w="100"/>
+                    <w:right w:type="dxa" w:w="140"/>
+                  </w:tcMar>
+                </w:tcPr>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b/>
+                      <w:bCs/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="14"/>
+                      <w:szCs w:val="14"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">PAIN</w:t>
+                  </w:r>
+                </w:p>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b w:val="false"/>
+                      <w:bCs w:val="false"/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="17"/>
+                      <w:szCs w:val="17"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">Burnout from context-switching, meeting overload, inbox black holes mid-task.</w:t>
+                  </w:r>
+                </w:p>
+              </w:tc>
+            </w:tr>
+          </w:tbl>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="80" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="14"/>
+                <w:szCs w:val="14"/>
+              </w:rPr>
+              <w:t xml:space="preserve">GOAL  </w:t>
+            </w:r>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i/>
+                <w:iCs/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">A command line for business tools - and a Deep-Work profile for working hours.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="120" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve"/>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="10080"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="10080"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="FF6B00" w:sz="24"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="120"/>
+              <w:left w:type="dxa" w:w="160"/>
+              <w:bottom w:type="dxa" w:w="120"/>
+              <w:right w:type="dxa" w:w="160"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">TERTIARY</w:t>
+            </w:r>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">	</w:t>
+            </w:r>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Ages 18-35</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="100" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="26"/>
+                <w:szCs w:val="26"/>
+              </w:rPr>
+              <w:t xml:space="preserve">The Digital Minimalist</w:t>
+            </w:r>
+          </w:p>
+          <w:tbl>
+            <w:tblPr>
+              <w:tblW w:type="dxa" w:w="9680"/>
+              <w:tblBorders>
+                <w:top w:val="single" w:color="auto" w:sz="4"/>
+                <w:left w:val="single" w:color="auto" w:sz="4"/>
+                <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+                <w:right w:val="single" w:color="auto" w:sz="4"/>
+                <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+                <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+              </w:tblBorders>
+            </w:tblPr>
+            <w:tblGrid>
+              <w:gridCol w:w="4840"/>
+              <w:gridCol w:w="4840"/>
+            </w:tblGrid>
+            <w:tr>
+              <w:tc>
+                <w:tcPr>
+                  <w:tcW w:type="dxa" w:w="4840"/>
+                  <w:tcBorders>
+                    <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+                  </w:tcBorders>
+                  <w:shd w:fill="F5F5F5" w:val="clear"/>
+                  <w:tcMar>
+                    <w:top w:type="dxa" w:w="100"/>
+                    <w:left w:type="dxa" w:w="140"/>
+                    <w:bottom w:type="dxa" w:w="100"/>
+                    <w:right w:type="dxa" w:w="140"/>
+                  </w:tcMar>
+                </w:tcPr>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b/>
+                      <w:bCs/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="14"/>
+                      <w:szCs w:val="14"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">WHO</w:t>
+                  </w:r>
+                </w:p>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b w:val="false"/>
+                      <w:bCs w:val="false"/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="17"/>
+                      <w:szCs w:val="17"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">Privacy-conscious or philosophy-driven users chasing dumbphone calm with smartphone capability.</w:t>
+                  </w:r>
+                </w:p>
+              </w:tc>
+              <w:tc>
+                <w:tcPr>
+                  <w:tcW w:type="dxa" w:w="4840"/>
+                  <w:tcBorders>
+                    <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+                    <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+                  </w:tcBorders>
+                  <w:shd w:fill="F5F5F5" w:val="clear"/>
+                  <w:tcMar>
+                    <w:top w:type="dxa" w:w="100"/>
+                    <w:left w:type="dxa" w:w="140"/>
+                    <w:bottom w:type="dxa" w:w="100"/>
+                    <w:right w:type="dxa" w:w="140"/>
+                  </w:tcMar>
+                </w:tcPr>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b/>
+                      <w:bCs/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="14"/>
+                      <w:szCs w:val="14"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">PAIN</w:t>
+                  </w:r>
+                </w:p>
+                <w:p>
+                  <w:pPr>
+                    <w:spacing w:after="40" w:before="0" w:line="276"/>
+                    <w:jc w:val="left"/>
+                  </w:pPr>
+                  <w:r>
+                    <w:rPr>
+                      <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                      <w:b w:val="false"/>
+                      <w:bCs w:val="false"/>
+                      <w:i w:val="false"/>
+                      <w:iCs w:val="false"/>
+                      <w:color w:val="6E6E6E"/>
+                      <w:sz w:val="17"/>
+                      <w:szCs w:val="17"/>
+                    </w:rPr>
+                    <w:t xml:space="preserve">Discomfort with the attention economy; apps designed to harvest, not help.</w:t>
+                  </w:r>
+                </w:p>
+              </w:tc>
+            </w:tr>
+          </w:tbl>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="80" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="14"/>
+                <w:szCs w:val="14"/>
+              </w:rPr>
+              <w:t xml:space="preserve">GOAL  </w:t>
+            </w:r>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i/>
+                <w:iCs/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">A device that is hard to use unintentionally - by design.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="120" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve"/>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:shd w:fill="FFF4EC" w:val="clear"/>
+        <w:spacing w:after="80" w:before="80"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:color w:val="6E6E6E"/>
+          <w:sz w:val="18"/>
+          <w:szCs w:val="18"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Shared thread across all three: they do not need more apps. They need a layer that restores the capacity to choose - before the feed chooses for them.</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:r>
+        <w:br w:type="page"/>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="single" w:color="FF6B00" w:sz="12" w:space="4"/>
+        </w:pBdr>
+        <w:spacing w:after="120" w:before="0"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="FF6B00"/>
+          <w:sz w:val="16"/>
+          <w:szCs w:val="16"/>
+        </w:rPr>
+        <w:t xml:space="preserve">03  ·  PRACTICAL APPLICATIONS</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1"/>
+        <w:spacing w:after="160" w:before="80"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="36"/>
+          <w:szCs w:val="36"/>
+        </w:rPr>
+        <w:t xml:space="preserve">A day run by intent, not habit.</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="200" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="6E6E6E"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve">From morning triage to evening wind-down, KAIROS OS turns scattered app rituals into deliberate, bounded actions.</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="6048"/>
+        <w:gridCol w:w="4032"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="6048"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="120"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="120"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="24"/>
+                <w:szCs w:val="24"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Morning triage</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:shd w:fill="0A0A0A" w:val="clear"/>
+              <w:spacing w:after="80" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Consolas" w:cs="Consolas" w:eastAsia="Consolas" w:hAnsi="Consolas"/>
+                <w:color w:val="FF8A3D"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">  @gmail show my important emails  </w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Surface only what needs a decision. Open Gmail when you must reply - not when a badge demands your presence.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4032"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:vAlign w:val="center"/>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="80"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:drawing>
+                <wp:inline distT="0" distB="0" distL="0" distR="0">
+                  <wp:extent cx="1304925" cy="2857500"/>
+                  <wp:effectExtent t="0" r="0" b="0" l="0"/>
+                  <wp:docPr id="1" name="Morning triage" descr="Morning triage" title="Morning triage"/>
+                  <wp:cNvGraphicFramePr>
+                    <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+                  </wp:cNvGraphicFramePr>
+                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:nvPicPr>
+                          <pic:cNvPr id="0" name="" descr=""/>
+                          <pic:cNvPicPr>
+                            <a:picLocks noChangeAspect="1" noChangeArrowheads="1"/>
+                          </pic:cNvPicPr>
+                        </pic:nvPicPr>
+                        <pic:blipFill>
+                          <a:blip r:embed="rId11" cstate="none"/>
+                          <a:srcRect/>
+                          <a:stretch>
+                            <a:fillRect/>
+                          </a:stretch>
+                        </pic:blipFill>
+                        <pic:spPr bwMode="auto">
+                          <a:xfrm>
+                            <a:off x="0" y="0"/>
+                            <a:ext cx="1304925" cy="2857500"/>
+                          </a:xfrm>
+                          <a:prstGeom prst="rect">
+                            <a:avLst/>
+                          </a:prstGeom>
+                        </pic:spPr>
+                      </pic:pic>
+                    </a:graphicData>
+                  </a:graphic>
+                </wp:inline>
+              </w:drawing>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="100" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve"/>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="6048"/>
+        <w:gridCol w:w="4032"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="6048"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="120"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="120"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="24"/>
+                <w:szCs w:val="24"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Protect the calendar</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:shd w:fill="0A0A0A" w:val="clear"/>
+              <w:spacing w:after="80" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Consolas" w:cs="Consolas" w:eastAsia="Consolas" w:hAnsi="Consolas"/>
+                <w:color w:val="FF8A3D"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">  @googlecalendar show today's schedule  </w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">See the day as a sequence of commitments and focus blocks. Add meetings by saying them - without wandering the month grid.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4032"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:vAlign w:val="center"/>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="80"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:drawing>
+                <wp:inline distT="0" distB="0" distL="0" distR="0">
+                  <wp:extent cx="1304925" cy="2857500"/>
+                  <wp:effectExtent t="0" r="0" b="0" l="0"/>
+                  <wp:docPr id="1" name="Protect the calendar" descr="Protect the calendar" title="Protect the calendar"/>
+                  <wp:cNvGraphicFramePr>
+                    <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+                  </wp:cNvGraphicFramePr>
+                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:nvPicPr>
+                          <pic:cNvPr id="0" name="" descr=""/>
+                          <pic:cNvPicPr>
+                            <a:picLocks noChangeAspect="1" noChangeArrowheads="1"/>
+                          </pic:cNvPicPr>
+                        </pic:nvPicPr>
+                        <pic:blipFill>
+                          <a:blip r:embed="rId12" cstate="none"/>
+                          <a:srcRect/>
+                          <a:stretch>
+                            <a:fillRect/>
+                          </a:stretch>
+                        </pic:blipFill>
+                        <pic:spPr bwMode="auto">
+                          <a:xfrm>
+                            <a:off x="0" y="0"/>
+                            <a:ext cx="1304925" cy="2857500"/>
+                          </a:xfrm>
+                          <a:prstGeom prst="rect">
+                            <a:avLst/>
+                          </a:prstGeom>
+                        </pic:spPr>
+                      </pic:pic>
+                    </a:graphicData>
+                  </a:graphic>
+                </wp:inline>
+              </w:drawing>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="100" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve"/>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="6048"/>
+        <w:gridCol w:w="4032"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="6048"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="120"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="120"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="24"/>
+                <w:szCs w:val="24"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Catch up without drowning</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:shd w:fill="0A0A0A" w:val="clear"/>
+              <w:spacing w:after="80" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Consolas" w:cs="Consolas" w:eastAsia="Consolas" w:hAnsi="Consolas"/>
+                <w:color w:val="FF8A3D"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">  @slack summarize unread highlights  </w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Get channel and DM highlights as an action brief. Re-enter Slack with a reason, not because the red circle said so.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4032"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:vAlign w:val="center"/>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="80"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:drawing>
+                <wp:inline distT="0" distB="0" distL="0" distR="0">
+                  <wp:extent cx="1304925" cy="2857500"/>
+                  <wp:effectExtent t="0" r="0" b="0" l="0"/>
+                  <wp:docPr id="1" name="Catch up without drowning" descr="Catch up without drowning" title="Catch up without drowning"/>
+                  <wp:cNvGraphicFramePr>
+                    <a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/>
+                  </wp:cNvGraphicFramePr>
+                  <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                      <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                        <pic:nvPicPr>
+                          <pic:cNvPr id="0" name="" descr=""/>
+                          <pic:cNvPicPr>
+                            <a:picLocks noChangeAspect="1" noChangeArrowheads="1"/>
+                          </pic:cNvPicPr>
+                        </pic:nvPicPr>
+                        <pic:blipFill>
+                          <a:blip r:embed="rId14" cstate="none"/>
+                          <a:srcRect/>
+                          <a:stretch>
+                            <a:fillRect/>
+                          </a:stretch>
+                        </pic:blipFill>
+                        <pic:spPr bwMode="auto">
+                          <a:xfrm>
+                            <a:off x="0" y="0"/>
+                            <a:ext cx="1304925" cy="2857500"/>
+                          </a:xfrm>
+                          <a:prstGeom prst="rect">
+                            <a:avLst/>
+                          </a:prstGeom>
+                        </pic:spPr>
+                      </pic:pic>
+                    </a:graphicData>
+                  </a:graphic>
+                </wp:inline>
+              </w:drawing>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="100" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve"/>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading2"/>
+        <w:spacing w:after="100" w:before="200"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="26"/>
+          <w:szCs w:val="26"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Also in the field</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="2430"/>
+        <w:gridCol w:w="2430"/>
+        <w:gridCol w:w="2430"/>
+        <w:gridCol w:w="2430"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="2430"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+            <w:shd w:fill="0A0A0A" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="120"/>
+              <w:left w:type="dxa" w:w="100"/>
+              <w:bottom w:type="dxa" w:w="120"/>
+              <w:right w:type="dxa" w:w="100"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FFFFFF"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Bounded leisure</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="C9C4BC"/>
+                <w:sz w:val="14"/>
+                <w:szCs w:val="14"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Open Instagram for 5 minutes to reply to a DM - then the gate closes.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="2430"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+            <w:shd w:fill="0A0A0A" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="120"/>
+              <w:left w:type="dxa" w:w="100"/>
+              <w:bottom w:type="dxa" w:w="120"/>
+              <w:right w:type="dxa" w:w="100"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FFFFFF"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Capture without hop</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="C9C4BC"/>
+                <w:sz w:val="14"/>
+                <w:szCs w:val="14"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Drop a shopping list or launch plan into Kai Notes from the same stream.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="2430"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+            <w:shd w:fill="0A0A0A" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="120"/>
+              <w:left w:type="dxa" w:w="100"/>
+              <w:bottom w:type="dxa" w:w="120"/>
+              <w:right w:type="dxa" w:w="100"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FFFFFF"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Deep-work hours</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="C9C4BC"/>
+                <w:sz w:val="14"/>
+                <w:szCs w:val="14"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Enterprise profile prioritizes Workspace and silences social noise on company devices.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="2430"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+            <w:shd w:fill="0A0A0A" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="120"/>
+              <w:left w:type="dxa" w:w="100"/>
+              <w:bottom w:type="dxa" w:w="120"/>
+              <w:right w:type="dxa" w:w="100"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FFFFFF"/>
+                <w:sz w:val="16"/>
+                <w:szCs w:val="16"/>
+              </w:rPr>
+              <w:t xml:space="preserve">On-demand digest</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="C9C4BC"/>
+                <w:sz w:val="14"/>
+                <w:szCs w:val="14"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Pull a daily summary when you are ready - never when an algorithm is.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:r>
+        <w:br w:type="page"/>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pBdr>
+          <w:bottom w:val="single" w:color="FF6B00" w:sz="12" w:space="4"/>
+        </w:pBdr>
+        <w:spacing w:after="120" w:before="0"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="FF6B00"/>
+          <w:sz w:val="16"/>
+          <w:szCs w:val="16"/>
+        </w:rPr>
+        <w:t xml:space="preserve">04  ·  REAL-WORLD VALUE</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading1"/>
+        <w:spacing w:after="160" w:before="80"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="36"/>
+          <w:szCs w:val="36"/>
+        </w:rPr>
+        <w:t xml:space="preserve">Less noise. More agency. Measurable calm.</w:t>
+      </w:r>
+    </w:p>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="200" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="6E6E6E"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve">KAIROS OS creates value where attention leaks today: fewer context switches, fewer accidental doomscrolls, and faster paths to the one next action that matters.</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="4980"/>
+        <w:gridCol w:w="4980"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="100"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="100"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="20"/>
+                <w:szCs w:val="20"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Reclaim time from Chronos</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Replace open-ended scrolling with timeboxed, reason-backed sessions. Leisure budgets make distraction a conscious spend - not an ambient default.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="100"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="100"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="20"/>
+                <w:szCs w:val="20"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Narrow and deep work</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">One command stream keeps email, calendar, and chat in a single cognitive lane. Widgets answer; deep links open only when execution requires the full app.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="100"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="100"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="20"/>
+                <w:szCs w:val="20"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Business-ready focus</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">On corporate devices, Deep-Work mode turns the launcher into an executive command line for Workspace and team tools - cutting burnout from feed-shaped interfaces on company time.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="100"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="100"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="60" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="20"/>
+                <w:szCs w:val="20"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Privacy-minded architecture</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="17"/>
+                <w:szCs w:val="17"/>
+              </w:rPr>
+              <w:t xml:space="preserve">The phone stays a thin client for presentation and local utilities. Secrets and OAuth live on the backend. Simple tasks can stay on-device when possible.</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr>
+        <w:pStyle w:val="Heading2"/>
+        <w:spacing w:after="100" w:before="200"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+          <w:b/>
+          <w:bCs/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="26"/>
+          <w:szCs w:val="26"/>
+        </w:rPr>
+        <w:t xml:space="preserve">The shift in practice</w:t>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="4980"/>
+        <w:gridCol w:w="4980"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:left w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:bottom w:val="single" w:color="DDDDDD" w:sz="4"/>
+              <w:right w:val="single" w:color="DDDDDD" w:sz="4"/>
+            </w:tcBorders>
+            <w:shd w:fill="F5F5F5" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="100"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="100"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="6E6E6E"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">BEFORE  ·  CHRONOS</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="ListParagraph"/>
+              <w:numPr>
+                <w:ilvl w:val="0"/>
+                <w:numId w:val="2"/>
+              </w:numPr>
+              <w:spacing w:after="40" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Icon grids that invite browsing</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="ListParagraph"/>
+              <w:numPr>
+                <w:ilvl w:val="0"/>
+                <w:numId w:val="2"/>
+              </w:numPr>
+              <w:spacing w:after="40" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Badges and push as constant pull</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="ListParagraph"/>
+              <w:numPr>
+                <w:ilvl w:val="0"/>
+                <w:numId w:val="2"/>
+              </w:numPr>
+              <w:spacing w:after="40" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Social apps open in one tap</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="ListParagraph"/>
+              <w:numPr>
+                <w:ilvl w:val="0"/>
+                <w:numId w:val="2"/>
+              </w:numPr>
+              <w:spacing w:after="40" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Hours lost without a decision</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="4980"/>
+            <w:tcBorders>
+              <w:top w:val="single" w:color="FF6B00" w:sz="12"/>
+              <w:left w:val="single" w:color="FF6B00" w:sz="12"/>
+              <w:bottom w:val="single" w:color="FF6B00" w:sz="12"/>
+              <w:right w:val="single" w:color="FF6B00" w:sz="12"/>
+            </w:tcBorders>
+            <w:shd w:fill="FFF4EC" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="100"/>
+              <w:left w:type="dxa" w:w="140"/>
+              <w:bottom w:type="dxa" w:w="100"/>
+              <w:right w:type="dxa" w:w="140"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="80" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">WITH KAIROS OS</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="ListParagraph"/>
+              <w:numPr>
+                <w:ilvl w:val="0"/>
+                <w:numId w:val="3"/>
+              </w:numPr>
+              <w:spacing w:after="40" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">A blank slate that demands intent</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="ListParagraph"/>
+              <w:numPr>
+                <w:ilvl w:val="0"/>
+                <w:numId w:val="3"/>
+              </w:numPr>
+              <w:spacing w:after="40" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Digests you request on purpose</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="ListParagraph"/>
+              <w:numPr>
+                <w:ilvl w:val="0"/>
+                <w:numId w:val="3"/>
+              </w:numPr>
+              <w:spacing w:after="40" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Trap apps gated by reason + time</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:pStyle w:val="ListParagraph"/>
+              <w:numPr>
+                <w:ilvl w:val="0"/>
+                <w:numId w:val="3"/>
+              </w:numPr>
+              <w:spacing w:after="40" w:before="40"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:color w:val="0A0A0A"/>
+                <w:sz w:val="18"/>
+                <w:szCs w:val="18"/>
+              </w:rPr>
+              <w:t xml:space="preserve">Actions that feel chosen, not stolen</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:p>
+      <w:pPr>
+        <w:spacing w:after="160" w:before="0" w:line="276"/>
+        <w:jc w:val="left"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+          <w:b w:val="false"/>
+          <w:bCs w:val="false"/>
+          <w:i w:val="false"/>
+          <w:iCs w:val="false"/>
+          <w:color w:val="0A0A0A"/>
+          <w:sz w:val="20"/>
+          <w:szCs w:val="20"/>
+        </w:rPr>
+        <w:t xml:space="preserve"/>
+      </w:r>
+    </w:p>
+    <w:tbl>
+      <w:tblPr>
+        <w:tblW w:type="dxa" w:w="10080"/>
+        <w:tblBorders>
+          <w:top w:val="single" w:color="auto" w:sz="4"/>
+          <w:left w:val="single" w:color="auto" w:sz="4"/>
+          <w:bottom w:val="single" w:color="auto" w:sz="4"/>
+          <w:right w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideH w:val="single" w:color="auto" w:sz="4"/>
+          <w:insideV w:val="single" w:color="auto" w:sz="4"/>
+        </w:tblBorders>
+      </w:tblPr>
+      <w:tblGrid>
+        <w:gridCol w:w="10080"/>
+      </w:tblGrid>
+      <w:tr>
+        <w:tc>
+          <w:tcPr>
+            <w:tcW w:type="dxa" w:w="10080"/>
+            <w:tcBorders>
+              <w:top w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:left w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:bottom w:val="none" w:color="FFFFFF" w:sz="0"/>
+              <w:right w:val="none" w:color="FFFFFF" w:sz="0"/>
+            </w:tcBorders>
+            <w:shd w:fill="0A0A0A" w:val="clear"/>
+            <w:tcMar>
+              <w:top w:type="dxa" w:w="160"/>
+              <w:left w:type="dxa" w:w="180"/>
+              <w:bottom w:type="dxa" w:w="160"/>
+              <w:right w:type="dxa" w:w="180"/>
+            </w:tcMar>
+          </w:tcPr>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="100" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b/>
+                <w:bCs/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF6B00"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">CLOSING</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="120" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Georgia" w:cs="Georgia" w:eastAsia="Georgia" w:hAnsi="Georgia"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i/>
+                <w:iCs/>
+                <w:color w:val="FFFFFF"/>
+                <w:sz w:val="22"/>
+                <w:szCs w:val="22"/>
+              </w:rPr>
+              <w:t xml:space="preserve">To be human is to choose. KAIROS OS restores that capacity by removing the autopilot of modern UI - so what remains is you, your intention, and the right moment to act.</w:t>
+            </w:r>
+          </w:p>
+          <w:p>
+            <w:pPr>
+              <w:spacing w:after="40" w:before="0" w:line="276"/>
+              <w:jc w:val="left"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr>
+                <w:rFonts w:ascii="Arial" w:cs="Arial" w:eastAsia="Arial" w:hAnsi="Arial"/>
+                <w:b w:val="false"/>
+                <w:bCs w:val="false"/>
+                <w:i w:val="false"/>
+                <w:iCs w:val="false"/>
+                <w:color w:val="FF8A3D"/>
+                <w:sz w:val="15"/>
+                <w:szCs w:val="15"/>
+              </w:rPr>
+              <w:t xml:space="preserve">KAIROS OS  ·  Disconnected by Design  ·  Intent over impulse</w:t>
+            </w:r>
+          </w:p>
+        </w:tc>
+      </w:tr>
+    </w:tbl>
+    <w:sectPr>
+      <w:headerReference w:type="default" r:id="rId7"/>
+      <w:footerReference w:type="default" r:id="rId8"/>
+      <w:pgSz w:w="12240" w:h="15840" w:orient="portrait"/>
+      <w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="708" w:footer="708" w:gutter="0"/>
+      <w:pgNumType/>
+      <w:docGrid w:linePitch="360"/>
+    </w:sectPr>
+  </w:body>
+</w:document>

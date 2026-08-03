@@ -42,15 +42,20 @@ class LocalAgentEngine @Inject constructor(
         prompt: String,
         appTarget: String?,
         conversationId: String,
-        userId: String
+        userId: String,
+        onProgress: (String) -> Unit = {}
     ): KairosResponse {
         Log.i(TAG, "Executing local agent pipeline for prompt: '$prompt'")
 
+        onProgress("Reading your request…")
+
         // 1. Classification
+        onProgress("Classifying intent…")
         val classification = classifyPrompt(prompt, appTarget)
         Log.i(TAG, "Prompt classification result: $classification")
 
         if (classification == Classification.CLOUD_AGENT) {
+            onProgress("Routing to cloud agent…")
             return KairosResponse(type = "CLOUD_FALLBACK")
         }
 
@@ -79,8 +84,8 @@ class LocalAgentEngine @Inject constructor(
         insertLocalMessage(conversationId, "user", prompt, appTarget)
 
         val response = when (classification) {
-            Classification.SIMPLE -> handleSimplePrompt(prompt)
-            Classification.LOCAL_AGENT -> handleLocalAgentPrompt(prompt)
+            Classification.SIMPLE -> handleSimplePrompt(prompt, onProgress)
+            Classification.LOCAL_AGENT -> handleLocalAgentPrompt(prompt, onProgress)
             else -> KairosResponse(type = "ERROR", text = "Unknown classification")
         }
 
@@ -193,9 +198,14 @@ class LocalAgentEngine @Inject constructor(
         }
     }
 
-    private suspend fun handleSimplePrompt(prompt: String): KairosResponse {
+    private suspend fun handleSimplePrompt(
+        prompt: String,
+        onProgress: (String) -> Unit = {}
+    ): KairosResponse {
         val engine = localLlmClient.getEngine() 
             ?: return KairosResponse(type = "TEXT", text = "LiteRT-LM local engine not available.")
+
+        onProgress("Thinking…")
 
         val currentDateStr = SimpleDateFormat("yyyy-MM-dd HH:mm EEEE", Locale.getDefault()).format(Date())
         val systemPrompt = """
@@ -224,9 +234,14 @@ class LocalAgentEngine @Inject constructor(
         }
     }
 
-    private suspend fun handleLocalAgentPrompt(prompt: String): KairosResponse {
+    private suspend fun handleLocalAgentPrompt(
+        prompt: String,
+        onProgress: (String) -> Unit = {}
+    ): KairosResponse {
         val engine = localLlmClient.getEngine()
             ?: return KairosResponse(type = "TEXT", text = "LiteRT-LM local engine not available.")
+
+        onProgress("Choosing the right tool…")
 
         val currentDateStr = SimpleDateFormat("yyyy-MM-dd HH:mm EEEE", Locale.getDefault()).format(Date())
 
@@ -314,6 +329,8 @@ class LocalAgentEngine @Inject constructor(
             val args = root["args"]?.jsonObject
             val needsSynthesis = root["needs_synthesis"]?.jsonPrimitive?.booleanOrNull ?: false
 
+            onProgress(toolStatusLine(toolName))
+
             return when (toolName) {
                 "create_note" -> {
                     val title = args?.get("title")?.jsonPrimitive?.content ?: "Untitled"
@@ -334,7 +351,7 @@ class LocalAgentEngine @Inject constructor(
                     val defaultText = "Here are your local notes."
                     val text = if (needsSynthesis && notes.isNotEmpty()) {
                         val contextData = notes.joinToString("\n\n") { "Note [ID: ${it.id}] Title: \"${it.title}\"\nContent:\n${it.content}" }
-                        val syn = runSynthesis(engine, prompt, contextData)
+                        val syn = runSynthesis(engine, prompt, contextData, onProgress)
                         syn.ifEmpty { defaultText }
                     } else defaultText
 
@@ -355,7 +372,7 @@ class LocalAgentEngine @Inject constructor(
                         val defaultText = "Found note: '${note.title}'"
                         val text = if (needsSynthesis) {
                             val contextData = "Note [ID: ${note.id}] Title: \"${note.title}\"\nContent:\n${note.content}"
-                            val syn = runSynthesis(engine, prompt, contextData)
+                            val syn = runSynthesis(engine, prompt, contextData, onProgress)
                             syn.ifEmpty { defaultText }
                         } else defaultText
 
@@ -395,7 +412,7 @@ class LocalAgentEngine @Inject constructor(
                     val defaultText = if (notes.isNotEmpty()) "Found ${notes.size} note(s) matching '$query'." else "No notes found matching '$query'."
                     val text = if (needsSynthesis && notes.isNotEmpty()) {
                         val contextData = notes.joinToString("\n\n") { "Note [ID: ${it.id}] Title: \"${it.title}\"\nContent:\n${it.content}" }
-                        val syn = runSynthesis(engine, prompt, contextData)
+                        val syn = runSynthesis(engine, prompt, contextData, onProgress)
                         syn.ifEmpty { defaultText }
                     } else defaultText
 
@@ -566,7 +583,7 @@ class LocalAgentEngine @Inject constructor(
                     val defaultText = "Here is your schedule for today."
                     val text = if (needsSynthesis && events.isNotEmpty()) {
                         val contextData = events.joinToString("\n") { "Event [ID: ${it.id}]: '${it.title}' | Time: ${Date(it.startMillis)} - ${Date(it.endMillis)} | Desc: '${it.description}' | Account: '${it.accountName ?: ""}'" }
-                        val syn = runSynthesis(engine, prompt, contextData)
+                        val syn = runSynthesis(engine, prompt, contextData, onProgress)
                         syn.ifEmpty { defaultText }
                     } else defaultText
 
@@ -609,7 +626,7 @@ class LocalAgentEngine @Inject constructor(
                     val defaultText = "Events from $startDateStr to $endDateStr (${events.size} total)."
                     val text = if (needsSynthesis && events.isNotEmpty()) {
                         val contextData = events.joinToString("\n") { "Event [ID: ${it.id}]: '${it.title}' | Time: ${Date(it.startMillis)} - ${Date(it.endMillis)} | Desc: '${it.description}' | Account: '${it.accountName ?: ""}'" }
-                        val syn = runSynthesis(engine, prompt, contextData)
+                        val syn = runSynthesis(engine, prompt, contextData, onProgress)
                         syn.ifEmpty { defaultText }
                     } else defaultText
 
@@ -655,11 +672,21 @@ class LocalAgentEngine @Inject constructor(
         }
     }
 
+    private fun toolStatusLine(toolName: String): String = when (toolName) {
+        "create_note", "list_notes", "search_notes", "get_note_by_id", "update_note", "delete_note" -> "Running Notes…"
+        "set_alarm", "list_alarms", "cancel_alarm" -> "Setting alarm…"
+        "start_timer", "cancel_timer" -> "Starting timer…"
+        "create_calendar_event", "list_calendar_events", "list_calendar_events_range", "delete_calendar_event" -> "Checking calendar…"
+        else -> "Working on it…"
+    }
+
     private suspend fun runSynthesis(
         engine: com.google.ai.edge.litertlm.Engine,
         userPrompt: String,
-        contextData: String
+        contextData: String,
+        onProgress: (String) -> Unit = {}
     ): String {
+        onProgress("Composing response…")
         return try {
             val synthesisPrompt = """
                 You are KAIROS OS, an intelligent local AI assistant.

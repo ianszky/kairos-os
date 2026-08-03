@@ -477,6 +477,7 @@ fun MindfulLauncherScreen(
 
     val runningAgentsViewModel: com.kairos.os.ui.viewmodels.RunningAgentsViewModel = androidx.hilt.navigation.compose.hiltViewModel()
     val runningAgents by runningAgentsViewModel.agents.collectAsState()
+    val statusLines by runningAgentsViewModel.statusLines.collectAsState()
     var isAgentsExpanded by remember { mutableStateOf(false) }
     val runningJobs = remember { mutableStateMapOf<String, kotlinx.coroutines.Job>() }
 
@@ -1079,20 +1080,30 @@ fun MindfulLauncherScreen(
     val interactions = remember { mutableStateListOf<com.kairos.os.domain.models.Interaction>() }
     var isLoading by remember { mutableStateOf(false) }
 
-    LaunchedEffect(pendingAgentId, runningAgents) {
-        val agentId = agentNotificationNavigationStore.consumePending() ?: return@LaunchedEffect
-        isAgentsExpanded = false
-        chatViewModel.selectConversation(agentId)
-        val agent = runningAgents.find { it.id == agentId }
+    fun openAgentConversation(id: String) {
+        chatViewModel.selectConversation(id)
+        val agent = runningAgents.find { it.id == id }
         interactions.clear()
         interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(agent?.prompt ?: ""))
         if (agent?.response != null) {
             interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(agent.response))
-        } else if (agent?.status == com.kairos.os.domain.models.AgentStatus.PROCESSING) {
+            isLoading = false
+        } else if (
+            agent?.status == com.kairos.os.domain.models.AgentStatus.PROCESSING ||
+            runningJobs.containsKey(id)
+        ) {
             isLoading = true
             interactions.add(com.kairos.os.domain.models.Interaction.Loading())
+        } else {
+            isLoading = false
         }
         isChatOpen = true
+    }
+
+    LaunchedEffect(pendingAgentId, runningAgents) {
+        val agentId = agentNotificationNavigationStore.consumePending() ?: return@LaunchedEffect
+        isAgentsExpanded = false
+        openAgentConversation(agentId)
     }
 
     val onSendPrompt = {
@@ -1157,7 +1168,10 @@ fun MindfulLauncherScreen(
                 }
                 termInput = ""
                 textFieldValue = TextFieldValue("")
-            } else if (currentIntent != "@$parsedActiveApp" && currentIntent != "@$parsedActiveIntegration") {
+            } else if (
+                (currentIntent != "@$parsedActiveApp" && currentIntent != "@$parsedActiveIntegration")
+                || parsedActiveIntegration == "digest"
+            ) {
                 val attachmentsPayload = selectedAttachments.mapNotNull { attachment ->
                     attachment.uploadedPath?.let { path ->
                         AttachmentInfo(
@@ -1192,22 +1206,27 @@ fun MindfulLauncherScreen(
                 val taskJob = coroutineScope.launch {
                     try {
                         if (isDigest) {
+                            runningAgentsViewModel.updateStatusLine(dispatchConvId, "Composing digest…")
                             val response = localDigestGenerator.generateDigest()
                             runningAgentsViewModel.complete(dispatchConvId, response)
                             if (isChatOpen && currentConversationId == dispatchConvId) {
-                                interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                                com.kairos.os.ui.utils.revealAssistantResponse(interactions, response)
                             }
                         } else {
                             val user = supabaseClient.auth.currentSessionOrNull()?.user
                             val userId = user?.id ?: "local_user"
                             val resolvedConvId = dispatchConvId
 
+                            val onProgress: (String) -> Unit = { line ->
+                                runningAgentsViewModel.updateStatusLine(dispatchConvId, line)
+                            }
+
                             val localResponse = localAgentEngine.execute(
                                 prompt = currentIntent,
                                 appTarget = currentTarget,
                                 conversationId = resolvedConvId,
-                                userId = userId
+                                userId = userId,
+                                onProgress = onProgress
                             )
 
                             if (localResponse.type == "CLOUD_FALLBACK") {
@@ -1226,7 +1245,29 @@ fun MindfulLauncherScreen(
                                     }
                                 }
 
-                                val response = apiClient.postPrompt(currentIntent, currentTarget, cloudConvId ?: targetConvId, attachmentsPayload)
+                                runningAgentsViewModel.updateStatusLine(dispatchConvId, "Connecting to cloud agent…")
+                                com.kairos.os.ui.utils.cloudStatusFromPrompt(currentIntent)?.let {
+                                    runningAgentsViewModel.updateStatusLine(dispatchConvId, it)
+                                }
+
+                                val rotatorJob = launch {
+                                    val fallbacks = listOf("Thinking…", "Working on it…", "Almost there…")
+                                    var index = 0
+                                    while (true) {
+                                        kotlinx.coroutines.delay(2500)
+                                        runningAgentsViewModel.updateStatusLine(
+                                            dispatchConvId,
+                                            fallbacks[index++ % fallbacks.size]
+                                        )
+                                    }
+                                }
+
+                                runningAgentsViewModel.updateStatusLine(dispatchConvId, "Synthesizing answer…")
+                                val response = try {
+                                    apiClient.postPrompt(currentIntent, currentTarget, cloudConvId ?: targetConvId, attachmentsPayload)
+                                } finally {
+                                    rotatorJob.cancel()
+                                }
                                 val finalCloudConvId = response.meta?.conversationId ?: cloudConvId ?: targetConvId
                                 chatViewModel.onPromptResponse(targetConvId)
 
@@ -1240,8 +1281,7 @@ fun MindfulLauncherScreen(
 
                                 runningAgentsViewModel.complete(targetConvId, response)
                                 if (isChatOpen && (currentConversationId == targetConvId || currentConversationId == finalCloudConvId)) {
-                                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
+                                    com.kairos.os.ui.utils.revealAssistantResponse(interactions, response)
                                 }
                             } else {
                                 chatViewModel.onPromptResponse(resolvedConvId)
@@ -1255,14 +1295,19 @@ fun MindfulLauncherScreen(
                                 }
                                 runningAgentsViewModel.complete(resolvedConvId, localResponse)
                                 if (isChatOpen && currentConversationId == resolvedConvId) {
-                                    interactions.removeAll { it is com.kairos.os.domain.models.Interaction.Loading }
-                                    interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(localResponse))
+                                    com.kairos.os.ui.utils.revealAssistantResponse(interactions, localResponse)
                                 }
                             }
                         }
                     } catch (e: Exception) {
                         if (e is kotlinx.coroutines.CancellationException) {
                             runningAgentsViewModel.cancel(dispatchConvId)
+                            if (isChatOpen && currentConversationId == dispatchConvId) {
+                                interactions.removeAll {
+                                    it is com.kairos.os.domain.models.Interaction.Loading ||
+                                        it is com.kairos.os.domain.models.Interaction.StreamingResponse
+                                }
+                            }
                         } else {
                             val errText = "Failed to process query: ${e.message}"
                             runningAgentsViewModel.markError(dispatchConvId, errText)
@@ -1371,7 +1416,7 @@ fun MindfulLauncherScreen(
         }
     }
 
-    LaunchedEffect(currentMessages) {
+    LaunchedEffect(currentMessages, currentConversationId, runningAgents) {
         if (currentMessages.isNotEmpty() || currentConversationId != null) {
             interactions.clear()
             currentMessages.forEach { msg ->
@@ -1385,6 +1430,24 @@ fun MindfulLauncherScreen(
                     )
                     interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(response))
                 }
+            }
+
+            val convId = currentConversationId
+            if (convId != null &&
+                (runningJobs.containsKey(convId) ||
+                    runningAgents.find { it.id == convId }?.status == com.kairos.os.domain.models.AgentStatus.PROCESSING)
+            ) {
+                isLoading = true
+                if (interactions.none { it is com.kairos.os.domain.models.Interaction.Loading }) {
+                    interactions.add(com.kairos.os.domain.models.Interaction.Loading())
+                }
+            } else if (convId != null &&
+                interactions.none {
+                    it is com.kairos.os.domain.models.Interaction.Loading ||
+                        it is com.kairos.os.domain.models.Interaction.StreamingResponse
+                }
+            ) {
+                isLoading = false
             }
         }
     }
@@ -1506,7 +1569,8 @@ fun MindfulLauncherScreen(
                             ChatView(
                                 interactions = interactions,
                                 availableApps = availableApps,
-                                iconCache = iconCache
+                                iconCache = iconCache,
+                                statusLine = currentConversationId?.let { statusLines[it] }
                             )
                         }
                     }
@@ -1526,20 +1590,7 @@ fun MindfulLauncherScreen(
                 com.kairos.os.ui.components.ExpandedAgentList(
                     items = homeActivityItems,
                     onCollapse = { isAgentsExpanded = false },
-                    onViewAgent = { id ->
-                        isAgentsExpanded = false
-                        chatViewModel.selectConversation(id)
-                        val agent = runningAgents.find { it.id == id }
-                        interactions.clear()
-                        interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(agent?.prompt ?: ""))
-                        if (agent?.response != null) {
-                            interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(agent.response))
-                        } else if (agent?.status == com.kairos.os.domain.models.AgentStatus.PROCESSING) {
-                            isLoading = true
-                            interactions.add(com.kairos.os.domain.models.Interaction.Loading())
-                        }
-                        isChatOpen = true
-                    },
+                    onViewAgent = { id -> openAgentConversation(id) },
                     onViewGrant = { session ->
                         context.packageManager.getLaunchIntentForPackage(session.packageName)?.apply {
                             addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -1547,7 +1598,8 @@ fun MindfulLauncherScreen(
                     },
                     onDismissAgent = { runningAgentsViewModel.cancel(it) },
                     onDismissGrant = { sessionCardHideStore.hide(it) },
-                    hazeState = hazeState
+                    hazeState = hazeState,
+                    statusLines = statusLines
                 )
             }
             // Header (Aligned to TopCenter, fading vertical gradient background)
@@ -1687,23 +1739,15 @@ fun MindfulLauncherScreen(
                         items = homeActivityItems.take(3),
                         totalCount = homeActivityItems.size,
                         onTapStack = { isAgentsExpanded = true },
-                        onViewAgent = { id ->
-                            chatViewModel.selectConversation(id)
-                            val agent = runningAgents.find { it.id == id }
-                            interactions.clear()
-                            interactions.add(com.kairos.os.domain.models.Interaction.UserCommand(agent?.prompt ?: ""))
-                            agent?.response?.let {
-                                interactions.add(com.kairos.os.domain.models.Interaction.AssistantResponse(it))
-                            }
-                            isChatOpen = true
-                        },
+                        onViewAgent = { id -> openAgentConversation(id) },
                         onViewGrant = { session ->
                             context.packageManager.getLaunchIntentForPackage(session.packageName)?.apply {
                                 addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                             }?.let { context.startActivity(it) }
                         },
                         onDismissAgent = { runningAgentsViewModel.cancel(it) },
-                        onDismissGrant = { sessionCardHideStore.hide(it) }
+                        onDismissGrant = { sessionCardHideStore.hide(it) },
+                        statusLines = statusLines
                     )
                 }
 
@@ -2023,6 +2067,10 @@ fun MindfulLauncherScreen(
                                                         runningJobs[convId]?.cancel()
                                                         runningJobs.remove(convId)
                                                         runningAgentsViewModel.cancel(convId)
+                                                        interactions.removeAll {
+                                                            it is com.kairos.os.domain.models.Interaction.Loading ||
+                                                                it is com.kairos.os.domain.models.Interaction.StreamingResponse
+                                                        }
                                                         isLoading = false
                                                     }
                                                 },
@@ -2144,6 +2192,10 @@ fun MindfulLauncherScreen(
                                                     runningJobs[convId]?.cancel()
                                                     runningJobs.remove(convId)
                                                     runningAgentsViewModel.cancel(convId)
+                                                    interactions.removeAll {
+                                                        it is com.kairos.os.domain.models.Interaction.Loading ||
+                                                            it is com.kairos.os.domain.models.Interaction.StreamingResponse
+                                                    }
                                                     isLoading = false
                                                 }
                                             },
@@ -2927,12 +2979,19 @@ fun PlusMenuItem(
 fun ChatView(
     interactions: MutableList<com.kairos.os.domain.models.Interaction>,
     availableApps: List<AppConnection>,
-    iconCache: Map<String, android.graphics.drawable.Drawable>
+    iconCache: Map<String, android.graphics.drawable.Drawable>,
+    statusLine: String? = null
 ) {
     val scrollState = rememberScrollState()
     val context = androidx.compose.ui.platform.LocalContext.current
-    
-    LaunchedEffect(interactions.size) {
+    val lastInteractionKey = interactions.lastOrNull()?.let { interaction ->
+        when (interaction) {
+            is com.kairos.os.domain.models.Interaction.StreamingResponse -> interaction.text
+            else -> interaction.toString()
+        }
+    }
+
+    LaunchedEffect(interactions.size, lastInteractionKey, statusLine) {
         scrollState.animateScrollTo(scrollState.maxValue)
     }
 
@@ -3002,8 +3061,18 @@ fun ChatView(
                         )
                     }
                 }
+                is com.kairos.os.domain.models.Interaction.StreamingResponse -> {
+                    ChatBubble(
+                        isUser = false,
+                        text = interaction.text,
+                        availableApps = availableApps,
+                        iconCache = iconCache,
+                        modelName = interaction.modelName,
+                        showStreamingCursor = !interaction.isComplete
+                    )
+                }
                 is com.kairos.os.domain.models.Interaction.Loading -> {
-                    com.kairos.os.ui.components.TypingIndicator()
+                    com.kairos.os.ui.components.AgentThinkingIndicator(statusLine = statusLine)
                 }
             }
             Spacer(modifier = Modifier.height(28.dp))
@@ -3019,7 +3088,8 @@ fun ChatBubble(
     text: String,
     availableApps: List<AppConnection>,
     iconCache: Map<String, android.graphics.drawable.Drawable>,
-    modelName: String? = null
+    modelName: String? = null,
+    showStreamingCursor: Boolean = false
 ) {
     val codeBg = MaterialTheme.colorScheme.surfaceVariant
     val codeText = MaterialTheme.colorScheme.primary
@@ -3148,16 +3218,38 @@ fun ChatBubble(
                     bottom = if (isUser) 16.dp else 12.dp
                 )
         ) {
-            Text(
-                text = annotatedText,
-                inlineContent = inlineContentMap,
-                color = if (isUser) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.Normal,
-                    lineHeight = 24.sp,
-                    letterSpacing = 0.25.sp
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = annotatedText,
+                    inlineContent = inlineContentMap,
+                    color = if (isUser) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Normal,
+                        lineHeight = 24.sp,
+                        letterSpacing = 0.25.sp
+                    )
                 )
-            )
+                if (showStreamingCursor) {
+                    val infiniteTransition = androidx.compose.animation.core.rememberInfiniteTransition(label = "cursor")
+                    val cursorAlpha by infiniteTransition.animateFloat(
+                        initialValue = 1f,
+                        targetValue = 0.2f,
+                        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
+                            animation = androidx.compose.animation.core.tween(500),
+                            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
+                        ),
+                        label = "cursorAlpha"
+                    )
+                    Text(
+                        text = "|",
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = cursorAlpha),
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.Normal,
+                            lineHeight = 24.sp
+                        )
+                    )
+                }
+            }
         }
 
         if (!isUser && !modelName.isNullOrBlank()) {

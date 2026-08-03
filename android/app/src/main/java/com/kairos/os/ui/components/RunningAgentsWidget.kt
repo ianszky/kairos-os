@@ -43,6 +43,7 @@ private fun HomeActivityCard(
     onViewGrant: (AppSession) -> Unit,
     onDismissAgent: (String) -> Unit,
     onDismissGrant: (AppSession) -> Unit,
+    statusLines: Map<String, String> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
     when (item) {
@@ -50,6 +51,7 @@ private fun HomeActivityCard(
             agent = item.agent,
             onView = onViewAgent,
             onDismiss = onDismissAgent,
+            statusLine = statusLines[item.agent.id],
             modifier = modifier
         )
         is HomeActivityItem.AppGrant -> AppGrantCard(
@@ -70,6 +72,7 @@ fun CollapsedAgentStack(
     onViewGrant: (AppSession) -> Unit,
     onDismissAgent: (String) -> Unit,
     onDismissGrant: (AppSession) -> Unit,
+    statusLines: Map<String, String> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
     if (items.isEmpty()) return
@@ -115,6 +118,7 @@ fun CollapsedAgentStack(
                     onViewGrant = onViewGrant,
                     onDismissAgent = onDismissAgent,
                     onDismissGrant = onDismissGrant,
+                    statusLines = statusLines,
                     modifier = Modifier
                         .fillMaxWidth()
                         .graphicsLayer {
@@ -138,6 +142,7 @@ fun ExpandedAgentList(
     onDismissAgent: (String) -> Unit,
     onDismissGrant: (AppSession) -> Unit,
     hazeState: HazeState,
+    statusLines: Map<String, String> = emptyMap(),
     modifier: Modifier = Modifier
 ) {
     Box(
@@ -204,7 +209,8 @@ fun ExpandedAgentList(
                             onViewGrant(session)
                         },
                         onDismissAgent = onDismissAgent,
-                        onDismissGrant = onDismissGrant
+                        onDismissGrant = onDismissGrant,
+                        statusLines = statusLines
                     )
                 }
             }

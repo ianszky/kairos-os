@@ -5,6 +5,11 @@ import { getConversationContext, checkAndSummarizeIfNeeded } from '../ai/context
 import { getUserMemory, updateUserMemoryAsync } from '../ai/user-memory';
 import { KairosResponse } from '@/types/kairos';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+import {
+  buildDemoResponse,
+  isDemoIntegrationsEnabled,
+  matchDemoIntegration,
+} from '../demo/integration-mocks';
 
 const LOCAL_APP_TARGETS = new Set([
   'kai', 'kairos',
@@ -101,6 +106,24 @@ export async function processIntent(
   mentions.forEach(m => appTargetsSet.add(m));
   
   const appTargets = appTargetsSet.size > 0 ? Array.from(appTargetsSet) : [classification.appTarget || 'generic'];
+
+  if (isDemoIntegrationsEnabled()) {
+    const demoTag = matchDemoIntegration(prompt);
+    if (demoTag) {
+      console.log(`[IntentRouter] Demo integration mock for @${demoTag}`);
+      const response = await buildDemoResponse(
+        demoTag,
+        prompt,
+        conversationId,
+        token,
+        history,
+        userMemory
+      );
+      updateUserMemoryAsync(userId, prompt, response.text || '', userMemory, token);
+      checkAndSummarizeIfNeeded(conversationId, token);
+      return response;
+    }
+  }
 
   let rawResponseText = "";
 

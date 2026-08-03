@@ -57,6 +57,7 @@ fun RunningAgentCard(
     agent: RunningAgent,
     onView: (String) -> Unit,
     onDismiss: (String) -> Unit,
+    statusLine: String? = null,
     modifier: Modifier = Modifier
 ) {
     var offsetX by remember { mutableFloatStateOf(0f) }
@@ -124,7 +125,7 @@ fun RunningAgentCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = when (agent.status) {
-                        AgentStatus.PROCESSING -> "Processing..."
+                        AgentStatus.PROCESSING -> statusLine?.takeIf { it.isNotBlank() } ?: "Processing…"
                         AgentStatus.COMPLETE -> "Complete"
                         AgentStatus.ERROR -> "Failed"
                         AgentStatus.CANCELLED -> "Cancelled"

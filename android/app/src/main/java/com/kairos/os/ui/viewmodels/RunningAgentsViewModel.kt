@@ -10,10 +10,13 @@ import com.kairos.os.domain.models.KairosResponse
 import com.kairos.os.domain.models.RunningAgent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -33,7 +36,21 @@ class RunningAgentsViewModel @Inject constructor(
         .map { list -> list.count { it.status == AgentStatus.PROCESSING } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    private val _statusLines = MutableStateFlow<Map<String, String>>(emptyMap())
+    val statusLines: StateFlow<Map<String, String>> = _statusLines.asStateFlow()
+
+    fun updateStatusLine(id: String, line: String) {
+        _statusLines.update { it + (id to line) }
+    }
+
+    fun statusLineFor(id: String): String? = _statusLines.value[id]
+
+    private fun clearStatusLine(id: String) {
+        _statusLines.update { it - id }
+    }
+
     fun dispatch(conversationId: String, prompt: String, isLocal: Boolean) {
+        updateStatusLine(conversationId, "Reading your request…")
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val entity = RunningAgentEntity(
@@ -57,6 +74,7 @@ class RunningAgentsViewModel @Inject constructor(
     }
 
     fun complete(id: String, response: KairosResponse) {
+        clearStatusLine(id)
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val json = runCatching { Json.encodeToString(KairosResponse.serializer(), response) }.getOrNull()
@@ -66,6 +84,7 @@ class RunningAgentsViewModel @Inject constructor(
     }
 
     fun markError(id: String, errorMessage: String) {
+        clearStatusLine(id)
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 val errorResponse = KairosResponse(type = "ERROR", text = errorMessage)
@@ -76,6 +95,7 @@ class RunningAgentsViewModel @Inject constructor(
     }
 
     fun cancel(id: String) {
+        clearStatusLine(id)
         viewModelScope.launch {
             withContext(Dispatchers.IO) {
                 runningAgentDao.delete(id)

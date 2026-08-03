@@ -13,6 +13,14 @@ sealed class Interaction {
     ) : Interaction()
     
     data class Loading(
+        val statusLine: String? = null,
+        val timestamp: Long = System.currentTimeMillis()
+    ) : Interaction()
+
+    data class StreamingResponse(
+        val text: String,
+        val modelName: String? = null,
+        val isComplete: Boolean = false,
         val timestamp: Long = System.currentTimeMillis()
     ) : Interaction()
 }
