@@ -7,6 +7,14 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 32. Tool Executor Default Tool Scoping Fix
+**Status:** DONE
+**Branch:** `fix-tool-scoping-loop`
+**Summary:** Fixed Google Calendar (and other integrations) failing on multi-step prompts when classifier emitted a single `taskType`:
+- **`resolveToolSlugs`**: Always loads `COMPOSIO_ACTION_MAP[app].default`; `taskType` is prompt context only.
+- **Loop safety**: `MAX_ITERATIONS` raised 5 → 8; clearer logging when loop exits with pending function calls; keeps `lastToolResult` text fallback (no forced JSON turn).
+- **Verification**: `npm test -- --run src/lib/mcp/tool-executor.test.ts` in backend.
+
 ### 31. On-Device Gemma Voice Input (STT)
 **Status:** DONE
 **Branch:** `feature-gemma-voice-stt`

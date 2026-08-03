@@ -2,6 +2,12 @@ import { composio } from './composio-client';
 import { ai } from '../ai/gemini-client';
 import { COMPOSIO_ACTION_MAP } from './action-map';
 
+/** Always load the curated default tool set for an app — not taskType subsets. */
+export function resolveToolSlugs(mapKey: string): string[] {
+  const appMapping = COMPOSIO_ACTION_MAP[mapKey];
+  return appMapping?.['default'] || [];
+}
+
 export async function executeComplexIntent(
   prompt: string, 
   appTargets: string | string[], 
@@ -141,11 +147,9 @@ export async function executeComplexIntent(
     const normalizedTarget = appTarget.toLowerCase();
     const mapKey = targetMap[normalizedTarget] || normalizedTarget;
     
-    // Resolve slugs from actionMap
-    const appMapping = COMPOSIO_ACTION_MAP[mapKey];
-    const slugs = appMapping?.[taskType] || appMapping?.['default'] || [];
+    const slugs = resolveToolSlugs(mapKey);
 
-    console.log(`[ToolExecutor] Resolved slugs for target ${mapKey} (intent: ${taskType}):`, slugs);
+    console.log(`[ToolExecutor] Resolved slugs for target ${mapKey} (taskType hint: ${taskType}):`, slugs);
 
     let tools: any[] = [];
     if (slugs.length > 0) {
@@ -208,6 +212,7 @@ You must return your final output matching this exact JSON schema:
 }
 
 ## Context
+Classified task type (hint only — you have the full default tool set): ${taskType}
 Inferred task details: ${inferredDetails}
 Conversation History Context: ${JSON.stringify(history)}
 User Memory Context: ${JSON.stringify(userMemory)}`;
@@ -279,7 +284,7 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
   }
   let response = await chat.sendMessage({ message: messageContent });
 
-  const MAX_ITERATIONS = 5;
+  const MAX_ITERATIONS = 8;
   let iterations = 0;
   const executedCalls = new Set<string>();
   let lastToolResult: any = null;
@@ -375,7 +380,14 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
     }
   }
 
-  console.log("[ToolExecutor] Completed loop. Returning final text payload.");
+  const pendingCalls = response.functionCalls?.length ?? 0;
+  if (pendingCalls > 0) {
+    console.warn(
+      `[ToolExecutor] Exited tool loop after ${iterations} iteration(s) (max ${MAX_ITERATIONS}) with ${pendingCalls} pending function call(s). Falling back to last tool result or generic text.`
+    );
+  } else {
+    console.log("[ToolExecutor] Completed loop. Returning final text payload.");
+  }
 
   const responseText = response.text?.trim() || "";
   if (responseText.length > 0) {
@@ -383,6 +395,7 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
   }
 
   if (lastToolResult) {
+    console.log("[ToolExecutor] No final text from model; using lastToolResult fallback.");
     return JSON.stringify({
       text: `Successfully executed requested action(s).`,
       widget: lastToolResult?.widget || null
