@@ -528,6 +528,15 @@ fun MindfulLauncherScreen(
     var noteSaveState by remember { mutableStateOf(com.kairos.os.ui.screens.NoteSaveState.GRAY_CHECK) }
     var noteSaveAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     var noteCancelAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var calendarRefreshAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var calendarIsSyncing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(activeScreen) {
+        if (activeScreen != "calendar") {
+            calendarRefreshAction = null
+            calendarIsSyncing = false
+        }
+    }
     val deletedConversationIds = remember { mutableStateListOf<String>() }
     val hazeState = remember { HazeState() }
     var textLayoutResult by remember { mutableStateOf<androidx.compose.ui.text.TextLayoutResult?>(null) }
@@ -1546,7 +1555,9 @@ fun MindfulLauncherScreen(
                         com.kairos.os.ui.screens.LocalCalendarScreen(
                             calendarController = localCalendarController,
                             viewMode = calendarViewMode,
-                            onBack = { activeScreen = "home" }
+                            onBack = { activeScreen = "home" },
+                            onRefreshActionReady = { action -> calendarRefreshAction = action },
+                            onSyncingChanged = { syncing -> calendarIsSyncing = syncing }
                         )
                     }
                     "clock" -> {
@@ -1712,8 +1723,29 @@ fun MindfulLauncherScreen(
                                 )
                             }
                         }
-                        IconButton(onClick = onThemeToggle) {
-                            Icon(if (isDarkTheme) Icons.Default.Brightness4 else Icons.Default.Brightness7, contentDescription = "Toggle Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (activeScreen == "calendar") {
+                            IconButton(
+                                onClick = { calendarRefreshAction?.invoke() },
+                                enabled = !calendarIsSyncing
+                            ) {
+                                if (calendarIsSyncing) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = "Refresh Calendar",
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
+                            IconButton(onClick = onThemeToggle) {
+                                Icon(if (isDarkTheme) Icons.Default.Brightness4 else Icons.Default.Brightness7, contentDescription = "Toggle Theme", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                         if (activeScreen == "home") {
                             IconButton(onClick = { isSettingsOpen = true }) {

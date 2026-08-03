@@ -1,8 +1,11 @@
 package com.kairos.os.domain.tools
 
+import android.accounts.Account
+import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.os.Bundle
 import android.provider.CalendarContract
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.TimeZone
@@ -104,38 +107,76 @@ class LocalCalendarController @Inject constructor(
         }
     }
 
+    fun requestCloudSync() {
+        try {
+            val accounts = mutableSetOf<Pair<String, String>>()
+            context.contentResolver.query(
+                CalendarContract.Calendars.CONTENT_URI,
+                arrayOf(
+                    CalendarContract.Calendars.ACCOUNT_NAME,
+                    CalendarContract.Calendars.ACCOUNT_TYPE
+                ),
+                "${CalendarContract.Calendars.SYNC_EVENTS} = ? AND ${CalendarContract.Calendars.VISIBLE} = ?",
+                arrayOf("1", "1"),
+                null
+            )?.use { cursor ->
+                val nameCol = cursor.getColumnIndex(CalendarContract.Calendars.ACCOUNT_NAME)
+                val typeCol = cursor.getColumnIndex(CalendarContract.Calendars.ACCOUNT_TYPE)
+                while (cursor.moveToNext()) {
+                    val name = if (nameCol != -1) cursor.getString(nameCol) else null
+                    val type = if (typeCol != -1) cursor.getString(typeCol) else null
+                    if (name.isNullOrBlank() || type.isNullOrBlank()) continue
+                    accounts.add(name to type)
+                }
+            }
+
+            val extras = Bundle().apply {
+                putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
+                putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
+            }
+            for ((name, type) in accounts) {
+                ContentResolver.requestSync(Account(name, type), CalendarContract.AUTHORITY, extras)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     fun listEvents(startMillis: Long, endMillis: Long): List<CalendarEvent> {
         val events = mutableListOf<CalendarEvent>()
+        val instancesUri = CalendarContract.Instances.CONTENT_URI.buildUpon().apply {
+            ContentUris.appendId(this, startMillis)
+            ContentUris.appendId(this, endMillis)
+        }.build()
+
         val projection = arrayOf(
-            CalendarContract.Events._ID,
-            CalendarContract.Events.TITLE,
-            CalendarContract.Events.DESCRIPTION,
-            CalendarContract.Events.DTSTART,
-            CalendarContract.Events.DTEND,
-            CalendarContract.Events.ALL_DAY,
-            CalendarContract.Events.CALENDAR_DISPLAY_NAME,
-            CalendarContract.Events.ACCOUNT_NAME
+            CalendarContract.Instances.EVENT_ID,
+            CalendarContract.Instances.TITLE,
+            CalendarContract.Instances.DESCRIPTION,
+            CalendarContract.Instances.BEGIN,
+            CalendarContract.Instances.END,
+            CalendarContract.Instances.ALL_DAY,
+            CalendarContract.Instances.CALENDAR_DISPLAY_NAME,
+            CalendarContract.Instances.ACCOUNT_NAME
         )
-        val selection = "${CalendarContract.Events.DTSTART} >= ? AND ${CalendarContract.Events.DTSTART} <= ? AND ${CalendarContract.Events.VISIBLE} = ?"
-        val selectionArgs = arrayOf(startMillis.toString(), endMillis.toString(), "1")
-        
+
         try {
             context.contentResolver.query(
-                CalendarContract.Events.CONTENT_URI,
+                instancesUri,
                 projection,
-                selection,
-                selectionArgs,
-                "${CalendarContract.Events.DTSTART} ASC"
+                null,
+                null,
+                "${CalendarContract.Instances.BEGIN} ASC"
             )?.use { cursor ->
-                val idCol = cursor.getColumnIndex(CalendarContract.Events._ID)
-                val titleCol = cursor.getColumnIndex(CalendarContract.Events.TITLE)
-                val descCol = cursor.getColumnIndex(CalendarContract.Events.DESCRIPTION)
-                val startCol = cursor.getColumnIndex(CalendarContract.Events.DTSTART)
-                val endCol = cursor.getColumnIndex(CalendarContract.Events.DTEND)
-                val allDayCol = cursor.getColumnIndex(CalendarContract.Events.ALL_DAY)
-                val calNameCol = cursor.getColumnIndex(CalendarContract.Events.CALENDAR_DISPLAY_NAME)
-                val accountCol = cursor.getColumnIndex(CalendarContract.Events.ACCOUNT_NAME)
-                
+                val idCol = cursor.getColumnIndex(CalendarContract.Instances.EVENT_ID)
+                val titleCol = cursor.getColumnIndex(CalendarContract.Instances.TITLE)
+                val descCol = cursor.getColumnIndex(CalendarContract.Instances.DESCRIPTION)
+                val startCol = cursor.getColumnIndex(CalendarContract.Instances.BEGIN)
+                val endCol = cursor.getColumnIndex(CalendarContract.Instances.END)
+                val allDayCol = cursor.getColumnIndex(CalendarContract.Instances.ALL_DAY)
+                val calNameCol = cursor.getColumnIndex(CalendarContract.Instances.CALENDAR_DISPLAY_NAME)
+                val accountCol = cursor.getColumnIndex(CalendarContract.Instances.ACCOUNT_NAME)
+
                 while (cursor.moveToNext()) {
                     val isAllDay = allDayCol != -1 && cursor.getInt(allDayCol) == 1
                     events.add(

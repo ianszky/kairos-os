@@ -101,7 +101,7 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
   - Top 50%: Interactive month grid with Month/Year title and `< >` navigation arrows. Preselects current date, displays primary-colored event indicators for days with events.
   - Bottom 50%: Displays a slimmed-down agenda list of events for the selected day.
 - **Rich Schedule Event Dialog**: Removed single `Duration` input and replaced with native **Date Picker**, **Start & End Time Pickers**, **"All-Day Event" Checkbox** (hides time pickers when checked), and **"Sync with Google / Connected Calendars" Checkbox**.
-- **2-Way Google & System Calendar Sync**: Listened via `ContentObserver` on `CalendarContract.Events.CONTENT_URI` with a 90-day rolling window query. Events created via KaiCalendar, Google Calendar, or local Gemma AI tools automatically refresh and display.
+- **2-Way Google & System Calendar Sync**: Forces inbound sync via `ContentResolver.requestSync` on open/resume/refresh, reads expanded occurrences through `CalendarContract.Instances`, and reloads on `ContentObserver` changes. Header refresh button replaces theme toggle while on Kai Calendar.
 - **Local AI Agent Tool Compatibility**: Updated `LocalAgentEngine.kt` tool signature for `create_calendar_event` (`start_date`, `start_time`, `end_date`, `end_time`, `is_all_day`, `sync_google`) and dispatch logic.
 - **Verification**: `./gradlew assembleDebug` — BUILD SUCCESSFUL in 25s.
 

@@ -24,14 +24,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.kairos.os.domain.tools.CalendarEvent
 import com.kairos.os.domain.tools.LocalCalendarController
 import com.kairos.os.ui.googleSansFont
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -44,13 +49,18 @@ private val GrayMutedText = Color(0xFF888888)
 fun LocalCalendarScreen(
     calendarController: LocalCalendarController,
     viewMode: String = "week",
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onRefreshActionReady: ((() -> Unit) -> Unit) = {},
+    onSyncingChanged: (Boolean) -> Unit = {}
 ) {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     var events by remember { mutableStateOf<List<CalendarEvent>>(emptyList()) }
     var showAddDialog by remember { mutableStateOf(false) }
     var editingEvent by remember { mutableStateOf<CalendarEvent?>(null) }
+    var isSyncing by remember { mutableStateOf(false) }
+    var observerDebounceJob by remember { mutableStateOf<Job?>(null) }
 
     fun refreshEvents() {
         val startWindow = Calendar.getInstance().apply {
@@ -69,12 +79,28 @@ fun LocalCalendarScreen(
         events = calendarController.listEvents(startWindow, endWindow)
     }
 
+    fun syncAndRefresh() {
+        isSyncing = true
+        calendarController.requestCloudSync()
+        refreshEvents()
+        coroutineScope.launch {
+            delay(3000)
+            refreshEvents()
+            isSyncing = false
+        }
+    }
+
+    SideEffect {
+        onRefreshActionReady { syncAndRefresh() }
+        onSyncingChanged(isSyncing)
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions[Manifest.permission.READ_CALENDAR] == true &&
             permissions[Manifest.permission.WRITE_CALENDAR] == true) {
-            refreshEvents()
+            syncAndRefresh()
         }
     }
 
@@ -88,15 +114,32 @@ fun LocalCalendarScreen(
                     Manifest.permission.WRITE_CALENDAR
                 )
             )
-        } else {
-            refreshEvents()
         }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val lifecycleObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val hasRead = ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+                val hasWrite = ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
+                if (hasRead && hasWrite) {
+                    syncAndRefresh()
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(lifecycleObserver)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(lifecycleObserver) }
     }
 
     DisposableEffect(context) {
         val observer = object : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
-                refreshEvents()
+                observerDebounceJob?.cancel()
+                observerDebounceJob = coroutineScope.launch {
+                    delay(300)
+                    refreshEvents()
+                    isSyncing = false
+                }
             }
         }
         try {
@@ -107,6 +150,7 @@ fun LocalCalendarScreen(
             e.printStackTrace()
         }
         onDispose {
+            observerDebounceJob?.cancel()
             try {
                 context.contentResolver.unregisterContentObserver(observer)
             } catch (e: Exception) {
