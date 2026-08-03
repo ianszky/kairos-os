@@ -7,6 +7,17 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 33. Async Prompt Jobs (Phase 2)
+**Status:** DONE
+**Branch:** `feature/async-prompt-jobs`
+**Summary:** Long-running Composio prompts no longer block the HTTP request or hit the Android 60s timeout:
+- **`prompt_runs` table** + migration SQL for run lifecycle tracking
+- **POST /api/prompt** returns 202 + `runId`; `processIntent` runs in Next.js `after()`
+- **GET /api/prompt/status** for polling completed/failed responses
+- **Android `postPromptAndAwait()`** polls every 2s up to 5 min while Running Agent stays Processing
+- **Tool executor cap**: max 5 successful calls per tool name per request
+- **Verification**: apply `context/supabase_prompt_runs_migration.sql`, run backend vitest, retry bulk calendar prompt
+
 ### 32. Tool Executor Default Tool Scoping Fix
 **Status:** DONE
 **Branch:** `fix-tool-scoping-loop`

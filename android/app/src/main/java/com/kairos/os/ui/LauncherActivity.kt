@@ -1264,7 +1264,7 @@ fun MindfulLauncherScreen(
 
                                 runningAgentsViewModel.updateStatusLine(dispatchConvId, "Synthesizing answer…")
                                 val response = try {
-                                    apiClient.postPrompt(currentIntent, currentTarget, cloudConvId ?: targetConvId, attachmentsPayload)
+                                    apiClient.postPromptAndAwait(currentIntent, currentTarget, cloudConvId ?: targetConvId, attachmentsPayload)
                                 } finally {
                                     rotatorJob.cancel()
                                 }

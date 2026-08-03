@@ -22,7 +22,18 @@ data class AndroidIntentPayload(
 data class ResponseMeta(
     val conversationId: String,
     val timestamp: String,
-    val model: String
+    val model: String,
+    val runId: String? = null,
+    val status: String? = null
+)
+
+@Serializable
+data class PromptRunStatusResponse(
+    val status: String,
+    val runId: String,
+    val conversationId: String,
+    val response: KairosResponse? = null,
+    val error: String? = null
 )
 
 @Serializable

@@ -1,16 +1,17 @@
 # KAIROS OS Project State
 
-## Current Task: Tool scoping fix — IN PROGRESS on `fix-tool-scoping-loop`
+## Current Task: Async Prompt Jobs (Phase 2) — IN PROGRESS on `feature/async-prompt-jobs`
 
-### Status: IMPLEMENTATION COMPLETE (pending merge)
+### Status: IMPLEMENTATION COMPLETE (requires Supabase migration + device verification)
 
-### Tool executor scoping fix:
-- **Problem**: Classifier `taskType: create` narrowed Google Calendar to `GOOGLESUPER_CREATE_EVENT` only; multi-step create+read prompts failed when model tried to list events.
-- **Fix**: Always load each app's curated `COMPOSIO_ACTION_MAP[app].default` tool set; keep `taskType` as prompt hint only.
-- **Loop**: Raised `MAX_ITERATIONS` 5 → 8; improved logging when loop exits with pending function calls; no forced JSON final turn.
-- **Files**: `backend/src/lib/mcp/tool-executor.ts`, `backend/src/lib/mcp/tool-executor.test.ts`
+### Async prompt pipeline:
+- **POST /api/prompt** returns **202 ACCEPTED** with `runId`; Composio work runs in Next.js `after()`
+- **GET /api/prompt/status?runId=** returns `running` / `completed` / `failed` + final `KairosResponse`
+- **`prompt_runs` table** tracks lifecycle (migration: `context/supabase_prompt_runs_migration.sql`)
+- **Android** uses `postPromptAndAwait()` — short POST + poll up to 5 min; Running Agent stays Processing
+- **Tool cap**: max 5 successful executions per tool name per request
 
-### Prior: Search Chat (Android) — COMPLETE on `main`
+### Prior: Tool scoping fix — on `fix-tool-scoping-loop`
 - **Search screen** replaces dummy sidebar page: search bar + result cards (title + highlighted match snippet).
 - **Dual-source search**: Room (local titles + messages) and Supabase (`ilike` on cloud titles + message content).
 - **Navigation**: tapping a result opens the conversation via `ChatViewModel.selectConversation` (same as Scheduled / HISTORY).

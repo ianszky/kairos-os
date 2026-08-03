@@ -285,8 +285,10 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
   let response = await chat.sendMessage({ message: messageContent });
 
   const MAX_ITERATIONS = 8;
+  const MAX_SUCCESS_PER_TOOL = 5;
   let iterations = 0;
   const executedCalls = new Set<string>();
+  const toolSuccessCounts = new Map<string, number>();
   let lastToolResult: any = null;
 
   while (response.functionCalls && response.functionCalls.length > 0 && iterations < MAX_ITERATIONS) {
@@ -327,6 +329,20 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
         continue;
       }
 
+      const priorSuccesses = toolSuccessCounts.get(toolName) ?? 0;
+      if (priorSuccesses >= MAX_SUCCESS_PER_TOOL) {
+        console.warn(`[ToolExecutor] Blocked excess executions for ${toolName} (${priorSuccesses} already succeeded)`);
+        parts.push({
+          functionResponse: {
+            name: toolName,
+            response: {
+              notice: `Tool "${toolName}" has already succeeded ${priorSuccesses} times this request. Do not call it again. Return your final JSON response now.`
+            }
+          }
+        });
+        continue;
+      }
+
       try {
         const result = await provider.executeToolCall(userId, {
           name: toolName,
@@ -335,6 +351,7 @@ User Memory Context: ${JSON.stringify(userMemory)}`;
         });
 
         executedCalls.add(callSignature);
+        toolSuccessCounts.set(toolName, priorSuccesses + 1);
         const parsedResult = typeof result === 'string' ? (runCatchingJson(result) || result) : result;
         lastToolResult = parsedResult;
 

@@ -10,6 +10,7 @@ import io.ktor.client.request.*
 import io.ktor.client.call.body
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.delay
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
@@ -123,6 +124,71 @@ class KairosApiClient @Inject constructor(
             url("http://192.168.100.132:3001/") // replace with real URL later
             contentType(ContentType.Application.Json)
         }
+    }
+
+    suspend fun getPromptStatus(runId: String): com.kairos.os.domain.models.PromptRunStatusResponse {
+        val session = supabaseClient.auth.currentSessionOrNull()
+        val token = session?.accessToken
+
+        val response = client.get("api/prompt/status") {
+            if (token != null) {
+                bearerAuth(token)
+            }
+            parameter("runId", runId)
+        }
+
+        return response.body<com.kairos.os.domain.models.PromptRunStatusResponse>()
+    }
+
+    suspend fun postPromptAndAwait(
+        intent: String,
+        appTarget: String?,
+        sessionId: String? = null,
+        attachments: List<AttachmentInfo>? = null,
+        currentDate: String? = SimpleDateFormat("yyyy-MM-dd HH:mm EEEE", Locale.getDefault()).format(Date()),
+        pollIntervalMs: Long = 2000L,
+        pollTimeoutMs: Long = 300000L
+    ): com.kairos.os.domain.models.KairosResponse {
+        val accepted = postPrompt(intent, appTarget, sessionId, attachments, currentDate)
+
+        if (accepted.type == "ERROR") {
+            return accepted
+        }
+
+        if (accepted.type != "ACCEPTED") {
+            return accepted
+        }
+
+        val runId = accepted.meta?.runId
+            ?: return com.kairos.os.domain.models.KairosResponse(
+                type = "ERROR",
+                text = "Server accepted prompt but did not return a runId."
+            )
+
+        val deadline = System.currentTimeMillis() + pollTimeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            val status = getPromptStatus(runId)
+            when (status.status) {
+                "completed" -> {
+                    return status.response ?: com.kairos.os.domain.models.KairosResponse(
+                        type = "ERROR",
+                        text = "Prompt completed but no response payload was returned."
+                    )
+                }
+                "failed" -> {
+                    return status.response ?: com.kairos.os.domain.models.KairosResponse(
+                        type = "ERROR",
+                        text = status.error ?: "Prompt execution failed."
+                    )
+                }
+            }
+            delay(pollIntervalMs)
+        }
+
+        return com.kairos.os.domain.models.KairosResponse(
+            type = "ERROR",
+            text = "Prompt is still processing in the cloud. Reopen this conversation shortly to see the result."
+        )
     }
 
     suspend fun postPrompt(

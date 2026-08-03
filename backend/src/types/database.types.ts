@@ -308,6 +308,41 @@ export interface Database {
           error_message?: string | null
         }
       }
+      prompt_runs: {
+        Row: {
+          id: string
+          user_id: string
+          conversation_id: string
+          user_message_id: string | null
+          status: 'pending' | 'running' | 'completed' | 'failed'
+          error_message: string | null
+          response_payload: Json | null
+          started_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          conversation_id: string
+          user_message_id?: string | null
+          status?: 'pending' | 'running' | 'completed' | 'failed'
+          error_message?: string | null
+          response_payload?: Json | null
+          started_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          conversation_id?: string
+          user_message_id?: string | null
+          status?: 'pending' | 'running' | 'completed' | 'failed'
+          error_message?: string | null
+          response_payload?: Json | null
+          started_at?: string
+          completed_at?: string | null
+        }
+      }
     }
     Views: {
       [_ in never]: never

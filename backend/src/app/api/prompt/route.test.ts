@@ -1,8 +1,10 @@
 import { POST } from './route';
 import { NextRequest } from 'next/server';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock cookies and supabase client
+const processIntentMock = vi.fn();
+const afterTasks: Array<() => Promise<void>> = [];
+
 vi.mock('next/headers', () => ({
   cookies: () => ({
     getAll: () => [],
@@ -10,15 +12,33 @@ vi.mock('next/headers', () => ({
   }),
 }));
 
+vi.mock('next/server', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('next/server')>();
+  return {
+    ...actual,
+    after: (task: () => Promise<void>) => {
+      afterTasks.push(task);
+    },
+  };
+});
+
+vi.mock('@/lib/db/prompt-runs', () => ({
+  createPromptRun: vi.fn().mockResolvedValue({ id: 'test-run-id' }),
+  updatePromptRun: vi.fn().mockResolvedValue({ id: 'test-run-id' }),
+}));
+
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () => ({
     auth: {
       getUser: () => ({ data: { user: { id: 'test-user-id' } }, error: null }),
     },
-    from: (table: string) => ({
+    from: () => ({
       insert: () => ({
         select: () => ({
-          single: () => ({ data: { id: 'test-conversation-id' }, error: null }),
+          single: () => ({
+            data: { id: 'test-id' },
+            error: null,
+          }),
         }),
       }),
       update: () => ({
@@ -28,41 +48,25 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }));
 
-// Mock processIntent
 vi.mock('@/lib/router/intent-router', () => ({
-  processIntent: vi.fn().mockImplementation(async (prompt, appTarget) => {
-    if (prompt.toLowerCase().includes('alarm')) {
-      return {
-        type: 'RESPONSE',
-        text: 'Alarm set successfully',
-        widget: {
-          widgetType: 'ALARM_CONFIRM',
-          items: [{ id: 'alarm_1', primary: '7:00 AM' }],
-        },
-        meta: {
-          conversationId: 'test-conversation-id',
-          timestamp: new Date().toISOString(),
-          model: 'gemini-3.5-flash',
-        },
-      };
-    }
-    return {
+  processIntent: (...args: unknown[]) => processIntentMock(...args),
+}));
+
+describe('POST /api/prompt', () => {
+  beforeEach(() => {
+    afterTasks.length = 0;
+    processIntentMock.mockReset();
+    processIntentMock.mockResolvedValue({
       type: 'RESPONSE',
-      text: 'Other task completed',
-      widget: {
-        widgetType: 'GENERIC_CARD',
-        items: [{ id: 'generic_1', primary: prompt.toLowerCase() }],
-      },
+      text: 'Task completed',
       meta: {
         conversationId: 'test-conversation-id',
         timestamp: new Date().toISOString(),
         model: 'gemini-3.5-flash',
       },
-    };
-  }),
-}));
+    });
+  });
 
-describe('POST /api/prompt', () => {
   const createRequest = (body: unknown) => {
     return new NextRequest('http://localhost/api/prompt', {
       method: 'POST',
@@ -74,34 +78,26 @@ describe('POST /api/prompt', () => {
     const req = createRequest({});
     const res = await POST(req);
     const json = await res.json();
-    
+
     expect(res.status).toBe(400);
     expect(json.type).toBe('ERROR');
     expect(json.text).toBe('Prompt is required');
-    expect(json.meta).toHaveProperty('timestamp');
   });
 
-  it('should return ALARM_CONFIRM widget for alarm intent', async () => {
-    const req = createRequest({ intent: 'Set an alarm for 7 AM' });
+  it('should return 202 ACCEPTED immediately without awaiting processIntent', async () => {
+    const req = createRequest({ intent: 'Update my calendar' });
     const res = await POST(req);
     const json = await res.json();
-    
-    expect(res.status).toBe(200);
-    expect(json.type).toBe('RESPONSE');
-    expect(json.widget.widgetType).toBe('ALARM_CONFIRM');
-    expect(json.meta).toHaveProperty('timestamp');
-  });
 
-  it('should return GENERIC_CARD widget for other intents', async () => {
-    const req = createRequest({ intent: 'Turn on the lights' });
-    const res = await POST(req);
-    const json = await res.json();
-    
-    expect(res.status).toBe(200);
-    expect(json.type).toBe('RESPONSE');
-    expect(json.widget.widgetType).toBe('GENERIC_CARD');
-    expect(json.widget.items[0].primary).toBe('turn on the lights');
-    expect(json.meta).toHaveProperty('timestamp');
+    expect(res.status).toBe(202);
+    expect(json.type).toBe('ACCEPTED');
+    expect(json.meta.runId).toBe('test-run-id');
+    expect(json.meta.status).toBe('running');
+    expect(processIntentMock).not.toHaveBeenCalled();
+
+    expect(afterTasks).toHaveLength(1);
+    await afterTasks[0]();
+    expect(processIntentMock).toHaveBeenCalledTimes(1);
   });
 
   it('should return 500 for invalid JSON body', async () => {
@@ -111,7 +107,7 @@ describe('POST /api/prompt', () => {
     });
     const res = await POST(req);
     const json = await res.json();
-    
+
     expect(res.status).toBe(500);
     expect(json.type).toBe('ERROR');
     expect(json.text).toContain('Failed to process request');

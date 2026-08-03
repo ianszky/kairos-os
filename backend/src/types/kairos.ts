@@ -1,5 +1,5 @@
 export interface KairosResponse {
-  type: 'RESPONSE' | 'WIDGET' | 'TEXT' | 'ANDROID_INTENT' | 'DEEP_LINK' | 'ERROR';
+  type: 'RESPONSE' | 'WIDGET' | 'TEXT' | 'ANDROID_INTENT' | 'DEEP_LINK' | 'ERROR' | 'ACCEPTED';
   widget?: WidgetPayload;
   text?: string;
   intent?: AndroidIntentPayload;
@@ -8,7 +8,17 @@ export interface KairosResponse {
     conversationId: string;
     timestamp: string;
     model: string;
+    runId?: string;
+    status?: 'pending' | 'running' | 'completed' | 'failed';
   };
+}
+
+export interface PromptRunStatusResponse {
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  runId: string;
+  conversationId: string;
+  response?: KairosResponse;
+  error?: string;
 }
 
 export interface WidgetPayload {
