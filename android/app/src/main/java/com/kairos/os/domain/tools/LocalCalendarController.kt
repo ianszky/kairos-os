@@ -156,8 +156,8 @@ class LocalCalendarController @Inject constructor(
             CalendarContract.Instances.BEGIN,
             CalendarContract.Instances.END,
             CalendarContract.Instances.ALL_DAY,
-            CalendarContract.Instances.CALENDAR_DISPLAY_NAME,
-            CalendarContract.Instances.ACCOUNT_NAME
+            CalendarContract.Events.CALENDAR_DISPLAY_NAME,
+            CalendarContract.Events.ACCOUNT_NAME
         )
 
         try {
@@ -174,8 +174,8 @@ class LocalCalendarController @Inject constructor(
                 val startCol = cursor.getColumnIndex(CalendarContract.Instances.BEGIN)
                 val endCol = cursor.getColumnIndex(CalendarContract.Instances.END)
                 val allDayCol = cursor.getColumnIndex(CalendarContract.Instances.ALL_DAY)
-                val calNameCol = cursor.getColumnIndex(CalendarContract.Instances.CALENDAR_DISPLAY_NAME)
-                val accountCol = cursor.getColumnIndex(CalendarContract.Instances.ACCOUNT_NAME)
+                val calNameCol = cursor.getColumnIndex(CalendarContract.Events.CALENDAR_DISPLAY_NAME)
+                val accountCol = cursor.getColumnIndex(CalendarContract.Events.ACCOUNT_NAME)
 
                 while (cursor.moveToNext()) {
                     val isAllDay = allDayCol != -1 && cursor.getInt(allDayCol) == 1
