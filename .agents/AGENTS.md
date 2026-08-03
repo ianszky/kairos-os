@@ -17,4 +17,5 @@
 - Use the `context` folder: refer to the PRD document for the global overview, and the Tech implementation document for technical details.
 
 ## State Documentation
-- Always keep the `state.md` documentation updated to track progress.
+- Keep `context/state.md` updated with the current task status.
+- Keep `context/progress.md` updated with completed/open task history for agent automation.

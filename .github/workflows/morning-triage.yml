@@ -30,4 +30,4 @@ jobs:
           curl -fsSL https://antigravity.google/cli/install.sh | bash
           
           # Run the Antigravity CLI non-interactively, instructing it to trigger the skill
-          agy --print "Run the morning-triage skill and update the state/progress.md file. Create a PR with your findings." --dangerously-skip-permissions
+          agy --print "Run the morning-triage skill and update the context/progress.md file. Create a PR with your findings." --dangerously-skip-permissions

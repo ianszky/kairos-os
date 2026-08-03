@@ -1,8 +1,57 @@
-.venv
-.venv/
-android/.gradle/
+# --- Dependencies ---
 node_modules/
+.venv/
+.venv
 
-# Android build outputs
-**/build/
+# --- IDE & local agent tooling ---
+.idea/
+.cursor/
+.claude/
+.impeccable/
+*.iml
+
+# --- Git worktrees ---
 .worktrees/
+
+# --- Android ---
+android/.gradle/
+android/.kotlin/
+android/local.properties
+
+# --- Backend ---
+backend/.next/
+backend/node_modules/
+backend/.env*
+backend/*.tsbuildinfo
+
+# --- Build outputs ---
+**/build/
+
+# --- Generated artifacts & scratch ---
+output/
+tmp/
+screenshots/
+kairos-reel/
+
+# --- Optional agent skills (reinstall locally if needed) ---
+.agents/skills/impeccable/
+.agents/skills/handoff/
+.agents/skills/remotion-*/
+
+# --- Root IDE / plugin artifacts ---
+/kotlin-plugin.xml
+/ksp-plugin.xml
+/ksp.xml
+/metadata.xml
+/doto.zip
+/errorlog.md
+/package.json
+/package-lock.json
+/skills-lock.json
+
+# --- Legacy state folder (use context/ instead) ---
+/state/
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
