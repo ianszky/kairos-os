@@ -27,7 +27,11 @@ fun AgentThinkingIndicator(statusLine: String? = null) {
             modifier = Modifier
                 .padding(start = 0.dp, top = 16.dp, bottom = 8.dp, end = 18.dp)
         ) {
-            Column {
+            val displayLine = statusLine?.takeIf { it.isNotBlank() } ?: "Thinking…"
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.Bottom,
@@ -38,8 +42,6 @@ fun AgentThinkingIndicator(statusLine: String? = null) {
                     Dot(delayMillis = 300)
                 }
 
-                val displayLine = statusLine?.takeIf { it.isNotBlank() } ?: "Thinking…"
-                Spacer(modifier = Modifier.height(8.dp))
                 AnimatedContent(
                     targetState = displayLine,
                     transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
