@@ -1,14 +1,23 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-// The admin client uses the service role key and bypasses all Row Level Security.
-// Use this ONLY for server-side administrative tasks that require elevated permissions.
-export const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!, 
-  {
+let adminClient: SupabaseClient | null = null;
+
+export function getSupabaseAdmin() {
+  if (adminClient) return adminClient;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    throw new Error("Supabase admin credentials are not configured.");
+  }
+
+  adminClient = createClient(url, key, {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
+      persistSession: false,
+    },
+  });
+
+  return adminClient;
+}

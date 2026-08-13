@@ -7,6 +7,16 @@ Every open task must have **Context**, **Technical Requirements**, and **Accepta
 
 ## 🟢 COMPLETED TASKS
 
+### 34. KaiOS SaaS Landing Page
+**Status:** DONE
+**Branch:** `feat/kaios-landing`
+**Summary:** Marketing landing page on Next.js backend with waitlist and interactive product mock:
+- **`/` landing** with hero, feature narrative, waitlist CTA (hero + footer)
+- **Phone mock** — clock, terminal, @-drawer, friction gate, canned chat responses
+- **Design tokens** from DESIGN.md wired into Tailwind/globals (Doto, Focus Orange, void black)
+- **Waitlist API** — `POST /api/waitlist`, `waitlist_emails` migration SQL
+- **Verification**: `npm run build` in backend; apply `context/supabase_waitlist_migration.sql`
+
 ### 33. Async Prompt Jobs (Phase 2)
 **Status:** DONE
 **Branch:** `feature/async-prompt-jobs`

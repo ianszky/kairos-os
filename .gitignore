@@ -23,6 +23,8 @@ backend/.next/
 backend/node_modules/
 backend/.env*
 backend/*.tsbuildinfo
+backend/.agents/
+backend/skills-lock.json
 
 # --- Build outputs ---
 **/build/

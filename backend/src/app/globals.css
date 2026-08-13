@@ -1,26 +1,83 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --kai-bg: #050505;
+  --kai-surface: #111111;
+  --kai-fg: #f5f5f5;
+  --kai-muted: #8a8a8a;
+  --kai-border: #333333;
+  --kai-accent: #ff6b00;
+  --kai-accent-bright: #ff8533;
+  --kai-accent-glow: rgba(255, 107, 0, 0.15);
+  --kai-accent-radial: rgba(255, 107, 0, 0.9);
+
+  --background: var(--kai-bg);
+  --foreground: var(--kai-fg);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-kai-bg: var(--kai-bg);
+  --color-kai-surface: var(--kai-surface);
+  --color-kai-fg: var(--kai-fg);
+  --color-kai-muted: var(--kai-muted);
+  --color-kai-border: var(--kai-border);
+  --color-kai-accent: var(--kai-accent);
+  --color-kai-accent-bright: var(--kai-accent-bright);
+  --font-sans: var(--font-doto);
+  --font-mono: var(--font-doto);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--kai-bg);
+  color: var(--kai-fg);
+  font-family: var(--font-doto), ui-monospace, monospace;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--kai-accent) 35%, transparent);
+  color: var(--kai-fg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.kai-glow {
+  box-shadow: 0 0 20px var(--kai-accent-glow);
+}
+
+.kai-device-glow {
+  background: radial-gradient(
+    circle at 50% 85%,
+    var(--kai-accent-radial) 0%,
+    rgba(255, 70, 0, 0.35) 35%,
+    transparent 70%
+  );
+}
+
+.kai-glass {
+  background: color-mix(in oklab, var(--kai-surface) 65%, transparent);
+  backdrop-filter: blur(15px);
+}
+
+.kai-mention {
+  color: var(--kai-accent);
+  font-weight: 700;
 }
