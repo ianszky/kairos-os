@@ -5,13 +5,18 @@ node_modules/
 
 # --- IDE & local agent tooling ---
 .idea/
+.agents/
 .cursor/
 .claude/
 .impeccable/
+.github/
 *.iml
 
 # --- Git worktrees ---
 .worktrees/
+
+# --- Private project context ---
+context/
 
 # --- Android ---
 android/.gradle/
@@ -32,13 +37,12 @@ backend/skills-lock.json
 # --- Generated artifacts & scratch ---
 output/
 tmp/
-screenshots/
 kairos-reel/
 
-# --- Optional agent skills (reinstall locally if needed) ---
-.agents/skills/impeccable/
-.agents/skills/handoff/
-.agents/skills/remotion-*/
+# --- Screenshots (track integrations promo set only) ---
+screenshots/*
+!screenshots/integrations/
+!screenshots/integrations/**
 
 # --- Root IDE / plugin artifacts ---
 /kotlin-plugin.xml
@@ -51,7 +55,7 @@ kairos-reel/
 /package-lock.json
 /skills-lock.json
 
-# --- Legacy state folder (use context/ instead) ---
+# --- Legacy state folder ---
 /state/
 
 # --- OS files ---
