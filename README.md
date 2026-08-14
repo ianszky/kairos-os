@@ -139,4 +139,4 @@ Open `android/` in Android Studio, sync Gradle, and run on a device or emulator.
 
 ## License
 
-Private / unpublished unless otherwise noted. Contact the maintainers for access or collaboration.
+All rights reserved unless a `LICENSE` file is added to this repository.
